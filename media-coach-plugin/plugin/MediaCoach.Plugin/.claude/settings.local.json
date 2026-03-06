@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo $SIMHUB_PATH)",
+      "Bash(powershell -NoProfile -NonInteractive -Command \"Get-ChildItem ''C:\\\\Windows\\\\Microsoft.NET\\\\Framework64'' -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 3 -ExpandProperty FullName\")",
+      "Bash(powershell -NoProfile -NonInteractive -Command \"& ''C:\\\\Program Files\\\\dotnet\\\\dotnet.exe'' --version\")",
+      "Bash(powershell -NoProfile -NonInteractive -Command \"& ''C:\\\\Program Files\\\\dotnet\\\\dotnet.exe'' build ''C:\\\\Users\\\\Owner\\\\Documents\\\\media-coach-plugin\\\\media-coach-plugin\\\\plugin\\\\MediaCoach.Plugin\\\\MediaCoach.Plugin.csproj'' -c Release -p:Platform=x64 --nologo 2>&1\")",
+      "Bash(powershell -NoProfile -NonInteractive -Command \":*)"
+    ]
+  }
+}

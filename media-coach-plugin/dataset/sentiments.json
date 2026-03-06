@@ -1,0 +1,163 @@
+{
+  "version": "1.0",
+  "description": "Sentiment vocabulary and phrase patterns drawn from sim racing YouTube commentary style. Used by the plugin to color commentary prompts.",
+  "sentiments": [
+
+    {
+      "id": "excitement_positive",
+      "label": "Excitement / Positive",
+      "description": "Expressions of genuine excitement, satisfaction, or joy in a moment.",
+      "phrases": [
+        "Oh that's lovely",
+        "That is absolutely beautiful",
+        "Yes! Get in there!",
+        "That felt so good",
+        "I love this car",
+        "Look at that, perfect",
+        "That's the lap right there",
+        "Clean as a whistle",
+        "I am absolutely flying",
+        "This is why I do this",
+        "What a feeling, honestly",
+        "That exit was chef's kiss",
+        "Getting there, getting there",
+        "The car is talking to me now"
+      ]
+    },
+
+    {
+      "id": "frustration_negative",
+      "label": "Frustration / Negative",
+      "description": "Expressions of frustration, disappointment, or mild anger at mistakes or incidents.",
+      "phrases": [
+        "Oh come on!",
+        "That's just embarrassing",
+        "What am I doing",
+        "No no no no no",
+        "That should not have happened",
+        "I lost so much time there",
+        "Genuinely terrible from me",
+        "That's a completely amateur mistake",
+        "I've given that one away",
+        "That's my fault, entirely my fault",
+        "Absolutely baffling decision",
+        "Why did I brake so early",
+        "I am absolutely hopeless",
+        "That's just not good enough"
+      ]
+    },
+
+    {
+      "id": "technical_analytical",
+      "label": "Technical / Analytical",
+      "description": "Calm, thoughtful analysis of car behavior, setup, or driving technique.",
+      "phrases": [
+        "So what's happening here is...",
+        "The issue is the rear is stepping out under power",
+        "You can feel the front pushing in the slow stuff",
+        "The key to this corner is committing early",
+        "I need to soften the rear anti-roll bar for this",
+        "Trail braking is absolutely critical here",
+        "The tire's over the peak temperature now",
+        "I'm carrying too much speed into the apex",
+        "The understeer is killing my exit speed",
+        "You want to rotate the car before the apex",
+        "It's all about getting the weight transfer right",
+        "I'm losing two tenths in sector two every lap",
+        "The setup change made it more neutral",
+        "Brake bias is too far forward for this corner"
+      ]
+    },
+
+    {
+      "id": "self_deprecating",
+      "label": "Self-Deprecating Humor",
+      "description": "Light, relatable humor about one's own mistakes or limitations. Jimmy Broadbent style.",
+      "phrases": [
+        "Absolutely sensational from the Pride of [wherever]",
+        "That is world-class incompetence right there",
+        "Please ignore what just happened",
+        "I have no idea what I'm doing, and I've accepted that",
+        "My driving coach would have a heart attack watching this",
+        "That move was absolute madness and I regret it",
+        "I am the worst driver in any lobby I enter",
+        "If anyone from a real team is watching, I apologize",
+        "That looked intentional and it absolutely was not",
+        "My brain said brake later and my body said no",
+        "I want to clarify that I practice before recording",
+        "That corner has humiliated me three sessions running"
+      ]
+    },
+
+    {
+      "id": "car_praise",
+      "label": "Car Praise",
+      "description": "Expressions of appreciation for a specific car's character or behavior.",
+      "phrases": [
+        "This car is an absolute weapon",
+        "The feedback from this thing is incredible",
+        "I don't know who built this car but I love them",
+        "It sounds absolutely epic",
+        "The way it rotates is just gorgeous",
+        "You can feel every bit of grip through the wheel",
+        "This is genuinely one of my favourite cars in sim racing",
+        "The braking in this thing is just insane",
+        "It rewards commitment so well",
+        "The engineers absolutely nailed the aerodynamics on this"
+      ]
+    },
+
+    {
+      "id": "sim_comparison",
+      "label": "Sim Comparison",
+      "description": "Comparisons between different simulators, often in terms of realism or feel.",
+      "phrases": [
+        "iRacing does this better than any other sim",
+        "Assetto Corsa Competizione nails this feeling",
+        "This is where [sim] falls short for me",
+        "Compared to real life, this sim gets it pretty much right",
+        "The tire model here is streets ahead of the competition",
+        "This is what I mean when I say [sim] is the benchmark",
+        "I've driven the real car and honestly this is frighteningly accurate",
+        "The physics are brilliant but the sound needs work",
+        "Every sim has compromises and this one is pretty minor"
+      ]
+    },
+
+    {
+      "id": "neutral_narrative",
+      "label": "Neutral Narrative",
+      "description": "Calm play-by-play commentary and situational narration.",
+      "phrases": [
+        "So we're coming up to the back straight now",
+        "I'm going to be very careful here in traffic",
+        "Pit window should be opening in the next couple of laps",
+        "The gap ahead is about a second and a half",
+        "I'm on the medium compound, should have enough to get to the end",
+        "We're about halfway through the stint now",
+        "I need to manage the gap to the car behind",
+        "Track conditions are improving lap by lap",
+        "The safety car is deployed, everyone bunches up",
+        "I'm going to try the late apex approach here"
+      ]
+    },
+
+    {
+      "id": "driving_advice",
+      "label": "Driving Advice",
+      "description": "Tips and technique advice aimed at the viewer.",
+      "phrases": [
+        "If you're learning this corner, the key is patience on the entry",
+        "Trail braking is what separates fast drivers from very fast drivers",
+        "Don't be afraid to use the full width of the track",
+        "You want to be looking at the exit before you hit the apex",
+        "The biggest gain for most people is braking technique",
+        "Smooth inputs are faster than aggressive inputs, always",
+        "I'd recommend dialing in your FOV before anything else",
+        "Setup changes are meaningless if your driving isn't consistent",
+        "The throttle on corner exit is where time is really made"
+      ]
+    }
+
+  ]
+}

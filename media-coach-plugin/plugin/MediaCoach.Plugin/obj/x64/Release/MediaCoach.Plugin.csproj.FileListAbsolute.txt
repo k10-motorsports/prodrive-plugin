@@ -1,0 +1,11 @@
+C:\Users\Owner\Documents\media-coach-plugin\media-coach-plugin\plugin\MediaCoach.Plugin\obj\x64\Release\MediaCoach.Plugin.csproj.AssemblyReference.cache
+C:\Users\Owner\Documents\media-coach-plugin\media-coach-plugin\plugin\MediaCoach.Plugin\obj\x64\Release\MediaCoach.Plugin_MarkupCompile.cache
+C:\Users\Owner\Documents\media-coach-plugin\media-coach-plugin\plugin\MediaCoach.Plugin\obj\x64\Release\Control.baml
+C:\Users\Owner\Documents\media-coach-plugin\media-coach-plugin\plugin\MediaCoach.Plugin\obj\x64\Release\Control.g.cs
+C:\Users\Owner\Documents\media-coach-plugin\media-coach-plugin\plugin\MediaCoach.Plugin\obj\x64\Release\MediaCoach.Plugin.g.resources
+C:\Users\Owner\Documents\media-coach-plugin\media-coach-plugin\plugin\MediaCoach.Plugin\obj\x64\Release\MediaCoach.Plugin.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Owner\Documents\media-coach-plugin\media-coach-plugin\plugin\MediaCoach.Plugin\obj\x64\Release\MediaCoach.Plugin.csproj.CoreCompileInputs.cache
+C:\Program Files (x86)\SimHub\MediaCoach.Plugin.dll
+C:\Program Files (x86)\SimHub\MediaCoach.Plugin.pdb
+C:\Users\Owner\Documents\media-coach-plugin\media-coach-plugin\plugin\MediaCoach.Plugin\obj\x64\Release\MediaCoach.Plugin.dll
+C:\Users\Owner\Documents\media-coach-plugin\media-coach-plugin\plugin\MediaCoach.Plugin\obj\x64\Release\MediaCoach.Plugin.pdb

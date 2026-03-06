@@ -1,0 +1,63 @@
+{
+  "DashName": "Media Coach",
+  "Author": "MediaCoach",
+  "Version": 2,
+  "Width": 1920,
+  "Height": 270,
+  "BackgroundColor": "#FF000000",
+  "BackgroundOpacity": 1.0,
+  "PreviewImage": null,
+  "Items": [
+    {
+      "$type": "SimHub.Plugins.OutputPlugins.Dash.GLCDs.Items.TextItem, SimHub.Plugins",
+      "Name": "CommentaryText",
+      "IsEnabled": true,
+      "Left": 0,
+      "Top": 0,
+      "Width": 1920,
+      "Height": 270,
+      "ZIndex": 1,
+      "Opacity": 1.0,
+      "RotationAngle": 0,
+
+      "Text_Formula": "js:var t = $prop('MediaCoach.Plugin.CommentaryText'); return t ? t : '';",
+      "Font": "Helvetica Neue",
+      "FontSize_Formula": "js:return Math.max(24, Math.min(60, window.innerWidth / 32));",
+      "FontSize": 40,
+      "FontWeight": "Normal",
+      "FontStyle": "Normal",
+      "TextColor": "#FFFFFFFF",
+      "TextAlignment": "Center",
+      "VerticalAlignment": "Center",
+      "TextWrapping": "Wrap",
+      "Padding": "60,20,60,20",
+      "LineHeight": 1.35,
+
+      "Visibility_Formula": "js:return $prop('MediaCoach.Plugin.CommentaryVisible') ? 'Visible' : 'Hidden';",
+
+      "Animations": []
+    },
+    {
+      "$type": "SimHub.Plugins.OutputPlugins.Dash.GLCDs.Items.TextItem, SimHub.Plugins",
+      "Name": "CountdownBar",
+      "IsEnabled": true,
+      "Left": 0,
+      "Top": 254,
+      "Width_Formula": "js:var pct = $prop('MediaCoach.Plugin.CommentarySecondsRemaining') / 60.0; return Math.round(pct * 1920);",
+      "Width": 1920,
+      "Height": 6,
+      "ZIndex": 2,
+      "Opacity": 0.6,
+
+      "BackgroundColor_Formula": "js:var cat = $prop('MediaCoach.Plugin.CommentaryCategory'); if(cat==='hardware') return '#FF2196F3'; if(cat==='game_feel') return '#FF9C27B0'; if(cat==='car_response') return '#FFF44336'; return '#FF4CAF50';",
+      "BackgroundColor": "#FF4CAF50",
+
+      "Text_Formula": "js:return '';",
+      "Font": "Segoe UI",
+      "FontSize": 1,
+      "TextColor": "#00000000",
+
+      "Visibility_Formula": "js:return $prop('MediaCoach.Plugin.CommentaryVisible') ? 'Visible' : 'Hidden';"
+    }
+  ]
+}

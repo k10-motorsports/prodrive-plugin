@@ -1,0 +1,75 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>MediaCoach.Plugin</AssemblyName>
+    <RootNamespace>MediaCoach.Plugin</RootNamespace>
+    <UseWPF>true</UseWPF>
+    <Nullable>disable</Nullable>
+    <LangVersion>8.0</LangVersion>
+    <Platforms>x64</Platforms>
+    <Platform>x64</Platform>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+
+    <!--
+      Set SIMHUB_PATH in your environment or edit this directly.
+      Default SimHub install: C:\Program Files (x86)\SimHub\
+    -->
+    <SimHubPath Condition="'$(SIMHUB_PATH)'==''">C:\Program Files (x86)\SimHub\</SimHubPath>
+    <SimHubPath Condition="'$(SIMHUB_PATH)'!=''">$(SIMHUB_PATH)</SimHubPath>
+
+    <!-- Build directly into SimHub folder for easy F5 debugging -->
+    <OutputPath>$(SimHubPath)</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <!-- SimHub plugin DLLs — must NOT be copied to output (Private=False) -->
+  <ItemGroup>
+    <Reference Include="GameReaderCommon">
+      <HintPath>$(SimHubPath)GameReaderCommon.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SimHub.Plugins">
+      <HintPath>$(SimHubPath)SimHub.Plugins.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SimHub.Logging">
+      <HintPath>$(SimHubPath)SimHub.Logging.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="log4net">
+      <HintPath>$(SimHubPath)log4net.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(SimHubPath)Newtonsoft.Json.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="MahApps.Metro">
+      <HintPath>$(SimHubPath)MahApps.Metro.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!--
+    Post-build: copy the dataset folder alongside the DLL so the plugin
+    can find commentary_topics.json automatically.
+  -->
+  <Target Name="CopyDataset" AfterTargets="Build">
+    <ItemGroup>
+      <DatasetFiles Include="..\..\dataset\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(DatasetFiles)"
+          DestinationFolder="$(SimHubPath)dataset\%(RecursiveDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <!-- Debug: launch SimHub when pressing F5 -->
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <StartAction>Program</StartAction>
+    <StartProgram>$(SimHubPath)SimHubWPF.exe</StartProgram>
+  </PropertyGroup>
+
+</Project>
