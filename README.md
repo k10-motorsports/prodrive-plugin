@@ -19,28 +19,32 @@ The companion plugin reads the same telemetry properties via SimHub's HTTP API a
 ## Repository Structure
 
 ```
-├── plugin/MediaCoach.Plugin/       SimHub plugin (C#, .NET Framework 4.8, WPF)
-│   ├── Engine/                     Commentary engine, trigger evaluator, fragments
-│   ├── Models/                     Data models (topics, sentiments)
-│   └── Properties/                 Assembly metadata
-├── homebridge-plugin/              Homebridge platform plugin (TypeScript)
-│   └── src/__tests__/              Jest test suite (133 tests)
-├── dataset/                        Shared commentary data files (JSON)
-│   ├── commentary_topics.json      33 topics with triggers, thresholds, prompts
-│   ├── commentary_fragments.json   Composable sentence fragments (240+ combos/topic)
-│   ├── sentiments.json             Sentiment vocabulary and colors
-│   ├── channel_notes.json          Voice-matching style profiles
-│   └── commentary_sources.json     Alternative transcript source index
-├── tests/
-│   ├── MediaCoach.Tests/           C# unit tests (NUnit, 200+ tests)
-│   ├── validate_datasets.py        Python dataset validation (28 tests)
-│   └── recordings/                 Synthetic telemetry transcripts
-├── tools/
-│   ├── replay_telemetry.py         Offline telemetry replay and scenario generation
-│   └── generate_fragments.py       Haiku-powered fragment generation script
-├── DashTemplates/                  SimHub dashboard templates
-├── install.bat                     One-click Windows installer
-└── docs/                           In-depth documentation
+├── simhub-plugin/                        SimHub plugin and data
+│   ├── plugin/MediaCoach.Plugin/         C# plugin (NET Framework 4.8, WPF)
+│   │   ├── Engine/                       Commentary engine, trigger evaluator, fragments
+│   │   ├── Models/                       Data models (topics, sentiments)
+│   │   └── Properties/                   Assembly metadata
+│   ├── dataset/                          Shared commentary data files (JSON)
+│   │   ├── commentary_topics.json        33 topics with triggers, thresholds, prompts
+│   │   ├── commentary_fragments.json     Composable sentence fragments (240+ combos/topic)
+│   │   ├── sentiments.json               Sentiment vocabulary and colors
+│   │   ├── channel_notes.json            Voice-matching style profiles
+│   │   └── commentary_sources.json       Alternative transcript source index
+│   ├── tests/
+│   │   ├── MediaCoach.Tests/             C# unit tests (NUnit, 200+ tests)
+│   │   ├── validate_datasets.py          Python dataset validation (28 tests)
+│   │   └── recordings/                   Synthetic telemetry transcripts
+│   ├── tools/
+│   │   ├── replay_telemetry.py           Offline telemetry replay and scenario generation
+│   │   └── generate_fragments.py         Haiku-powered fragment generation script
+│   ├── DashTemplates/                    SimHub dashboard templates
+│   ├── docs/                             In-depth documentation
+│   ├── install.bat                       One-click Windows installer
+│   └── export.bat                        Export built files from SimHub back to repo
+├── homebridge-plugin/                    Homebridge platform plugin (TypeScript)
+│   ├── src/__tests__/                    Jest test suite (133 tests)
+│   └── docs/                             Homebridge-specific documentation
+└── .github/workflows/                    CI pipelines
 ```
 
 ## Install
@@ -49,7 +53,7 @@ The companion plugin reads the same telemetry properties via SimHub's HTTP API a
 
 Prerequisites: [SimHub](https://www.simhubdash.com/) installed on Windows.
 
-**Double-click `install.bat`** in the repository root. The installer finds your SimHub installation, copies the plugin DLL, dataset files, and dashboard template to the correct locations. It checks whether SimHub is running and warns you to close it first if so.
+**Double-click `simhub-plugin/install.bat`**. The installer finds your SimHub installation, copies the plugin DLL, dataset files, and dashboard template to the correct locations. It checks whether SimHub is running and warns you to close it first if so.
 
 After installation:
 
@@ -60,7 +64,7 @@ After installation:
 
 The plugin exposes all its data as SimHub properties (prefixed `MediaCoach.Plugin.*`), so you can build your own dashboard layout or integrate the properties into an existing one.
 
-To build from source instead: **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)**
+To build from source instead: **[simhub-plugin/docs/DEVELOPMENT.md](simhub-plugin/docs/DEVELOPMENT.md)**
 
 ### Homebridge HomeKit Light Plugin
 
@@ -96,22 +100,22 @@ Three light modes are available:
 
 Each light can override the global mode independently — run one light for flags and another for full telemetry. Blinking effects (flag pulses, proximity warnings) are configurable per-light.
 
-Full setup walkthrough with multi-light configuration and troubleshooting: **[docs/HOMEKIT.md](docs/HOMEKIT.md)**
+Full setup walkthrough with multi-light configuration and troubleshooting: **[homebridge-plugin/docs/HOMEKIT.md](homebridge-plugin/docs/HOMEKIT.md)**
 
 ## Documentation
 
 | Document | Covers |
 |----------|--------|
 | **SimHub Plugin** | |
-| [docs/SIMHUB_PLUGIN.md](docs/SIMHUB_PLUGIN.md) | Plugin architecture, cross-game support, settings, dashboard properties |
-| [docs/COMMENTARY_ENGINE.md](docs/COMMENTARY_ENGINE.md) | Trigger evaluation pipeline, severity interruption, fragment assembly, color system, cooldowns |
+| [simhub-plugin/docs/SIMHUB_PLUGIN.md](simhub-plugin/docs/SIMHUB_PLUGIN.md) | Plugin architecture, cross-game support, settings, dashboard properties |
+| [simhub-plugin/docs/COMMENTARY_ENGINE.md](simhub-plugin/docs/COMMENTARY_ENGINE.md) | Trigger evaluation pipeline, severity interruption, fragment assembly, color system, cooldowns |
 | **Homebridge Plugin** | |
-| [docs/HOMEBRIDGE_PLUGIN.md](docs/HOMEBRIDGE_PLUGIN.md) | Platform architecture, color mapping, polling loop, per-light overrides |
-| [docs/HOMEKIT.md](docs/HOMEKIT.md) | Apple HomeKit setup instructions, light modes, multi-light configuration, troubleshooting |
+| [homebridge-plugin/docs/HOMEBRIDGE_PLUGIN.md](homebridge-plugin/docs/HOMEBRIDGE_PLUGIN.md) | Platform architecture, color mapping, polling loop, per-light overrides |
+| [homebridge-plugin/docs/HOMEKIT.md](homebridge-plugin/docs/HOMEKIT.md) | Apple HomeKit setup instructions, light modes, multi-light configuration, troubleshooting |
 | **Shared** | |
-| [docs/DATASETS.md](docs/DATASETS.md) | Topic schema, trigger conditions, fragment format, sentiment reference, how to add new topics |
-| [docs/TESTING.md](docs/TESTING.md) | All four test suites, synthetic scenarios, CI integration, telemetry recording/replay |
-| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Building from source, project setup, contributor workflow |
+| [simhub-plugin/docs/DATASETS.md](simhub-plugin/docs/DATASETS.md) | Topic schema, trigger conditions, fragment format, sentiment reference, how to add new topics |
+| [simhub-plugin/docs/TESTING.md](simhub-plugin/docs/TESTING.md) | All four test suites, synthetic scenarios, CI integration, telemetry recording/replay |
+| [simhub-plugin/docs/DEVELOPMENT.md](simhub-plugin/docs/DEVELOPMENT.md) | Building from source, project setup, contributor workflow |
 
 ## Testing
 
@@ -119,13 +123,13 @@ Four test suites run without SimHub, iRacing, or any external service:
 
 ```bash
 # C# unit tests (200+ tests, NUnit)
-cd tests/MediaCoach.Tests && dotnet test
+cd simhub-plugin/tests/MediaCoach.Tests && dotnet test
 
 # Python dataset validation (28 tests)
-python3 tests/validate_datasets.py
+python3 simhub-plugin/tests/validate_datasets.py
 
 # Telemetry replay with synthetic scenarios
-python3 tools/replay_telemetry.py generate full_race
+python3 simhub-plugin/tools/replay_telemetry.py generate full_race
 
 # Homebridge Jest tests (133 tests)
 cd homebridge-plugin && npm test
@@ -133,7 +137,7 @@ cd homebridge-plugin && npm test
 
 The C# test project uses standalone reimplementations of the plugin's engine logic (no SimHub dependencies), so it runs on any platform with the .NET 6.0 SDK. The Python tools test the actual JSON dataset files and reproduce the full trigger evaluation pipeline for offline verification.
 
-Full testing documentation: **[docs/TESTING.md](docs/TESTING.md)**
+Full testing documentation: **[simhub-plugin/docs/TESTING.md](simhub-plugin/docs/TESTING.md)**
 
 ## Data Sources and Attribution
 
@@ -183,7 +187,7 @@ The composable fragment system (opener + body + closer) is directly inspired by 
 
 ### AI-Assisted Content
 
-Commentary fragments in `dataset/commentary_fragments.json` were generated using [Claude](https://claude.ai) (Anthropic's `claude-haiku-4-5` model) with the commentary topics, sentiment vocabulary, and channel style profiles as input. The generation is a one-time offline process — no AI API calls occur at runtime in the current version.
+Commentary fragments in `simhub-plugin/dataset/commentary_fragments.json` were generated using [Claude](https://claude.ai) (Anthropic's `claude-haiku-4-5` model) with the commentary topics, sentiment vocabulary, and channel style profiles as input. The generation is a one-time offline process — no AI API calls occur at runtime in the current version.
 
 Plugin codebase, test suites, dataset structures, documentation, and Homebridge companion plugin built with [Claude Code](https://claude.ai/claude-code) (Anthropic's `claude-opus-4-6`).
 
