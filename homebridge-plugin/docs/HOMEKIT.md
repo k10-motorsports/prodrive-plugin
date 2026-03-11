@@ -10,8 +10,9 @@ Before starting, you need the following running on your network:
 - **SimHub Web Dashboard Server** enabled (Settings > Web Server in SimHub, default port 8888)
 - **Homebridge** (v1.6.0+) running on any machine that can reach your SimHub PC over the network
 - **Node.js** 18 or later on the Homebridge host
-- At least one **HomeKit-compatible color light** (Hue, LIFX, Nanoleaf, or any bulb exposed through Homebridge)
-- A HomeKit automation app that supports value-passthrough triggers — **[Controller for HomeKit](https://controllerforhomekit.com/)** or **[Home+](https://hochgatterer.me/home+/)** recommended for full color mirroring (the stock Apple Home app can do on/off but not exact color copying)
+- At least one **color-capable smart light** — either paired directly to HomeKit (Hue, LIFX, Nanoleaf) or exposed through a Homebridge plugin (homebridge-hue, homebridge-shelly, homebridge-zigbee2mqtt, etc.)
+- **For native HomeKit lights:** a HomeKit automation app — **[Controller for HomeKit](https://controllerforhomekit.com/)** or **[Home+](https://hochgatterer.me/home+/)** recommended for full color mirroring, or **[Eve](https://www.evehome.com/en/eve-app)** (free) for basic automation
+- **For Homebridge-managed lights:** **[homebridge-plugin-automation](https://github.com/grrowl/homebridge-plugin-automation)** (free, lowest latency, runs server-side)
 
 ## Installation
 
@@ -71,11 +72,21 @@ This is a **virtual light** — it doesn't control any physical bulb directly. T
 
 ### 5. Connect the virtual light to your physical lights
 
-The virtual light acts as a color signal source. You need an automation that tells your physical light to mirror the virtual light's color whenever it changes.
+The virtual light acts as a color signal source. You need an automation layer that mirrors the virtual light's HSB values onto your real bulbs whenever they change. Which approach to use depends on **how your physical lights are connected**.
 
-**How this works conceptually:** The plugin polls SimHub at ~500ms intervals and writes HSB values to the virtual Lightbulb accessory. HomeKit sees the characteristic update and fires any automation you've attached to that accessory. The automation then pushes the same HSB values to your real bulb.
+#### Which path should I use?
 
-#### Option A: Controller for HomeKit (recommended)
+**If your lights are paired directly to HomeKit** (Hue Bridge → HomeKit, Nanoleaf → HomeKit, LIFX → HomeKit, or any bulb that shows up in Apple Home without Homebridge) → use **Path A: HomeKit Automation**. Homebridge can't directly control accessories it didn't create, so you need a HomeKit automation to bridge the gap.
+
+**If your lights are exposed through a Homebridge plugin** (homebridge-hue, homebridge-shelly, homebridge-zigbee2mqtt, homebridge-lifx, or any light that only exists because a Homebridge plugin created it) → you can use either path, but **Path B: homebridge-plugin-automation** is recommended. It runs entirely on the Homebridge server with no round-trip through HomeKit, giving you the lowest possible latency.
+
+---
+
+#### Path A: HomeKit automation (for native HomeKit lights)
+
+The plugin polls SimHub at ~500ms intervals and writes HSB values to the virtual Lightbulb accessory. HomeKit sees the characteristic update and fires any automation you've attached to that accessory. The automation then pushes the same HSB values to your real bulb.
+
+**Controller for HomeKit (recommended)**
 
 [Controller for HomeKit](https://controllerforhomekit.com/) (paid, iOS/Mac) supports value-passthrough automations, which is what makes full color mirroring possible.
 
@@ -87,26 +98,110 @@ The virtual light acts as a color signal source. You need an automation that tel
 
 Controller lets you reference one accessory's characteristic value inside another accessory's action, so the physical light always copies the exact color.
 
-#### Option B: Home+ (iOS/Mac)
+**Home+ (iOS/Mac)**
 
 [Home+](https://hochgatterer.me/home+/) (paid) similarly supports value-reference automations. The setup is comparable — trigger on the virtual light's characteristics changing, and pass the values through to your physical light.
 
-#### Option C: Eve for HomeKit (iOS)
+**Eve for HomeKit (iOS)**
 
 [Eve](https://www.evehome.com/en/eve-app) (free) offers condition-based automations with more flexibility than the stock Home app. You can create automations triggered by the virtual light's state changes, then configure your physical light to follow.
 
-#### Option D: Stock Apple Home app
+**Stock Apple Home app (limited)**
 
-The built-in Home app can trigger automations when an accessory turns on/off, but it has limited support for "copy the exact color from one light to another." You can still get useful results with a simpler approach:
+The built-in Home app can trigger automations when an accessory turns on/off, but it cannot copy exact color values from one light to another. You can still get basic results:
 
 1. **Automation 1:** When "Sim Rig Light" turns **on** → turn on "Desk Lamp"
 2. **Automation 2:** When "Sim Rig Light" turns **off** → turn off "Desk Lamp"
 
-This gives you on/off mirroring. For color, you'd need to create separate automations for specific brightness thresholds (e.g., "when brightness is 100%, set Desk Lamp to red") — workable but tedious. For full color mirroring, Controller for HomeKit or Home+ is strongly recommended.
+This gives you on/off mirroring only. For full color mirroring, Controller for HomeKit or Home+ is strongly recommended.
 
-#### Option E: Homebridge automation plugin
+---
 
-If you'd rather skip the HomeKit automation layer entirely, you can install a Homebridge automation plugin like [homebridge-automation](https://www.npmjs.com/package/homebridge-automation) to define rules directly on the Homebridge server. This has the lowest latency since it runs locally without a round-trip through HomeKit.
+#### Path B: homebridge-plugin-automation (for Homebridge-managed lights)
+
+[homebridge-plugin-automation](https://github.com/grrowl/homebridge-plugin-automation) lets you write JavaScript rules that run directly on the Homebridge server. When the Media Coach virtual light's characteristics change, your script reads the new values and writes them to your physical light — all within the same Homebridge process, no HomeKit round-trip required. This is the lowest-latency option available.
+
+**Important:** This only works for lights that are registered as accessories within the same Homebridge instance (via plugins like homebridge-hue, homebridge-shelly, homebridge-zigbee2mqtt, etc.). It cannot control native HomeKit accessories that weren't created by Homebridge. If your lights are paired directly to HomeKit, use Path A instead.
+
+**Step 1: Install the plugin**
+
+```bash
+npm install -g homebridge-plugin-automation
+```
+
+Or install it through the Homebridge UI under Plugins.
+
+**Step 2: Enable insecure mode**
+
+homebridge-plugin-automation requires Homebridge to run in insecure mode (`-I` flag) to access other plugins' accessories. In the Homebridge UI, go to **Settings → Homebridge Settings** and add `-I` to the startup flags. If you run Homebridge from the command line, start it with `homebridge -I`.
+
+**Step 3: Create your automation script**
+
+Create a file called `media-coach-lights.js` somewhere accessible to Homebridge (e.g., alongside your `config.json`):
+
+```javascript
+// media-coach-lights.js
+// Mirrors Media Coach virtual light colors to physical Homebridge lights
+
+// Configuration — change these to match your accessory names
+const VIRTUAL_LIGHT = 'Sim Rig Light';       // Name of the Media Coach virtual light
+const PHYSICAL_LIGHTS = ['Desk Lamp', 'LED Strip'];  // Names of your real lights
+
+automation.listen(({ serviceName, characteristic, value }) => {
+  // Only react to changes on the Media Coach virtual light
+  if (serviceName !== VIRTUAL_LIGHT) return;
+
+  // Mirror the characteristic to all physical lights
+  for (const target of PHYSICAL_LIGHTS) {
+    if (characteristic === 'Hue' ||
+        characteristic === 'Saturation' ||
+        characteristic === 'Brightness' ||
+        characteristic === 'On') {
+      automation.set(target, characteristic, value);
+    }
+  }
+});
+```
+
+**Step 4: Add the platform to your Homebridge config**
+
+Add this to the `platforms` array in your Homebridge `config.json`:
+
+```json
+{
+  "platform": "Automation",
+  "automationCode": "/path/to/media-coach-lights.js"
+}
+```
+
+Replace `/path/to/` with the actual path to the script file.
+
+**Step 5: Restart Homebridge**
+
+After restarting, the automation script will load and begin mirroring. Check the Homebridge log for any errors. You should see the physical lights respond within one poll interval (~500ms) of any telemetry change.
+
+**Advanced: per-light mode overrides in the automation script**
+
+If you're using multiple virtual lights with different modes (see Multi-Light Setup below), you can map each virtual light to a different physical light:
+
+```javascript
+const LIGHT_MAP = {
+  'Overhead MC':  ['Overhead Hue Bulb'],
+  'Flag Strip MC': ['Monitor LED Strip'],
+  'Ambient MC':   ['Desk Lamp', 'Floor Lamp'],
+};
+
+automation.listen(({ serviceName, characteristic, value }) => {
+  const targets = LIGHT_MAP[serviceName];
+  if (!targets) return;
+
+  if (['Hue', 'Saturation', 'Brightness', 'On'].includes(characteristic)) {
+    for (const target of targets) {
+      automation.set(target, characteristic, value);
+    }
+  }
+});
+```
 
 ### 6. Verify end-to-end
 

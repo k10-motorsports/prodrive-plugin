@@ -68,14 +68,16 @@ To build from source instead: **[simhub-plugin/docs/DEVELOPMENT.md](simhub-plugi
 
 ### Homebridge HomeKit Light Plugin
 
-Prerequisites: [Homebridge](https://homebridge.io/) (v1.6+), Node.js 18+, SimHub web server enabled.
+Prerequisites: [Homebridge](https://homebridge.io/) (v1.6+), Node.js 18+, SimHub web server enabled, at least one color-capable smart light.
+
+**1. Install and configure the plugin:**
 
 ```bash
 cd homebridge-plugin
 npm install && npm run build && npm link
 ```
 
-Add the `MediaCoachLights` platform to your Homebridge config:
+Add the `MediaCoachLights` platform to your Homebridge `config.json`:
 
 ```json
 {
@@ -90,7 +92,13 @@ Add the `MediaCoachLights` platform to your Homebridge config:
 }
 ```
 
-Three light modes are available:
+**2. Connect the virtual light to your physical lights.** The plugin creates a virtual light in HomeKit that reflects telemetry — it doesn't control physical bulbs directly. You connect them using one of two approaches depending on how your lights are set up:
+
+**If your lights are managed by Homebridge** (homebridge-hue, homebridge-shelly, etc.) — use [homebridge-plugin-automation](https://github.com/grrowl/homebridge-plugin-automation) (free). Install it, enable Homebridge insecure mode (`-I`), and create a script that mirrors the virtual light's HSB values to your real lights. This runs entirely server-side with the lowest latency. See the [full setup guide](homebridge-plugin/docs/HOMEKIT.md) for the complete script.
+
+**If your lights are paired directly to HomeKit** (Hue Bridge → HomeKit, Nanoleaf → HomeKit, etc.) — use a HomeKit automation app. [Eve](https://www.evehome.com/en/eve-app) (free) handles basic triggers; [Controller for HomeKit](https://controllerforhomekit.com/) or [Home+](https://hochgatterer.me/home+/) (paid) support full HSB value-passthrough for exact color mirroring.
+
+**3. Three light modes are available:**
 
 | Mode | What It Shows |
 |------|---------------|
@@ -100,7 +108,7 @@ Three light modes are available:
 
 Each light can override the global mode independently — run one light for flags and another for full telemetry. Blinking effects (flag pulses, proximity warnings) are configurable per-light.
 
-Full setup walkthrough with multi-light configuration and troubleshooting: **[homebridge-plugin/docs/HOMEKIT.md](homebridge-plugin/docs/HOMEKIT.md)**
+Full setup walkthrough with multi-light configuration, automation scripts, and troubleshooting: **[homebridge-plugin/docs/HOMEKIT.md](homebridge-plugin/docs/HOMEKIT.md)**
 
 ## Documentation
 
