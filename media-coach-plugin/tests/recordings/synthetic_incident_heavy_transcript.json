@@ -1,0 +1,15 @@
+[
+  {
+    "time": 20.0,
+    "time_formatted": "00:00:20",
+    "topicId": "spin_catch",
+    "title": "Big Save",
+    "category": "car_response",
+    "severity": 5,
+    "severityLabel": "Critical",
+    "color": "#FF66BB6A",
+    "prompt": "Massive snap right there. The physics of that save are worth explaining \u2014 it's left foot, hands, instinct all at once. Know what saved it.",
+    "interrupted": false,
+    "interruptedTopic": null
+  }
+]

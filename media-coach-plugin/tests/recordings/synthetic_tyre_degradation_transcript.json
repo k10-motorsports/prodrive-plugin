@@ -1,0 +1,28 @@
+[
+  {
+    "time": 165.0,
+    "time_formatted": "00:02:45",
+    "topicId": "tyre_wear_high",
+    "title": "High Tyre Wear",
+    "category": "car_response",
+    "severity": 2,
+    "severityLabel": "Notable",
+    "color": "#8C66BB6A",
+    "prompt": "Tyre wear critical. The worn rubber is the limiting factor in every corner now. Pace back.",
+    "interrupted": false,
+    "interruptedTopic": null
+  },
+  {
+    "time": 261.0,
+    "time_formatted": "00:04:21",
+    "topicId": "hot_tyres",
+    "title": "Overheating Tyres",
+    "category": "car_response",
+    "severity": 3,
+    "severityLabel": "Significant",
+    "color": "#B366BB6A",
+    "prompt": "Too hot on the fronts. The tires are past their optimal window and everything gets harder from here. Pace off.",
+    "interrupted": false,
+    "interruptedTopic": null
+  }
+]

@@ -15,17 +15,40 @@ namespace MediaCoach.Plugin.Engine
     /// </summary>
     public class CommentaryEngine
     {
-        // ── Severity → sentiment color mapping ──────────────────────────────
-        // Used when EventOnlyMode is active or when a topic has no explicit sentiment.
-        // Maps severity (1-5) to a color that visually communicates urgency.
-        private static readonly Dictionary<int, string> SeverityColors =
+        // ── Category → color mapping ────────────────────────────────────────
+        // Color encodes event TYPE (category). Avoids all flag colors:
+        // red, yellow/amber, blue, orange, black.
+        private static readonly Dictionary<string, string> CategoryColors =
+            new Dictionary<string, string>
+            {
+                { "hardware",          "00ACC1" },  // cyan — equipment / FFB
+                { "game_feel",         "AB47BC" },  // purple — sim-specific observations
+                { "car_response",      "66BB6A" },  // green — grip, wear, temps, balance
+                { "racing_experience", "EC407A" },  // magenta/pink — drivers, flags, incidents
+            };
+
+        // ── Category → WCAG text color (bright same-shade for dark backgrounds) ─
+        // High-contrast, fully opaque text colors in the same hue family.
+        // Meet WCAG AA (4.5:1) against the translucent overlay on black.
+        private static readonly Dictionary<string, string> CategoryTextColors =
+            new Dictionary<string, string>
+            {
+                { "hardware",          "#FFB2EBF2" },  // light cyan
+                { "game_feel",         "#FFCE93D8" },  // light purple
+                { "car_response",      "#FFA5D6A7" },  // light green
+                { "racing_experience", "#FFF48FB1" },  // light pink
+            };
+
+        // ── Severity → alpha (opacity) mapping ──────────────────────────────
+        // Higher severity = more opaque overlay. Alpha as hex string.
+        private static readonly Dictionary<int, string> SeverityAlphas =
             new Dictionary<int, string>
             {
-                { 1, "#FF37474F" },  // slate grey — ambient / informational
-                { 2, "#FF0D47A1" },  // blue — notable
-                { 3, "#FFE65100" },  // orange — significant
-                { 4, "#FFF57F17" },  // amber — urgent
-                { 5, "#FFB71C1C" },  // red — critical
+                { 1, "66" },  // 40% — ambient / informational
+                { 2, "8C" },  // 55% — notable
+                { 3, "B3" },  // 70% — significant
+                { 4, "D9" },  // 85% — urgent
+                { 5, "FF" },  // 100% — critical
             };
 
         private static readonly Dictionary<int, string> SeverityLabels =
@@ -53,6 +76,7 @@ namespace MediaCoach.Plugin.Engine
         private Dictionary<string, string> _sentimentColors = new Dictionary<string, string>();
         private Dictionary<string, string> _sentimentLabels = new Dictionary<string, string>();
         private readonly Random _rng = new Random();
+        private readonly FragmentAssembler _fragmentAssembler = new FragmentAssembler();
 
         // Per-topic last trigger time
         private readonly Dictionary<string, DateTime> _topicLastTrigger = new Dictionary<string, DateTime>();
@@ -67,6 +91,7 @@ namespace MediaCoach.Plugin.Engine
         private volatile string _currentTopicId        = "";
         private volatile string _currentSentimentLabel = "";
         private volatile string _currentSentimentColor = "#FF000000";
+        private volatile string _currentTextColor      = "#FFFFFFFF";
         private volatile string _currentEventExposition = "";
         private DateTime _promptDisplayedAt             = DateTime.MinValue;
         private int _currentSeverity                    = 0;
@@ -96,6 +121,7 @@ namespace MediaCoach.Plugin.Engine
         public string CurrentTopicId        => _currentTopicId;
         public string CurrentSentimentLabel => _currentSentimentLabel;
         public string CurrentSentimentColor => _currentSentimentColor;
+        public string CurrentTextColor      => _currentTextColor;
         public string CurrentEventExposition => _currentEventExposition;
         public int    CurrentSeverity       => _currentSeverity;
         public bool   IsVisible       => _currentText.Length > 0
@@ -120,7 +146,8 @@ namespace MediaCoach.Plugin.Engine
             _currentText           = "Media Coach is active. Prompts will appear here when telemetry events fire during your session.";
             _currentCategory       = "hardware";
             _currentTitle          = "Media Coach Ready";
-            _currentSentimentColor = "#FF37474F"; // neutral dark slate (AARRGGBB)
+            _currentSentimentColor = "#6637474F"; // neutral dark slate, low alpha (AARRGGBB)
+            _currentTextColor      = "#FFFFFFFF"; // default white text
             _currentSeverity       = 1;
             _promptDisplayedAt     = DateTime.UtcNow;
         }
@@ -187,6 +214,11 @@ namespace MediaCoach.Plugin.Engine
             {
                 SimHub.Logging.Current.Error($"[MediaCoach] Failed to load sentiments: {ex.Message}");
             }
+        }
+
+        public void LoadFragments(string jsonPath)
+        {
+            _fragmentAssembler.LoadFragments(jsonPath);
         }
 
         private void LoadBuiltinTopics()
@@ -368,6 +400,7 @@ namespace MediaCoach.Plugin.Engine
             _currentTopicId         = "";
             _currentSentimentLabel  = "";
             _currentSentimentColor  = "#FF000000";
+            _currentTextColor       = "#FFFFFFFF";
             _currentEventExposition = "";
             _currentSeverity        = 0;
         }
@@ -413,50 +446,65 @@ namespace MediaCoach.Plugin.Engine
         }
 
         /// <summary>
-        /// Resolves the sentiment color for a topic. In severity-aware mode,
-        /// uses the severity color map. Otherwise falls back to sentiment → category mapping.
+        /// Resolves the overlay color for a topic.
+        /// Color (RGB) comes from the topic's CATEGORY — avoids flag color collisions.
+        /// Alpha (opacity) comes from the topic's SEVERITY — higher = more opaque.
+        /// Returns #AARRGGBB format.
         /// </summary>
         private string ResolveSentimentColor(CommentaryTopic topic)
         {
-            // Always use severity colors — they communicate urgency clearly
-            if (SeverityColors.TryGetValue(topic.Severity, out var sevColor))
-                return sevColor; // already in #AARRGGBB format
+            // Get RGB from category
+            string rgb = CategoryColors.TryGetValue(topic.Category ?? "", out var catRgb)
+                ? catRgb
+                : "37474F"; // fallback slate grey
 
-            // Fallback: explicit sentiment on topic
-            if (!string.IsNullOrEmpty(topic.Sentiment)
-                && _sentimentColors.TryGetValue(topic.Sentiment, out var c))
-                return c;
+            // Get alpha from severity
+            string alpha = SeverityAlphas.TryGetValue(topic.Severity, out var a)
+                ? a
+                : "B3"; // fallback 70%
 
-            // Fallback: random from category mapping
-            return PickSentimentColor(topic.Category);
+            return $"#{alpha}{rgb}";
         }
 
-        private string PickSentimentColor(string category)
+        /// <summary>
+        /// Resolves the WCAG-compliant text color for a topic.
+        /// Same hue family as the overlay, but bright enough for AA contrast
+        /// against the translucent overlay on a dark/black background.
+        /// Returns #AARRGGBB (fully opaque).
+        /// </summary>
+        private string ResolveTextColor(CommentaryTopic topic)
         {
-            if (!CategorySentiments.TryGetValue(category ?? "", out var ids) || ids.Length == 0)
-                return "#FF000000";
-            string id = ids[_rng.Next(ids.Length)];
-            return _sentimentColors.TryGetValue(id, out var color) ? color : "#FF000000";
+            return CategoryTextColors.TryGetValue(topic.Category ?? "", out var textColor)
+                ? textColor
+                : "#FFFFFFFF"; // fallback white
         }
 
         private void ShowPrompt(CommentaryTopic topic, TelemetrySnapshot context)
         {
-            if (topic.CommentaryPrompts == null || topic.CommentaryPrompts.Count == 0) return;
+            // Try to assemble from fragments first; fall back to static prompts if not available
+            string prompt = _fragmentAssembler.Assemble(topic.Id, context);
 
-            string prompt = topic.CommentaryPrompts[_rng.Next(topic.CommentaryPrompts.Count)];
-
-            // Substitute driver-name placeholders if opponent data is available
-            if (context != null)
+            if (prompt == null)
             {
-                prompt = prompt.Replace("{ahead}",  FormatDriver(context.NearestAheadName,  context.NearestAheadRating));
-                prompt = prompt.Replace("{behind}", FormatDriver(context.NearestBehindName, context.NearestBehindRating));
+                // Fallback to static commentary prompts
+                if (topic.CommentaryPrompts == null || topic.CommentaryPrompts.Count == 0) return;
+
+                prompt = topic.CommentaryPrompts[_rng.Next(topic.CommentaryPrompts.Count)];
+
+                // Substitute driver-name placeholders if opponent data is available
+                if (context != null)
+                {
+                    prompt = prompt.Replace("{ahead}",  FormatDriver(context.NearestAheadName,  context.NearestAheadRating));
+                    prompt = prompt.Replace("{behind}", FormatDriver(context.NearestBehindName, context.NearestBehindRating));
+                }
             }
 
             // Build event exposition text (used in event-only mode)
             string exposition = BuildEventExposition(topic, context);
 
-            // Resolve sentiment — severity-based color
+            // Resolve colors — category determines hue, severity determines opacity
             string sentimentColor = ResolveSentimentColor(topic);
+            string textColor      = ResolveTextColor(topic);
             string sentimentLabel = SeverityLabels.TryGetValue(topic.Severity, out var sl)
                 ? sl
                 : (!string.IsNullOrEmpty(topic.Sentiment) && _sentimentLabels.TryGetValue(topic.Sentiment, out var l) ? l : "");
@@ -467,6 +515,7 @@ namespace MediaCoach.Plugin.Engine
             _currentTopicId         = topic.Id;
             _currentSentimentLabel  = sentimentLabel;
             _currentSentimentColor  = sentimentColor;
+            _currentTextColor       = textColor;
             _currentEventExposition = exposition;
             _currentSeverity        = topic.Severity;
             _promptDisplayedAt      = DateTime.UtcNow;

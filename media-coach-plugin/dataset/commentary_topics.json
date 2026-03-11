@@ -17,7 +17,7 @@
         {
           "dataPoint": "YawRate",
           "condition": "extreme",
-          "absValue": 2.5,
+          "absValue": 3.0,
           "context": "True snap oversteer — yaw rate well beyond normal cornering"
         }
       ],
@@ -97,7 +97,7 @@
         {
           "dataPoint": "VertAccel",
           "condition": "spike",
-          "thresholdDelta": 7.0,
+          "thresholdDelta": 10.0,
           "context": "Solid kerb hit or bump — meaningful impact but not a crash"
         }
       ],
@@ -168,15 +168,15 @@
       "title": "Close Racing",
       "sentiment": "excitement_positive",
       "severity": 3,
-      "eventExposition": "Wheel-to-wheel — car within 1% track distance, door-to-door racing",
+      "eventExposition": "Wheel-to-wheel — car within 0.8% track distance, door-to-door racing",
       "sessionTypes": ["race"],
       "description": "Running wheel-to-wheel or within close proximity of another car.",
       "triggers": [
         {
           "dataPoint": "CarIdxLapDistPct",
           "condition": "close_proximity",
-          "proximityThreshold": 0.01,
-          "context": "Another car within 1% of track distance — genuinely close"
+          "proximityThreshold": 0.008,
+          "context": "Another car within 0.8% of track distance — genuinely close"
         }
       ],
       "commentaryPrompts": [
@@ -377,7 +377,7 @@
         {
           "dataPoint": "LatAccel",
           "condition": ">",
-          "value": 4.0,
+          "value": 4.5,
           "context": "Extreme lateral load — near the absolute grip limit in a fast corner"
         }
       ],
@@ -403,7 +403,7 @@
         {
           "dataPoint": "SteeringWheelTorque",
           "condition": "spike",
-          "thresholdDelta": 18.0,
+          "thresholdDelta": 25.0,
           "context": "Very large torque spike — hard kerb hit or sudden front load"
         }
       ],
@@ -474,27 +474,27 @@
       "title": "High Tyre Wear",
       "sentiment": "technical_analytical",
       "severity": 2,
-      "eventExposition": "High tyre wear — front left at {value}% worn, grip is degrading",
+      "eventExposition": "High tyre wear — front left at {value}% life remaining, grip is degrading",
       "sessionTypes": [],
       "description": "Significant tyre wear — car behavior degrading.",
       "triggers": [
         {
           "dataPoint": "TyreWearFL",
-          "condition": ">",
-          "value": 0.65,
-          "context": "Front left at 65%+ wear"
+          "condition": "<",
+          "value": 0.35,
+          "context": "Front left at 35% or less remaining life (65%+ worn)"
         },
         {
           "dataPoint": "TyreWearFR",
-          "condition": ">",
-          "value": 0.65,
-          "context": "Front right at 65%+ wear"
+          "condition": "<",
+          "value": 0.35,
+          "context": "Front right at 35% or less remaining life (65%+ worn)"
         },
         {
           "dataPoint": "TyreWearRL",
-          "condition": ">",
-          "value": 0.65,
-          "context": "Rear left at 65%+ wear"
+          "condition": "<",
+          "value": 0.35,
+          "context": "Rear left at 35% or less remaining life (65%+ worn)"
         }
       ],
       "commentaryPrompts": [
@@ -512,21 +512,21 @@
       "title": "Overheating Tyres",
       "sentiment": "technical_analytical",
       "severity": 3,
-      "eventExposition": "Tyre overheating — front temps at {value}°C, past the operating window",
+      "eventExposition": "Tyre overheating — front temps at {value}°F, past the operating window",
       "sessionTypes": [],
       "description": "Tyre temperatures significantly over optimal range.",
       "triggers": [
         {
           "dataPoint": "TyreTempFL",
           "condition": ">",
-          "value": 115,
-          "context": "Front left tyre temperature critically high"
+          "value": 250,
+          "context": "Front left tyre temperature critically high (>250°F)"
         },
         {
           "dataPoint": "TyreTempFR",
           "condition": ">",
-          "value": 115,
-          "context": "Front right tyre temperature critically high"
+          "value": 250,
+          "context": "Front right tyre temperature critically high (>250°F)"
         }
       ],
       "commentaryPrompts": [
@@ -551,7 +551,7 @@
         {
           "dataPoint": "LongAccel",
           "condition": "<",
-          "value": -32.0,
+          "value": -38.0,
           "context": "Extreme deceleration — significant braking zone"
         }
       ],
@@ -577,8 +577,8 @@
         {
           "dataPoint": "LapDeltaToBest",
           "condition": "<",
-          "value": -0.4,
-          "context": "Running 0.4s ahead of PB — very fast lap in progress"
+          "value": -0.6,
+          "context": "Running 0.6s ahead of PB — very fast lap in progress"
         }
       ],
       "commentaryPrompts": [
@@ -706,7 +706,7 @@
         {
           "dataPoint": "LatAccel",
           "condition": ">",
-          "value": 3.5,
+          "value": 4.0,
           "context": "Sustained high lateral load — car is right at the grip limit"
         }
       ],

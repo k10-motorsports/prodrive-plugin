@@ -69,15 +69,15 @@ Due to the crucial nature of SimHub in this workflow, I'll need you to gain an i
 
 Plugin (plugin/)
 
-| File | Purpose |
-|------|---------|
-| Plugin.cs | Main class — wires lifecycle, registers 6 properties + 3 actions + 1 event |
-| Engine/CommentaryEngine.cs | Core logic — loads topics, evaluates triggers, enforces cooldowns, manages prompt lifecycle |
-| Engine/TelemetrySnapshot.cs | Captures a frame of normalized + raw iRacing telemetry |
-| Engine/TriggerEvaluator.cs | Evaluates all 19 trigger condition types against current/previous snapshot |
-| Models/CommentaryTopic.cs | Deserializes commentary_topics.json |
-| Settings.cs | Persisted settings (interval, duration, categories, topics path) |
-| Control.xaml/.cs | WPF settings panel with sliders, checkboxes, and file browser |
+| File                        | Purpose                                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------------------- |
+| Plugin.cs                   | Main class — wires lifecycle, registers 6 properties + 3 actions + 1 event                  |
+| Engine/CommentaryEngine.cs  | Core logic — loads topics, evaluates triggers, enforces cooldowns, manages prompt lifecycle |
+| Engine/TelemetrySnapshot.cs | Captures a frame of normalized + raw iRacing telemetry                                      |
+| Engine/TriggerEvaluator.cs  | Evaluates all 19 trigger condition types against current/previous snapshot                  |
+| Models/CommentaryTopic.cs   | Deserializes commentary_topics.json                                                         |
+| Settings.cs                 | Persisted settings (interval, duration, categories, topics path)                            |
+| Control.xaml/.cs            | WPF settings panel with sliders, checkboxes, and file browser                               |
 
 Dashboard properties exported:
 
@@ -101,3 +101,26 @@ Install Instructions
 4. In SimHub → Additional Plugins → enable Media Coach, then restart SimHub
 5. Copy the dashboard/MediaCoach/ folder into SimHub's Dashboards folder, then open it via Dash Studio
 6. Launch iRacing and drive
+
+## Updating Haiku Support
+
+It seems like live Haiku integration isn't going to be a feasible solution. Update the architecture proposal to instead use Haiku to generate a much-expanded deterministic list of expressions to use instead. consider breaking sentences up into parts, to be placed together later for more nuanced expressions. Possibly look into how Crew Chief accomplishes this.
+
+Next, investigate the actual data points being used, some of them are inverted, ie, you're saying my tires are at 98% worn when they're at 98% used (ie, 2% worn). update data thresholds to more realistic ones, and consider investigating how other simhub plugins set their data this way, in particular, crew chief v4.
+
+once you've planned this out and updated CLAUDE.md, use a sub-agent running sonnet to fulfill the requirements.
+
+## Updating To Include Light Control
+
+once sonnet is running the changes above, investigate and document how to write a homebridge plugin that will tell my apple home-connected lights what color to be based on a simpler set of data provided by the plugin.
+
+we will want options for:
+
+- flags only: only update the lights to reflect flag state
+- events only: only update the lights to reflect track and other driver state (red when a driver is close, green when no one is around, yellow when debris, etc)
+- all color options
+- enable blinking (determine which color options best benefit from a blinking effect and enable its turning on/off)
+
+update claude.md with instructions on both how to create a new homebridge plugin, the source of which to add to this as a monorepo, and how to update this plugin to talk to homebridge.
+
+Once the instructions for this are fleshed out, create a new sonnet sub-agent to perform the tasks.

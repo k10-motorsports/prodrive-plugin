@@ -1,0 +1,844 @@
+{
+  "version": "1.0",
+  "description": "Pre-generated commentary fragments for sentence composition at runtime. Each topic contains openers, bodies, and closers that assemble into complete sentences. Generated with Haiku in Kevin's voice: first person, present tense, technically grounded, direct, no filler.",
+  "fragments": [
+
+    {
+      "topicId": "spin_catch",
+      "fragments": {
+        "openers": [
+          "The rear came round.",
+          "Massive snap right there.",
+          "That's the limit.",
+          "Nearly lost it.",
+          "Full rotation.",
+          "Caught it, barely."
+        ],
+        "bodies": [
+          "The car's telling you exactly what happens when you push past the edge — feel it in real time.",
+          "The difference between catching it and not is all in how much the wheel's actually talking to you.",
+          "That's not a controlled slide — that's the car done with the corner.",
+          "Feel the yaw rate hitting the limit and what it takes to pull it back.",
+          "The physics of that save are worth explaining — it's left foot, hands, instinct all at once.",
+          "You can feel every bit of it through the wheel trying to communicate what just happened.",
+          "The car pushed past the limit and demanded immediate correction.",
+          "That's genuine oversteer and the recovery is the whole point of practicing this."
+        ],
+        "closers": [
+          "That's the car at the limit.",
+          "Know what saved it.",
+          "Full correction needed.",
+          "Feel that feedback.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "wall_contact",
+      "fragments": {
+        "openers": [
+          "That's the wall.",
+          "Hit the barrier hard.",
+          "Contact with the barrier.",
+          "Hard impact.",
+          "Into the barrier.",
+          "That's a real hit."
+        ],
+        "bodies": [
+          "The race just changed in that impact — real damage to time, maybe to the car.",
+          "That's a moment that resets everything — talk about what it costs from here.",
+          "You feel that through the entire car and everything shifts from this point.",
+          "It happened fast and the consequences are going to be felt for the rest of this stint.",
+          "The sim is telling you exactly what that does to the car and the session.",
+          "The damage is instantly apparent and the strategy just got way more complicated.",
+          "That's the kind of impact that either costs the race or costs the car.",
+          "The barrier just taught you exactly where the track actually ends."
+        ],
+        "closers": [
+          "Recovery mode now.",
+          "Assess the damage.",
+          "Can we continue?",
+          "That changes everything.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "off_track",
+      "fragments": {
+        "openers": [
+          "Off track.",
+          "Into the run-off.",
+          "Off the circuit.",
+          "Gone wide.",
+          "Out of bounds.",
+          "Left the surface."
+        ],
+        "bodies": [
+          "That's entirely on me — the car went exactly where I pointed it.",
+          "That's lap time I'm not getting back and honestly I deserve that.",
+          "What's interesting is what the car does out here — totally different surface, totally different feedback.",
+          "That's what happens when confidence outruns grip and there's no hiding it.",
+          "The car's telling me exactly where the limit is and I found it the wrong way.",
+          "Self-inflicted and completely avoidable if I'd been smarter at that point.",
+          "The gravel's doing its job — slowing me down and reminding me where the track ends.",
+          "Out here the car's a completely different animal and there's a reason for that."
+        ],
+        "closers": [
+          "Moving on.",
+          "Lesson learned.",
+          "Back on it.",
+          "That stung.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "kerb_hit",
+      "fragments": {
+        "openers": [
+          "Hit that kerb hard.",
+          "Big impact over the apex.",
+          "That kerb grabbed the car.",
+          "Rode over that kerb.",
+          "Hard contact with the kerb.",
+          "The kerb bit me there."
+        ],
+        "bodies": [
+          "You can feel it trying to unsettle the car — whether to use the kerbs here is a real setup decision.",
+          "The car reacted to that and you can feel why that's a risk in the sim.",
+          "There's a reason some of these are controversial — they punish you for getting it slightly wrong.",
+          "That's the sim doing its job — communicating what happens when you take that risk.",
+          "The feedback through the wheel tells you exactly how much load that put through the suspension.",
+          "That kerb is either an aid or a penalty depending on how you hit it.",
+          "The car went over it rough and the whole corner got unsettled from that point.",
+          "That's the kind of impact that changes the rest of the lap."
+        ],
+        "closers": [
+          "Respect the kerbs.",
+          "Handle it better.",
+          "Setup decision.",
+          "Learn from it.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "abs_activation",
+      "fragments": {
+        "openers": [
+          "The ABS fired there.",
+          "ABS active on that braking.",
+          "The system intervened.",
+          "ABS on the brakes.",
+          "System engaged.",
+          "Brakes locked and caught."
+        ],
+        "bodies": [
+          "You can feel it working — the difference between that and locking up is what separates control from a slide.",
+          "Whether you rely on it or fight against it says a lot about how you're driving this car.",
+          "That's the threshold — braked slightly past it and the electronics took over.",
+          "In real life that pulse through the pedal is constant information — in the sim it's the same principle.",
+          "The system prevented a full lockup and kept the car pointed where you wanted it.",
+          "That's the safety net working and you can feel the subtle chatter through the pedal.",
+          "The electronics are doing exactly what they're supposed to do at that threshold.",
+          "Feel that intervention and understand what the car was about to do."
+        ],
+        "closers": [
+          "System working.",
+          "Threshold noted.",
+          "Control maintained.",
+          "Understood.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "tc_intervention",
+      "fragments": {
+        "openers": [
+          "TC cutting in on exit.",
+          "Traction control fired.",
+          "TC intervention on exit.",
+          "The system stepped in.",
+          "TC active right there.",
+          "System cut the power."
+        ],
+        "bodies": [
+          "The system is working and it's costing me a small amount of traction — it's a tradeoff in the setup.",
+          "The rear wants to go and the computer says not yet — this is the balance between driver and electronics.",
+          "You can feel it choking the throttle application — the question is whether the setting is right.",
+          "Running TC means you're trading raw exit speed for consistency — depends entirely on the circuit.",
+          "That chop in the throttle response is the system being protective when it needs to be.",
+          "The car wanted more grip than available and the electronics prevented the slide.",
+          "That's the tuning point right there — is the TC doing its job or costing you time.",
+          "Feel that intervention and remember it for the setup review."
+        ],
+        "closers": [
+          "Tuning tradeoff.",
+          "Setup question.",
+          "Working as set.",
+          "Noted.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "close_battle",
+      "fragments": {
+        "openers": [
+          "There's a car right there.",
+          "Door to door.",
+          "Running this close.",
+          "Wheel to wheel.",
+          "Right on the car.",
+          "Door-to-door racing."
+        ],
+        "bodies": [
+          "Every input matters more when you're this close — one mistake and it's both of you in the barrier.",
+          "This is the real test — how precise can you be when someone's watching every move you make.",
+          "The margins in the sim match what this would feel like in real life and it's genuinely intense.",
+          "That gap is nothing — this is genuine racing and every tenth matters.",
+          "One car length between clean racing and incident points so every move has to be calculated.",
+          "The proximity demands absolute precision and the margin for error just evaporated.",
+          "This is the moment that separates racers from just driving and every corner decides it.",
+          "The battle is fully on and the next few corners will define what happens next."
+        ],
+        "closers": [
+          "Stay sharp.",
+          "Precision time.",
+          "This is it.",
+          "This is racing.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "position_gained",
+      "fragments": {
+        "openers": [
+          "Past {behind}.",
+          "Made the move.",
+          "Got through.",
+          "Position up.",
+          "Clean overtake.",
+          "Successfully past."
+        ],
+        "bodies": [
+          "That's a position gained and every one counts in this race.",
+          "That's a clean pass, well-timed — that's real on-track progress.",
+          "Now it's about not making a mistake in the next few corners and building the lead.",
+          "The gap ahead is what matters now — close it down and build the margin.",
+          "That move had to be executed perfectly and it was — credit to the setup and the driving.",
+          "One position at a time is how you build a race and that's one closer to the goal.",
+          "That was the opportunity and you took it cleanly — now capitalize on it.",
+          "The car had the pace and the moment was right — that's how passes should feel."
+        ],
+        "closers": [
+          "Build on it.",
+          "Next target.",
+          "Move ahead.",
+          "Keep pushing.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "position_lost",
+      "fragments": {
+        "openers": [
+          "{behind} got me.",
+          "Lost that position.",
+          "{behind} found a way through.",
+          "Dropped a place.",
+          "Position gone.",
+          "That position's gone."
+        ],
+        "bodies": [
+          "That's a position gone and I need to respond — not panic, respond.",
+          "Credit to them — that was a clean move and I need to close that gap back down.",
+          "It stings but it's part of racing — figure out where I gave them the opportunity.",
+          "This is where the race either falls apart or I dig in and fix it.",
+          "That move was better than my defense and now it's response time.",
+          "One position lost in the race — the math just got harder but it's not over.",
+          "I had to defend there and didn't do it well enough — that's what happens.",
+          "Now it's about closing the gap and getting that position back when the moment comes."
+        ],
+        "closers": [
+          "Chase it down.",
+          "Respond now.",
+          "Gap closed.",
+          "Next corner.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "yellow_flag",
+      "fragments": {
+        "openers": [
+          "Yellow flag out.",
+          "Caution deployed.",
+          "Yellow on the track.",
+          "Caution flag.",
+          "Flag is out.",
+          "Incident on track."
+        ],
+        "bodies": [
+          "Something happened and the race has paused itself — this changes the calculation completely.",
+          "The field bunches up and everything we built in terms of gap just resets — that's racing.",
+          "Depending on where this falls in the stint it either saves us or costs us the strategy.",
+          "This is a moment where patience matters more than pace — get through the caution cleanly.",
+          "The yellow changes everything about the race situation and the next call has to be smart.",
+          "The race got compressed and the gap to the car ahead just disappeared.",
+          "This changes the strategy window and maybe the tire planning too.",
+          "Everything that was set in stone just became flexible with the yellow flag."
+        ],
+        "closers": [
+          "Stay patient.",
+          "Pace back.",
+          "Caution end.",
+          "Race on.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "debris_on_track",
+      "fragments": {
+        "openers": [
+          "Debris flag.",
+          "Debris on track.",
+          "Something's on the circuit.",
+          "Hazard flag.",
+          "Debris out there.",
+          "Track hazard."
+        ],
+        "bodies": [
+          "Something's on the circuit and you're running blind to it — this is where caution is actually the fast option.",
+          "In a real car this is one of the most dangerous moments — the sim captures that uncertainty.",
+          "This is exactly the kind of situation where incident points get handed out for no reason — stay clean.",
+          "Debris changes the risk calculation on every lap until it's cleared.",
+          "That hazard could be anything and the track just became more dangerous.",
+          "You can't see what's there from a distance and hitting it would be catastrophic.",
+          "The track just became unpredictable and every line is a gamble.",
+          "That debris is out there somewhere on the circuit and caution is the only smart approach."
+        ],
+        "closers": [
+          "Stay cautious.",
+          "Avoid it.",
+          "Pace down.",
+          "Until cleared.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "race_start",
+      "fragments": {
+        "openers": [
+          "We're racing.",
+          "Lights out.",
+          "Race start.",
+          "Here we go.",
+          "It's on.",
+          "Race is live."
+        ],
+        "bodies": [
+          "The work that went into this — setup, qualifying, pace — gets tested right now.",
+          "Every bit of preparation comes down to the next ninety seconds of first lap chaos.",
+          "The goal is simple: survive lap one, then race from there — nothing clever, just clean.",
+          "First corner is make or break — stay out of trouble and build from whatever we come out with.",
+          "The season starts right now and the next few laps will set the tone for the whole race.",
+          "Everything is unpredictable at the start and control is the only real advantage.",
+          "The race is alive and the chaos of first lap is where reputations are made and lost.",
+          "All that practice and prep means nothing if lap one goes wrong — focus on survival first."
+        ],
+        "closers": [
+          "Survive lap one.",
+          "Race on.",
+          "Clean start.",
+          "Build from here.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "personal_best",
+      "fragments": {
+        "openers": [
+          "That's a personal best.",
+          "New PB.",
+          "Personal best lap.",
+          "Best lap set.",
+          "That's it — personal best.",
+          "Quickest lap yet."
+        ],
+        "bodies": [
+          "The lap did what it needed to do — clean, committed, no mistakes where it mattered.",
+          "That's the car working and the driving matching it — every sector contributed.",
+          "That's the result of getting the setup right and then actually executing on it.",
+          "That's the confidence talking — the car's right and everything came together.",
+          "Every part of that lap worked and the result is on the board now.",
+          "The pace was there and the execution was clean — that's how personal bests happen.",
+          "That lap felt fast and the timer confirms it — build on this feeling.",
+          "The combination of car and driver came together perfectly for that lap."
+        ],
+        "closers": [
+          "Build on it.",
+          "Repeat that.",
+          "There's more.",
+          "Know the feel.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "pit_entry",
+      "fragments": {
+        "openers": [
+          "Into the pits.",
+          "Pitting now.",
+          "Pit lane entry.",
+          "Coming in for service.",
+          "Pit stop.",
+          "In for service."
+        ],
+        "bodies": [
+          "This call has been made — now it's about coming out in the right window.",
+          "The tyre situation made this decision and now the race reshapes around where we emerge.",
+          "A good stop is part of the lap time — everything has to go right in these few seconds.",
+          "The strategy either worked or it didn't and we'll find out in thirty seconds.",
+          "The timing has to be right and the execution has to be perfect to make this call work.",
+          "This is where the pit crew's work matters and the strategy gets tested.",
+          "Coming in means leaving pace on the table but gaining in the long run.",
+          "The pit window is now and the race gets decided by what happens in the next twenty seconds."
+        ],
+        "closers": [
+          "Clean stop.",
+          "Get out fast.",
+          "Strategy check.",
+          "New cycle.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "high_cornering_load",
+      "fragments": {
+        "openers": [
+          "Maximum lateral load.",
+          "Peak cornering load.",
+          "Full lateral G.",
+          "Car's planted.",
+          "Absolute grip.",
+          "Full cornering load."
+        ],
+        "bodies": [
+          "The grip level in this car is something you have to experience to understand.",
+          "That's the engineering talking — the grip at this speed is extraordinary.",
+          "The force through the seat and the wheel in a corner like that is why this car exists.",
+          "That's what the car was built for and it just takes it — totally committed.",
+          "The grip is absolute and the car wants to stay on the line no matter what.",
+          "That cornering speed is only possible with this level of downforce and tire grip.",
+          "Feel that load through your whole body and understand the car's capability.",
+          "The car's working at peak performance and every system is delivering."
+        ],
+        "closers": [
+          "Feel the grip.",
+          "Car's capable.",
+          "Limit found.",
+          "Trust it.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "ffb_torque_spike",
+      "fragments": {
+        "openers": [
+          "The wheel just kicked back.",
+          "Massive torque spike.",
+          "That snap through the wheel.",
+          "Hard feedback spike.",
+          "The wheel fought back.",
+          "Torque spike through here."
+        ],
+        "bodies": [
+          "That's the FFB telling you exactly what the front tyre just experienced.",
+          "That's direct communication from the car — the wheel is doing its job.",
+          "That's the value of good FFB — you feel it before you see the car move.",
+          "Everything that went through the contact patch just came straight to your hands.",
+          "The front end just loaded and the wheel transmitted every bit of it back.",
+          "That's feedback that matters and it's telling you the car's at the limit.",
+          "The torque spike is the car saying something just happened and you need to know.",
+          "Feel that feedback and use it to understand what the car is doing underneath."
+        ],
+        "closers": [
+          "Trust the feedback.",
+          "Car's communicating.",
+          "Feel that load.",
+          "Feedback working.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "low_fuel",
+      "fragments": {
+        "openers": [
+          "Fuel is getting critical.",
+          "Running low.",
+          "Low fuel warning.",
+          "Tank nearly empty.",
+          "Fuel running out.",
+          "The tank is running out."
+        ],
+        "bodies": [
+          "Every lap from here is a calculation — how much can I push before the tank says no.",
+          "The car gets lighter but the risk gets higher — this is where the fuel strategy either holds or it doesn't.",
+          "Lift, coast, manage — the pace suffers but finishing matters more than lap times right now.",
+          "This is the honest part of long-distance racing — you plan for it but it still feels close.",
+          "The fuel window just got tighter and the math on the race got more complicated.",
+          "Every throttle input now has to factor in the fuel tank instead of just lap time.",
+          "The finish line is the only target now and fuel is the limiting factor.",
+          "This is where endurance racing separates pace from strategy."
+        ],
+        "closers": [
+          "Manage it.",
+          "Stretch it.",
+          "Count laps.",
+          "Make it home.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "wet_track",
+      "fragments": {
+        "openers": [
+          "It's wet.",
+          "Wet track declared.",
+          "Rain conditions.",
+          "Wet out there.",
+          "Conditions wet.",
+          "The track is wet."
+        ],
+        "bodies": [
+          "Every reference point changes, every threshold drops, and the car becomes a completely different puzzle.",
+          "This is where the real driving skill separates people — smooth inputs, read the surface, find the grip.",
+          "The sim handles this seriously — tyre temp, water distribution, grip levels all in play at once.",
+          "The braking points move, the apexes move, the whole circuit gets rewritten by water.",
+          "Wet conditions demand a completely different approach to every corner and every input.",
+          "The grip is unpredictable and finding the dry line means finding the only real grip available.",
+          "Smooth is faster in the wet and that's the only thing that doesn't change.",
+          "The car just became much harder to drive and the margins got a lot smaller."
+        ],
+        "closers": [
+          "Smooth inputs.",
+          "Find the grip.",
+          "Wet driving.",
+          "Slow down.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "tyre_wear_high",
+      "fragments": {
+        "openers": [
+          "The tyres are going.",
+          "High tyre wear.",
+          "Degradation is real.",
+          "Tyre wear critical.",
+          "Tyres are shot.",
+          "Grip is leaving."
+        ],
+        "bodies": [
+          "You can feel it in every corner — the grip is leaving and the car is telling you clearly.",
+          "The setup that worked at the start of the stint doesn't work the same way now.",
+          "Every lap the window shifts and you have to adapt the driving style to what the rubber can still do.",
+          "The tyres have given a lot this stint and managing what's left to the stop is the whole job now.",
+          "The car's character is changing and what worked before doesn't work anymore.",
+          "The tire model is showing exactly how grip falls off and the car reacts accordingly.",
+          "Every lap gets harder and the tires are telling the whole story in how the car feels.",
+          "The worn rubber is the limiting factor in every corner now."
+        ],
+        "closers": [
+          "Manage the tire.",
+          "Pace back.",
+          "Make the stop.",
+          "Nearly there.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "hot_tyres",
+      "fragments": {
+        "openers": [
+          "Tyres are overheating.",
+          "Too hot on the fronts.",
+          "Temperatures are critical.",
+          "Tyre temp spike.",
+          "Tyres through the roof.",
+          "Overheating on the fronts."
+        ],
+        "bodies": [
+          "The grip is going away and there's a physical reason — the compound can't handle this temperature.",
+          "This is what thermal degradation actually means — the rubber is greasing and the car knows it.",
+          "Managing this is a real skill — back off, build it back, or accept the pace hit.",
+          "The car is sliding everywhere and the sim is communicating real physics.",
+          "The tires are past their optimal window and everything gets harder from here.",
+          "The heat is cooking the compound and the pace is dropping fast.",
+          "That temperature rise is the tires breaking down and losing grip rapidly.",
+          "The overheating means the brake cooling or tire compound is the limit."
+        ],
+        "closers": [
+          "Cool them down.",
+          "Pace off.",
+          "Manage temps.",
+          "Back off now.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "heavy_braking",
+      "fragments": {
+        "openers": [
+          "That is serious braking.",
+          "Maximum braking.",
+          "Big braking event.",
+          "Aggressive stop.",
+          "Heavy deceleration.",
+          "That stop was hard."
+        ],
+        "bodies": [
+          "The deceleration forces in a corner like that are eye-watering in any car.",
+          "From that speed to nothing in that distance — the engineering that makes that possible is remarkable.",
+          "The car is right on the limit of what's physically possible and you can feel every bit of it.",
+          "The balance under braking tells you everything about where this car is set up.",
+          "That braking force is only available because of everything working together.",
+          "The deceleration is at the physical limit and the car is right on the threshold.",
+          "Feel that braking load and understand what the brake system is doing.",
+          "That stopping power is the result of perfect setup and absolute commitment."
+        ],
+        "closers": [
+          "Feel the power.",
+          "Brakes working.",
+          "Limit found.",
+          "Control it.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "qualifying_push",
+      "fragments": {
+        "openers": [
+          "This lap is coming together.",
+          "Hot lap in qualifying.",
+          "The delta says this is it.",
+          "Every sector is contributing.",
+          "This is the lap.",
+          "Qualifying lap firing."
+        ],
+        "bodies": [
+          "The delta is positive everywhere — just don't overthink it in the final sector.",
+          "The car feels locked in and this is the result of getting every setup decision right.",
+          "Stay with it, don't brake early, don't run wide — this is what qualifying is for.",
+          "The lap is clean — if it holds, this is a result worth having.",
+          "Every input is perfect and the car is responding to everything you ask.",
+          "This is the moment qualifying builds to and everything is aligned.",
+          "The pace is there and the execution is matching it — stay smooth.",
+          "The combination of setup and driver is delivering and the lap shows it."
+        ],
+        "closers": [
+          "Hold it together.",
+          "Finish clean.",
+          "Final sector.",
+          "Keep pushing.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "incident_spike",
+      "fragments": {
+        "openers": [
+          "Incident points registered.",
+          "iRacing incident added.",
+          "That's on the record.",
+          "Another incident point.",
+          "Incident counter up.",
+          "Incident flagged."
+        ],
+        "bodies": [
+          "iRacing saw that and the Safety Rating is going to reflect it — deserved.",
+          "In iRacing that's permanent — every contact is recorded and it matters for your rating.",
+          "The iRating system doesn't care about context — it logs the incident and moves on.",
+          "The SR implications are real and they don't go away quickly — need to drive cleaner.",
+          "That contact just got recorded and the rating hit is automatic.",
+          "iRacing flagged that and the incident is part of your official record now.",
+          "The system saw contact and logged it regardless of circumstances.",
+          "That incident just cost you SR and the rating impact is immediate."
+        ],
+        "closers": [
+          "Need cleaner.",
+          "SR taking hit.",
+          "Rating drops.",
+          "Move forward.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "ers_low",
+      "fragments": {
+        "openers": [
+          "ERS is almost gone.",
+          "Battery depleted.",
+          "The hybrid is out.",
+          "ERS empty.",
+          "Battery running dry.",
+          "ERS at critical."
+        ],
+        "bodies": [
+          "The performance difference without the hybrid is immediately noticeable on every straight.",
+          "From here to the next regen zone, everything comes from the internal combustion engine alone.",
+          "Managing these depletion windows is a core skill in these cars — it changes the car completely.",
+          "That's the delta between hybrid and non-hybrid performance.",
+          "The boost is gone and the car just lost a significant amount of power.",
+          "Without ERS deployment the straights get much slower and passing becomes harder.",
+          "The energy is gone and the next five minutes are going to feel a lot slower.",
+          "ERS being empty means the car is down performance and will be until it recharges."
+        ],
+        "closers": [
+          "No more boost.",
+          "Pace drops.",
+          "Manage it.",
+          "Until regen.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "track_temp_hot",
+      "fragments": {
+        "openers": [
+          "Track temperature is high.",
+          "Hot track surface.",
+          "Temperatures like this.",
+          "The tarmac is baking.",
+          "Track surface hot.",
+          "High track temp."
+        ],
+        "bodies": [
+          "The tyres are working in a brutal environment and degradation is accelerated in these conditions.",
+          "The rubber goes down fast and the grip window is narrow — this is a proper tyre management challenge.",
+          "The compounds peak early and fall off hard — every lap is a tradeoff.",
+          "The grip is there early in the stint and then it goes away faster than you'd like.",
+          "Hot conditions change the whole race calculation and the tires tell the whole story.",
+          "The heat accelerates everything — degradation, tire temps, brake temps.",
+          "The thermal load is high and everything in the car is working harder.",
+          "Hot tracks demand aggressive management and there's no coasting through a stint."
+        ],
+        "closers": [
+          "Manage heat.",
+          "Tires fade fast.",
+          "Plan ahead.",
+          "Stay sharp.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "drs_active",
+      "fragments": {
+        "openers": [
+          "DRS is open.",
+          "Rear wing open.",
+          "DRS zone active.",
+          "The wing is open.",
+          "DRS deployed.",
+          "Flap is deployed."
+        ],
+        "bodies": [
+          "You feel the drag drop away and the car just accelerates differently — it's a real performance delta.",
+          "The straight-line advantage is genuine and it changes the overtaking calculation on this circuit.",
+          "Whether that's enough to make the move is the question — the physics are working in your favor right now.",
+          "That speed delta is real and the car knows it — this is where the pass either happens or it doesn't.",
+          "The wing is working and the speed advantage is immediately apparent.",
+          "DRS gives you the edge and now it's about using it before the zone ends.",
+          "The rear wing configuration just changed the power-to-drag ratio significantly.",
+          "That deployment means the straight is yours to use and the pace advantage is there."
+        ],
+        "closers": [
+          "Make the move.",
+          "Use the advantage.",
+          "Build the gap.",
+          "Speed gained.",
+          ""
+        ]
+      }
+    },
+
+    {
+      "topicId": "car_balance_sustained",
+      "fragments": {
+        "openers": [
+          "The car is right at the limit.",
+          "That's a well-sorted car.",
+          "Completely hooked up.",
+          "Car is balanced.",
+          "Setup translating.",
+          "Car perfectly balanced."
+        ],
+        "bodies": [
+          "When it's working this well, you stop thinking and start feeling.",
+          "The balance is exactly where you need it — rotation on demand, grip when you ask for it.",
+          "That kind of trust in the car makes you drive differently.",
+          "The car is communicating everything and responding to everything — that's what it's built for.",
+          "The setup is working exactly as intended and the car delivers it consistently.",
+          "This is the state where the car and driver align perfectly.",
+          "The balance point is found and every corner rewards the setup.",
+          "The car's responding predictably and that predictability is everything in racing."
+        ],
+        "closers": [
+          "Trust the balance.",
+          "This works.",
+          "Keep it.",
+          "Perfect setup.",
+          ""
+        ]
+      }
+    }
+
+  ]
+}

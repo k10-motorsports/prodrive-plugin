@@ -1,11 +1,10 @@
-namespace MediaCoach.Plugin.Engine
+namespace MediaCoach.Tests.TestHelpers
 {
     /// <summary>
     /// Single frame of telemetry data for trigger evaluation.
     /// Pure data class — no SimHub dependencies.
-    /// Capture logic lives in TelemetrySnapshot.Capture.cs.
     /// </summary>
-    public partial class TelemetrySnapshot
+    public class TelemetrySnapshot
     {
         // ── Normalized (game-agnostic) ──────────────────────────────────────
         public bool   GameRunning       { get; set; }
@@ -30,33 +29,26 @@ namespace MediaCoach.Plugin.Engine
         public double TyreWearRR        { get; set; }
 
         // ── Physics — iRacing raw, with cross-game normalized fallback ───────
-        // Available: iRacing, AC, ACC, AMS2, LMU (via SimHub motion physics)
         public double LatAccel          { get; set; }
         public double LongAccel         { get; set; }
         public double VertAccel         { get; set; }
         public double YawRate           { get; set; }
 
         // ── Driver aids — cross-game where supported ─────────────────────────
-        // AbsActive:  iRacing, AC, ACC, AMS2, LMU
-        // TcActive:   AC, ACC, AMS2, LMU (iRacing exposes TC differently)
         public bool   AbsActive         { get; set; }
         public bool   TcActive          { get; set; }
 
         // ── Tyre temperatures — cross-game where supported ───────────────────
-        // Available: AC, ACC, AMS2, LMU; partially in iRacing
         public double TyreTempFL        { get; set; }
         public double TyreTempFR        { get; set; }
         public double TyreTempRL        { get; set; }
         public double TyreTempRR        { get; set; }
 
         // ── Environment — cross-game where supported ─────────────────────────
-        // TrackTemp:  iRacing, AC, ACC, AMS2, LMU
-        // WeatherWet: iRacing (flag), AC/AMS2/LMU (RainIntensity > threshold)
         public double TrackTemp         { get; set; }
         public bool   WeatherWet        { get; set; }
 
         // ── Lap timing — iRacing raw, with cross-game normalized fallback ────
-        // All fields available in most SimHub-supported games
         public double LapDeltaToBest    { get; set; }
         public double LapCurrentTime    { get; set; }
         public double LapLastTime       { get; set; }
@@ -64,9 +56,9 @@ namespace MediaCoach.Plugin.Engine
         public double SessionTimeRemain { get; set; }
 
         // ── iRacing-only ─────────────────────────────────────────────────────
-        public double SteeringWheelTorque { get; set; } // torque (Nm), not angle
-        public int    SessionFlags        { get; set; } // yellow/black/etc. bitmask
-        public int    IncidentCount       { get; set; } // iRacing incident points
+        public double SteeringWheelTorque { get; set; }
+        public int    SessionFlags        { get; set; }
+        public int    IncidentCount       { get; set; }
         public int    DrsStatus           { get; set; }
         public double ErsBattery          { get; set; }
         public double MgukPower           { get; set; }
@@ -84,7 +76,7 @@ namespace MediaCoach.Plugin.Engine
         public const int FLAG_CHECKERED = 0x0001;
         public const int FLAG_WHITE     = 0x0002;
         public const int FLAG_GREEN     = 0x0004;
-        public const int FLAG_YELLOW    = 0x0008 | 0x4000 | 0x8000; // yellow | caution | caution_waving
+        public const int FLAG_YELLOW    = 0x0008 | 0x4000 | 0x8000;
         public const int FLAG_RED       = 0x0010;
         public const int FLAG_BLUE      = 0x0020;
         public const int FLAG_DEBRIS    = 0x0040;

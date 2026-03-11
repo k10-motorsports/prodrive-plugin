@@ -1,12 +1,12 @@
 {
-  "version": "1.1",
-  "description": "Sentiment vocabulary and phrase patterns drawn from sim racing YouTube commentary style. Colors use 6-digit #RRGGBB format for SimHub compatibility.",
+  "version": "1.2",
+  "description": "Sentiment vocabulary and phrase patterns drawn from sim racing YouTube commentary style. Colors avoid flag colors (red, yellow, blue, orange, black) to prevent collisions with race flag indicators.",
   "sentiments": [
 
     {
       "id": "excitement_positive",
       "label": "Excitement / Positive",
-      "color": "#F57F17",
+      "color": "#66BB6A",
       "description": "Expressions of genuine excitement, satisfaction, or joy in a moment.",
       "phrases": [
         "Oh that's lovely",
@@ -29,7 +29,7 @@
     {
       "id": "frustration_negative",
       "label": "Frustration / Negative",
-      "color": "#B71C1C",
+      "color": "#EC407A",
       "description": "Expressions of frustration, disappointment, or mild anger at mistakes or incidents.",
       "phrases": [
         "Oh come on!",
@@ -52,7 +52,7 @@
     {
       "id": "technical_analytical",
       "label": "Technical / Analytical",
-      "color": "#0D47A1",
+      "color": "#00ACC1",
       "description": "Calm, thoughtful analysis of car behavior, setup, or driving technique.",
       "phrases": [
         "So what's happening here is...",
@@ -75,7 +75,7 @@
     {
       "id": "self_deprecating",
       "label": "Self-Deprecating Humor",
-      "color": "#4A148C",
+      "color": "#CE93D8",
       "description": "Light, relatable humor about one's own mistakes or limitations.",
       "phrases": [
         "Absolutely sensational from the Pride of wherever",
@@ -96,7 +96,7 @@
     {
       "id": "car_praise",
       "label": "Car Praise",
-      "color": "#1B5E20",
+      "color": "#81C784",
       "description": "Expressions of appreciation for a specific car's character or behavior.",
       "phrases": [
         "This car is an absolute weapon",
@@ -115,7 +115,7 @@
     {
       "id": "sim_comparison",
       "label": "Sim Comparison",
-      "color": "#006064",
+      "color": "#4DD0E1",
       "description": "Comparisons between different simulators, often in terms of realism or feel.",
       "phrases": [
         "iRacing does this better than any other sim",
@@ -152,7 +152,7 @@
     {
       "id": "driving_advice",
       "label": "Driving Advice",
-      "color": "#E65100",
+      "color": "#AB47BC",
       "description": "Tips and technique advice aimed at the viewer.",
       "phrases": [
         "If you're learning this corner, the key is patience on the entry",

@@ -1,0 +1,93 @@
+[
+  {
+    "time": 15.0,
+    "time_formatted": "00:00:15",
+    "topicId": "race_start",
+    "title": "Race Start",
+    "category": "racing_experience",
+    "severity": 4,
+    "severityLabel": "Urgent",
+    "color": "#D9EC407A",
+    "prompt": "We're racing. The work that went into this \u2014 setup, qualifying, pace \u2014 gets tested right now. Survive lap one.",
+    "interrupted": false,
+    "interruptedTopic": null
+  },
+  {
+    "time": 470.0,
+    "time_formatted": "00:07:50",
+    "topicId": "spin_catch",
+    "title": "Big Save",
+    "category": "car_response",
+    "severity": 5,
+    "severityLabel": "Critical",
+    "color": "#FF66BB6A",
+    "prompt": "Nearly lost it. The car pushed past the limit and demanded immediate correction. Feel that feedback.",
+    "interrupted": false,
+    "interruptedTopic": null
+  },
+  {
+    "time": 920.0,
+    "time_formatted": "00:15:20",
+    "topicId": "position_lost",
+    "title": "Position Lost",
+    "category": "racing_experience",
+    "severity": 4,
+    "severityLabel": "Urgent",
+    "color": "#D9EC407A",
+    "prompt": "{behind} found a way through. One position lost in the race \u2014 the math just got harder but it's not over. Respond now.",
+    "interrupted": false,
+    "interruptedTopic": null
+  },
+  {
+    "time": 950.0,
+    "time_formatted": "00:15:50",
+    "topicId": "position_gained",
+    "title": "Position Gained",
+    "category": "racing_experience",
+    "severity": 4,
+    "severityLabel": "Urgent",
+    "color": "#D9EC407A",
+    "prompt": "Got through. That's a position gained and every one counts in this race. Keep pushing.",
+    "interrupted": false,
+    "interruptedTopic": null
+  },
+  {
+    "time": 1580.0,
+    "time_formatted": "00:26:20",
+    "topicId": "yellow_flag",
+    "title": "Yellow Flag",
+    "category": "racing_experience",
+    "severity": 4,
+    "severityLabel": "Urgent",
+    "color": "#D9EC407A",
+    "prompt": "Caution flag. Something happened and the race has paused itself \u2014 this changes the calculation completely. Race on.",
+    "interrupted": false,
+    "interruptedTopic": null
+  },
+  {
+    "time": 1700.0,
+    "time_formatted": "00:28:20",
+    "topicId": "position_gained",
+    "title": "Position Gained",
+    "category": "racing_experience",
+    "severity": 4,
+    "severityLabel": "Urgent",
+    "color": "#D9EC407A",
+    "prompt": "Position up. One position at a time is how you build a race and that's one closer to the goal. Keep pushing.",
+    "interrupted": false,
+    "interruptedTopic": null
+  },
+  {
+    "time": 1720.0,
+    "time_formatted": "00:28:40",
+    "topicId": "personal_best",
+    "title": "Personal Best Lap",
+    "category": "racing_experience",
+    "severity": 3,
+    "severityLabel": "Significant",
+    "color": "#B3EC407A",
+    "prompt": "Best lap set. That lap felt fast and the timer confirms it \u2014 build on this feeling. There's more.",
+    "interrupted": false,
+    "interruptedTopic": null
+  }
+]

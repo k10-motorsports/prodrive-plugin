@@ -129,6 +129,296 @@ If the API key is empty, the network is unavailable, or the call exceeds a 1.5s 
 
 ---
 
+## Version 1.5: Haiku-Expanded Deterministic Expressions + Data Threshold Fixes
+
+Live Haiku API integration (Version 2.0) is deferred. Instead, we use Haiku **offline** to pre-generate a much larger, richer pool of deterministic commentary expressions that are assembled from composable sentence fragments at runtime. This gives us the variety of AI-generated text without runtime latency, network dependency, or API costs.
+
+### Architecture: Composable Sentence Fragments
+
+Inspired by Crew Chief v4's audio fragment composition system (where individual audio clips are composed at runtime from folder hierarchies of pre-recorded fragments), we break commentary text into three composable parts:
+
+**Fragment structure per topic:**
+
+```json
+{
+  "id": "position_lost",
+  "fragments": {
+    "openers": [
+      "Lost that one.",
+      "They got through.",
+      "Position gone.",
+      "That's a place dropped."
+    ],
+    "bodies": [
+      "{behind} found the gap and took it — {rating_context}.",
+      "Got outbraked into the corner by {behind}.",
+      "{behind} had the run on me down the straight.",
+      "Couldn't defend that — {behind} was just faster through that section."
+    ],
+    "closers": [
+      "Need to respond, not react.",
+      "Figure out where I gave them the opportunity.",
+      "The gap behind is what matters now.",
+      "Dig in and close it down.",
+      ""
+    ]
+  }
+}
+```
+
+At runtime, the engine randomly selects one opener + one body + one closer and joins them. This gives N×M×K combinations per topic (e.g., 4×4×5 = 80 unique expressions from just 13 fragments). The `commentaryPrompts` array is retained as a fallback for topics that haven't been converted to fragments.
+
+**New class: `FragmentAssembler`** — lives in `Engine/FragmentAssembler.cs`. Responsible for:
+
+1. Loading fragment data from `commentary_fragments.json` (new dataset file)
+2. Assembling a complete sentence from opener + body + closer with proper spacing
+3. Performing placeholder substitution ({ahead}, {behind}, {value}, {rating_context}, {corner_name})
+4. Tracking recently-used fragments per-topic to avoid immediate repetition (ring buffer of last 3 per slot)
+
+**New dataset file: `dataset/commentary_fragments.json`**
+
+Contains fragment pools for all topics. Generated with Haiku using the existing `commentaryPrompts` as style reference and `channel_notes.json` + content from http://www.alternate.org for voice matching. Each topic gets at minimum 6 openers, 8 bodies, and 5 closers (= 240+ unique combinations per topic, vs the current 4-5 static prompts).
+
+### Haiku Generation Process
+
+A one-time batch generation script (`tools/generate_fragments.py`) calls `claude-haiku-4-5` with:
+
+1. The full `commentary_topics.json` as context
+2. The `sentiments.json` phrase library as voice/tone reference
+3. The `channel_notes.json` style profiles
+4. Instructions to generate fragments in Kevin's voice: first person, present tense, technically grounded, direct, no filler
+
+The script outputs `commentary_fragments.json`. This can be re-run anytime to refresh the fragment pool.
+
+### CommentaryEngine Changes
+
+In `ShowPrompt()`:
+1. Check if `FragmentAssembler` has fragments for the topic ID
+2. If yes: assemble from fragments (with placeholder substitution)
+3. If no: fall back to the existing `commentaryPrompts` random selection
+4. All existing severity, cooldown, and interruption logic is unchanged
+
+### Data Threshold Fixes
+
+**Critical inversion bug: TyreWear values**
+
+iRacing's `TyreWearFrontLeft` (and all wear fields) reports **remaining tyre life** as a 0.0–1.0 fraction: 1.0 = brand new, 0.0 = destroyed. The current trigger `> 0.65` fires when 65% life **remains** (only 35% worn), which is far too early and was causing "high tyre wear" prompts on nearly-new tyres.
+
+Fix: Change condition to `< 0.35` — fires when less than 35% life remaining (= 65% worn). Update the exposition text to say "remaining" not "worn", or invert the displayed percentage.
+
+**Threshold adjustments (values were too sensitive, causing false positives):**
+
+| Topic | Data Point | Old Threshold | New Threshold | Reason |
+|---|---|---|---|---|
+| `kerb_hit` | VertAccel spike | thresholdDelta: 7.0 | thresholdDelta: 10.0 | Normal bumps were triggering; 10G is a genuine hard kerb |
+| `ffb_torque_spike` | SteeringWheelTorque spike | thresholdDelta: 18.0 | thresholdDelta: 25.0 | Normal cornering forces were triggering |
+| `spin_catch` | YawRate extreme | absValue: 2.5 | absValue: 3.0 | Fast chicanes produce 2.5 normally; 3.0 is genuine snap |
+| `close_battle` | close_proximity | proximityThreshold: 0.01 | proximityThreshold: 0.008 | 1% track distance is too generous; 0.8% is real door-to-door |
+| `tyre_wear_high` | TyreWearFL/FR/RL | condition: ">", value: 0.65 | condition: "<", value: 0.35 | **INVERTED** — was checking remaining life, not wear |
+| `hot_tyres` | TyreTempFL/FR | value: 115 | value: 250 | Temps are in °F; 250°F (~121°C) is genuine overheating |
+| `heavy_braking` | LongAccel | value: -32.0 | value: -38.0 | -32 m/s² (~3.3G) is routine; -38 (~3.9G) is genuine heavy braking |
+| `high_cornering_load` | LatAccel | value: 4.0 | value: 4.5 | 4.0G is achievable in many corners; 4.5G is truly exceptional |
+| `car_balance_sustained` | LatAccel | value: 3.5 | value: 4.0 | Same reasoning — raise to avoid over-triggering |
+| `qualifying_push` | LapDeltaToBest | value: -0.4 | value: -0.6 | -0.4s is common lap-to-lap variance; -0.6s is a genuine hot lap |
+
+**Tyre wear exposition text fix:**
+- Old: "High tyre wear — front left at {value}% worn, grip is degrading"
+- New: "High tyre wear — front left at {value}% life remaining, grip is degrading"
+
+### Sentiment Color Format Fix
+
+SimHub dashboard properties expect colors in `#AARRGGBB` format (8-digit with alpha). The `NormalizeColor()` method in `CommentaryEngine.cs` already handles conversion from `#RRGGBB` → `#FFRRGGBB`, but the `sentiments.json` file uses raw `#RRGGBB`. The conversion is working correctly in code; if colors still don't appear in the dashboard, the issue is likely in how the dashboard reads the property. The plugin should output colors in `#AARRGGBB` format consistently (which it does via `NormalizeColor`). If SimHub's dashboard engine doesn't support 8-digit hex, we should also expose a separate RGB-only property as a fallback.
+
+### Files Affected
+
+- `Engine/FragmentAssembler.cs` — **new file**, fragment loading + assembly + repetition tracking
+- `Engine/CommentaryEngine.cs` — `ShowPrompt()` calls `FragmentAssembler` before falling back to static prompts
+- `Models/CommentaryTopic.cs` — add `Fragments` property (optional, parallel to `CommentaryPrompts`)
+- `dataset/commentary_fragments.json` — **new file**, Haiku-generated fragment pools
+- `dataset/commentary_topics.json` — threshold fixes, exposition text fixes, tyre wear inversion fix
+- `tools/generate_fragments.py` — **new file**, batch Haiku generation script
+
+### What Doesn't Change
+
+- The trigger system, severity system, interruption logic, cooldowns, and feedback engine are unchanged
+- The dashboard requires no changes (it reads the same properties)
+- Event-only mode still uses the existing exposition strings
+- Demo mode continues to work as-is
+- The Version 2.0 live AI architecture remains a future option; fragments are the immediate path
+
+---
+
+## Homebridge Light Control Plugin
+
+A companion Homebridge plugin that maps SimHub telemetry state to Apple HomeKit-connected smart lights. The plugin reads Media Coach properties from SimHub's built-in HTTP API and drives Lightbulb accessories with color changes based on race flags, driver proximity, and event severity.
+
+### Architecture
+
+**Plugin type:** Dynamic Platform Plugin (TypeScript, from official homebridge-plugin-template)
+
+**Package name:** `homebridge-media-coach-lights`
+
+**Source location:** `homebridge-plugin/` directory at the monorepo root
+
+**Communication flow:**
+```
+SimHub (Media Coach properties) → SimHub HTTP API → Homebridge Plugin → HomeKit → Apple Home lights
+```
+
+SimHub exposes all plugin properties via its built-in HTTP API at `http://localhost:8888/api/`. The Homebridge plugin polls this endpoint at a configurable interval (default: 500ms) to read:
+- `MediaCoach.Plugin.CommentarySeverity` — current event severity (0-5)
+- `MediaCoach.Plugin.CommentarySentimentColor` — the AARRGGBB color string
+- `MediaCoach.Plugin.CommentaryVisible` — whether a prompt is active (1/0)
+- Standard SimHub properties for flag state: `DataCorePlugin.GameRawData.Telemetry.SessionFlags`
+- Opponent proximity data (for close-racing detection)
+
+### Light Modes
+
+The plugin supports four selectable modes, configurable from the Homebridge UI:
+
+**1. Flags Only**
+Only updates lights to reflect iRacing flag state:
+- Green flag: Green (Hue 120, Sat 100, Brightness 80)
+- Yellow flag / caution: Yellow (Hue 60, Sat 100, Brightness 100)
+- Red flag: Red (Hue 0, Sat 100, Brightness 100)
+- Black flag: All off (Brightness 0) — or pulsing red
+- White flag: White (Hue 0, Sat 0, Brightness 100)
+- Checkered flag: Alternating black/white blink
+- Blue flag: Blue (Hue 240, Sat 100, Brightness 80)
+- Debris flag: Orange (Hue 30, Sat 100, Brightness 90)
+- No flag: return to ambient/off
+
+**2. Events Only**
+Updates lights based on proximity and track state, ignoring flags:
+- Close proximity (car within 0.8% track): Red (danger, Hue 0)
+- Medium proximity (car within 2% track): Orange (Hue 30)
+- No nearby cars: Green (Hue 120, low brightness)
+- Debris on track: Yellow pulse
+- Off track: Red flash
+- Pit lane: Blue (Hue 240, low brightness)
+
+**3. All Colors**
+Combines flags + events + severity coloring:
+- Flag state takes priority when active
+- When no flag, falls back to event-based coloring
+- Severity colors from the Media Coach plugin map to light colors:
+  - Severity 1 (Info): Dim slate/grey
+  - Severity 2 (Notable): Blue
+  - Severity 3 (Significant): Orange
+  - Severity 4 (Urgent): Amber/Yellow
+  - Severity 5 (Critical): Red
+- When no event is active, lights return to ambient green at low brightness
+
+**4. Blinking**
+An overlay toggle (works with any of the above modes). When enabled:
+- Yellow flag: slow blink (1Hz)
+- Red flag: fast blink (2Hz)
+- Black flag: slow pulse
+- Close proximity: fast blink (2Hz) — mirrors a spotter "car left/right" urgency
+- Off track / wall contact: rapid flash (3Hz) for 3 seconds
+- Checkered flag: alternating black/white at 2Hz
+- Debris: slow orange pulse (0.5Hz)
+
+Blinking is implemented via rapid on/off cycles controlled by the plugin's polling loop. Each blink-eligible state has a defined frequency and duration.
+
+### HomeKit Accessory Structure
+
+The plugin exposes a single `Lightbulb` service with:
+- `Characteristic.On` — light on/off
+- `Characteristic.Hue` — 0-360 degrees
+- `Characteristic.Saturation` — 0-100%
+- `Characteristic.Brightness` — 0-100%
+
+Optionally, if the user has multiple lights, the plugin can expose multiple accessories (one per light group) via the `lights` config array.
+
+### Configuration Schema (`config.schema.json`)
+
+```json
+{
+  "pluginAlias": "MediaCoachLights",
+  "pluginType": "platform",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "simhubUrl": { "type": "string", "default": "http://localhost:8888", "description": "SimHub HTTP API base URL" },
+      "pollIntervalMs": { "type": "integer", "default": 500, "minimum": 100, "maximum": 5000 },
+      "mode": { "type": "string", "enum": ["flags_only", "events_only", "all_colors"], "default": "all_colors" },
+      "enableBlink": { "type": "boolean", "default": true },
+      "ambientColor": { "type": "object", "properties": { "hue": { "type": "number" }, "saturation": { "type": "number" }, "brightness": { "type": "number" } } },
+      "lights": { "type": "array", "items": { "type": "object", "properties": { "name": { "type": "string" }, "uniqueId": { "type": "string" } } } }
+    }
+  }
+}
+```
+
+### How To Talk To SimHub From The Plugin
+
+SimHub's HTTP API is available when "SimHub Web Dashboard Server" is enabled in SimHub settings. Properties are read via:
+
+```
+GET http://localhost:8888/api/pluginproperty/MediaCoach.Plugin.CommentarySeverity
+```
+
+The plugin uses a simple HTTP polling loop (Node.js `http` module or `node-fetch`) on a `setInterval` at the configured poll rate. Each tick:
+1. Fetch flag state + severity + visibility + proximity data
+2. Determine the target color based on mode priority
+3. If blinking is active for the current state, toggle brightness on/off at the configured frequency
+4. Update the HomeKit Lightbulb characteristics
+
+### Plugin File Structure
+
+```
+homebridge-plugin/
+├── src/
+│   ├── platform.ts          — Platform registration, accessory discovery, polling loop
+│   ├── platformAccessory.ts  — Lightbulb accessory: Hue/Sat/Brightness control
+│   ├── colorMapper.ts        — Maps flag/severity/event state → HSB color values
+│   ├── simhubClient.ts       — HTTP client for SimHub API polling
+│   └── types.ts              — Shared interfaces (SimHubState, LightMode, BlinkConfig)
+├── config.schema.json
+├── package.json
+├── tsconfig.json
+└── README.md
+```
+
+### How To Update The SimHub Plugin To Support Homebridge
+
+The SimHub plugin already exposes the necessary properties via `AttachDelegate`. No changes are required to the SimHub plugin for basic light control. However, to support the "Events Only" proximity mode, the plugin should expose two additional properties:
+
+```csharp
+// In Plugin.cs Init():
+this.AttachDelegate("NearestCarDistance", () =>
+{
+    // Return the closest opponent's track distance delta as a fraction (0.0-1.0)
+    // Already computed in TriggerEvaluator.IsCloseProximity logic
+    return _engine.NearestCarDistanceFraction;
+});
+
+this.AttachDelegate("CurrentFlagState", () =>
+{
+    // Return a human-readable flag string for easier Homebridge consumption
+    if ((_current.SessionFlags & TelemetrySnapshot.FLAG_YELLOW) != 0) return "yellow";
+    if ((_current.SessionFlags & TelemetrySnapshot.FLAG_BLACK) != 0) return "black";
+    if ((_current.SessionFlags & TelemetrySnapshot.FLAG_DEBRIS) != 0) return "debris";
+    return "green";
+});
+```
+
+### Files Affected (SimHub plugin side)
+
+- `Plugin.cs` — add 2 new `AttachDelegate` properties (`NearestCarDistance`, `CurrentFlagState`)
+- `Engine/CommentaryEngine.cs` — expose `NearestCarDistanceFraction` (computed during Update)
+
+### Development & Install
+
+1. `cd homebridge-plugin && npm install`
+2. `npm run build` (compiles TypeScript → `dist/`)
+3. `npm link` (registers with local Homebridge for development)
+4. In Homebridge UI: configure the `MediaCoachLights` platform with your SimHub URL
+5. Ensure SimHub's web server is enabled and the Media Coach plugin is active
+
+---
+
 ## Alpha Testing Results
 
 1. colors still don't show up in the sentiment box. does simhub support hex8, the color format you're using? it doesn't seem to, or the values don't come through correctly. don't update the dashboard here, just the plugin.

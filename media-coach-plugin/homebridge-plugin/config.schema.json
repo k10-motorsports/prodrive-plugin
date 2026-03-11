@@ -1,0 +1,152 @@
+{
+  "pluginAlias": "MediaCoachLights",
+  "pluginType": "platform",
+  "singular": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Platform Name",
+        "type": "string",
+        "required": true,
+        "default": "Media Coach Lights"
+      },
+      "simhubUrl": {
+        "title": "SimHub HTTP API URL",
+        "description": "The base URL of SimHub's HTTP API (e.g., http://localhost:8888)",
+        "type": "string",
+        "format": "uri",
+        "required": true,
+        "default": "http://localhost:8888"
+      },
+      "pollIntervalMs": {
+        "title": "Poll Interval (milliseconds)",
+        "description": "How often to poll SimHub for updates (100-5000ms)",
+        "type": "integer",
+        "minimum": 100,
+        "maximum": 5000,
+        "required": false,
+        "default": 500
+      },
+      "mode": {
+        "title": "Light Mode",
+        "description": "How to map telemetry to light colors",
+        "type": "string",
+        "enum": ["flags_only", "events_only", "all_colors"],
+        "required": false,
+        "default": "all_colors"
+      },
+      "enableBlink": {
+        "title": "Enable Blinking Effects",
+        "description": "Allow lights to blink for urgent events and flags",
+        "type": "boolean",
+        "required": false,
+        "default": true
+      },
+      "ambientColor": {
+        "title": "Ambient Color (when no event)",
+        "description": "Default light color when no race event is active",
+        "type": "object",
+        "required": false,
+        "properties": {
+          "hue": {
+            "title": "Hue (0-360)",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 360,
+            "required": false,
+            "default": 120
+          },
+          "saturation": {
+            "title": "Saturation (0-100%)",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "required": false,
+            "default": 50
+          },
+          "brightness": {
+            "title": "Brightness (0-100%)",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "required": false,
+            "default": 30
+          }
+        }
+      },
+      "lights": {
+        "title": "Light Accessories",
+        "description": "List of HomeKit lights to control",
+        "type": "array",
+        "required": false,
+        "default": [
+          {
+            "name": "Media Coach",
+            "uniqueId": "media-coach-light-1"
+          }
+        ],
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "title": "Light Name (HomeKit)",
+              "description": "Display name in Apple Home",
+              "type": "string",
+              "required": true
+            },
+            "uniqueId": {
+              "title": "Unique Identifier",
+              "description": "Unique ID for this light (used internally)",
+              "type": "string",
+              "required": true
+            },
+            "mode": {
+              "title": "Light Mode Override",
+              "description": "Override the global light mode for this specific light (leave blank to use global setting)",
+              "type": "string",
+              "enum": ["flags_only", "events_only", "all_colors"],
+              "required": false
+            },
+            "enableBlink": {
+              "title": "Enable Blinking Override",
+              "description": "Override the global blink setting for this specific light (leave blank to use global setting)",
+              "type": "boolean",
+              "required": false
+            }
+          },
+          "required": ["name", "uniqueId"]
+        }
+      }
+    },
+    "required": ["name"]
+  },
+  "form": [
+    "name",
+    "simhubUrl",
+    "pollIntervalMs",
+    "mode",
+    "enableBlink",
+    {
+      "key": "ambientColor",
+      "expandable": true,
+      "expanded": false,
+      "items": [
+        "ambientColor.hue",
+        "ambientColor.saturation",
+        "ambientColor.brightness"
+      ]
+    },
+    {
+      "key": "lights",
+      "expandable": true,
+      "expanded": true,
+      "items": [
+        {
+          "key": "lights[]",
+          "items": ["lights[].name", "lights[].uniqueId", "lights[].mode", "lights[].enableBlink"]
+        }
+      ]
+    }
+  ]
+}

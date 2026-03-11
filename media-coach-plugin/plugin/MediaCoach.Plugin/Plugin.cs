@@ -64,6 +64,10 @@ namespace MediaCoach.Plugin
             string sentimentsPath = ResolveDatasetFile("sentiments.json");
             _engine.LoadSentiments(sentimentsPath);
 
+            // Load commentary fragments (for sentence composition)
+            string fragmentsPath = ResolveDatasetFile("commentary_fragments.json");
+            _engine.LoadFragments(fragmentsPath);
+
             // ── Register dashboard properties ─────────────────────────────────
 
             // The full commentary prompt text (or event exposition in event-only mode)
@@ -94,12 +98,52 @@ namespace MediaCoach.Plugin
             // Seconds remaining until auto-clear (integer for clean display)
             this.AttachDelegate("CommentarySecondsRemaining", () => (int)Math.Round(_engine.SecondsRemaining));
 
-            // Sentiment color for background tinting (#AARRGGBB, black when no prompt)
+            // Overlay color: category determines hue, severity determines opacity (#AARRGGBB)
             this.AttachDelegate("CommentarySentimentColor", () => _engine.CurrentSentimentColor);
+
+            // WCAG-compliant text color — same shade as overlay, bright for readability (#AARRGGBB)
+            this.AttachDelegate("CommentaryTextColor", () => _engine.CurrentTextColor);
 
             // Severity level (1-5) for the current prompt, 0 when no prompt visible.
             // Dashboard uses this to toggle per-severity background elements.
             this.AttachDelegate("CommentarySeverity", () => _engine.IsVisible ? _engine.CurrentSeverity : 0);
+
+            // Flag state for Homebridge and dashboard — priority order, most urgent first.
+            // All iRacing flags are now exposed so lights respond correctly.
+            this.AttachDelegate("CurrentFlagState", () =>
+            {
+                if (!_current.GameRunning) return "none";
+                int f = _current.SessionFlags;
+                if ((f & TelemetrySnapshot.FLAG_RED)       != 0) return "red";
+                if ((f & TelemetrySnapshot.FLAG_BLACK)     != 0) return "black";
+                if ((f & TelemetrySnapshot.FLAG_YELLOW)    != 0) return "yellow";
+                if ((f & TelemetrySnapshot.FLAG_BLUE)      != 0) return "blue";
+                if ((f & TelemetrySnapshot.FLAG_DEBRIS)    != 0) return "debris";
+                if ((f & TelemetrySnapshot.FLAG_WHITE)     != 0) return "white";
+                if ((f & TelemetrySnapshot.FLAG_CHECKERED) != 0) return "checkered";
+                if ((f & TelemetrySnapshot.FLAG_GREEN)     != 0) return "green";
+                return "none";
+            });
+
+            // Nearest car distance fraction for proximity-based lighting
+            this.AttachDelegate("NearestCarDistance", () =>
+            {
+                if (!_current.GameRunning || _current.CarIdxLapDistPct == null || _current.CarIdxLapDistPct.Length == 0)
+                    return 1.0;
+                double playerPos = _current.TrackPositionPct;
+                int playerIdx = _current.PlayerCarIdx;
+                double minDist = 1.0;
+                for (int i = 0; i < _current.CarIdxLapDistPct.Length; i++)
+                {
+                    if (i == playerIdx) continue;
+                    double otherPos = _current.CarIdxLapDistPct[i];
+                    if (otherPos <= 0) continue;
+                    double delta = Math.Abs(playerPos - otherPos);
+                    delta = Math.Min(delta, 1.0 - delta);
+                    if (delta < minDist) minDist = delta;
+                }
+                return minDist;
+            });
 
             // ── Actions ───────────────────────────────────────────────────────
 

@@ -35,6 +35,31 @@ namespace MediaCoach.Plugin.Models
         public double CooldownMinutes { get; set; } = 2.0;
     }
 
+    /// <summary>
+    /// Fragment-based composition data for a single topic. Allows assembly of unique
+    /// sentences from opener + body + closer fragments at runtime.
+    /// </summary>
+    public class TopicFragments
+    {
+        public string TopicId { get; set; }
+        public FragmentSet Fragments { get; set; }
+    }
+
+    public class FragmentSet
+    {
+        public List<string> Openers { get; set; } = new List<string>();
+        public List<string> Bodies { get; set; } = new List<string>();
+        public List<string> Closers { get; set; } = new List<string>();
+    }
+
+    /// <summary>
+    /// Root object for commentary_fragments.json deserialization.
+    /// </summary>
+    public class CommentaryFragmentsFile
+    {
+        public List<TopicFragments> Fragments { get; set; } = new List<TopicFragments>();
+    }
+
     public class TriggerCondition
     {
         /// <summary>

@@ -35,10 +35,10 @@ namespace MediaCoach.Plugin.Engine
             LongAccel          = -4.2,
             VertAccel          = 1.1,
             YawRate            = 0.4,
-            TyreTempFL         = 91.0,
-            TyreTempFR         = 93.0,
-            TyreTempRL         = 88.0,
-            TyreTempRR         = 89.0,
+            TyreTempFL         = 196.0,
+            TyreTempFR         = 199.0,
+            TyreTempRL         = 190.0,
+            TyreTempRR         = 192.0,
             TyreWearFL         = 0.38,
             TyreWearFR         = 0.41,
             TyreWearRL         = 0.34,
@@ -132,8 +132,8 @@ namespace MediaCoach.Plugin.Engine
 
             // ── 6. HOT TYRES — severity 3, orange ───────────────────────────────
             var hotTyres = Base();
-            hotTyres.TyreTempFL = 118.5;
-            hotTyres.TyreTempFR = 121.0;
+            hotTyres.TyreTempFL = 245.0;
+            hotTyres.TyreTempFR = 250.0;
             hotTyres.CurrentLap = 10;
             steps.Add(new Step { TopicId = "hot_tyres", Snapshot = hotTyres, DelaySeconds = 25 });
 
