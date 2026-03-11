@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+
+  # ---------------------------------------------------------------
+  # Python tests: dataset validation, telemetry replay, installer
+  # No external dependencies — runs on stdlib alone
+  # ---------------------------------------------------------------
+  python-tests:
+    name: Python Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Dataset validation (28 tests)
+        run: python3 tests/validate_datasets.py -v
+
+      - name: Telemetry replay — full race
+        run: python3 tools/replay_telemetry.py generate full_race
+
+      - name: Telemetry replay — tyre degradation
+        run: python3 tools/replay_telemetry.py generate tyre_degradation
+
+      - name: Telemetry replay — incident heavy
+        run: python3 tools/replay_telemetry.py generate incident_heavy
+
+      - name: Telemetry replay — flag sequence
+        run: python3 tools/replay_telemetry.py generate flag_sequence
+
+      - name: Installer and export tests (34 tests)
+        run: python3 tools/test_installer.py -v
+
+  # ---------------------------------------------------------------
+  # C# unit tests: trigger evaluation, fragments, colors, datasets
+  # Uses standalone TestHelpers — no SimHub required
+  # ---------------------------------------------------------------
+  dotnet-tests:
+    name: C# Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
+
+      - name: Restore NuGet packages
+        run: dotnet restore tests/MediaCoach.Tests/MediaCoach.Tests.csproj
+
+      - name: Build test project
+        run: dotnet build tests/MediaCoach.Tests/MediaCoach.Tests.csproj --no-restore
+
+      - name: Run tests (200+ tests)
+        run: dotnet test tests/MediaCoach.Tests/MediaCoach.Tests.csproj --no-build --verbosity normal
+
+  # ---------------------------------------------------------------
+  # Homebridge TypeScript: build + Jest tests
+  # ---------------------------------------------------------------
+  homebridge-tests:
+    name: Homebridge Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: homebridge-plugin/package.json
+
+      - name: Install dependencies
+        working-directory: homebridge-plugin
+        run: npm ci
+
+      - name: Build TypeScript
+        working-directory: homebridge-plugin
+        run: npm run build
+
+      - name: Run Jest tests (133 tests)
+        working-directory: homebridge-plugin
+        run: npm test
+
+  # ---------------------------------------------------------------
+  # Windows-only: live .bat execution against fake SimHub directory
+  # ---------------------------------------------------------------
+  windows-installer:
+    name: Windows Installer (live)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run live installer tests (3 tests)
+        run: python tools/test_installer.py --live -v

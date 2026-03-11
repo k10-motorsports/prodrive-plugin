@@ -8,7 +8,7 @@
     "severity": 2,
     "severityLabel": "Notable",
     "color": "#8CEC407A",
-    "prompt": "Final lap before racing. Last chance to check the setup feels right and get focused for the start. Stay focused.",
+    "prompt": "Building to the start. This is the moment before it all gets real \u2014 get the car sorted, tyres warm, head in the right place. Almost here.",
     "interrupted": false,
     "interruptedTopic": null
   },
@@ -21,7 +21,7 @@
     "severity": 4,
     "severityLabel": "Urgent",
     "color": "#D9EC407A",
-    "prompt": "Race start. The season starts right now and the next few laps will set the tone for the whole race. Build from here.",
+    "prompt": "Here we go. The race is alive and the chaos of first lap is where reputations are made and lost.",
     "interrupted": false,
     "interruptedTopic": null
   },
@@ -34,7 +34,7 @@
     "severity": 5,
     "severityLabel": "Critical",
     "color": "#FF66BB6A",
-    "prompt": "Massive snap right there. Feel the yaw rate hitting the limit and what it takes to pull it back. Feel that feedback.",
+    "prompt": "Caught it, barely. The car's telling you exactly what happens when you push past the edge \u2014 feel it in real time. Know what saved it.",
     "interrupted": false,
     "interruptedTopic": null
   },
@@ -47,7 +47,7 @@
     "severity": 4,
     "severityLabel": "Urgent",
     "color": "#D9EC407A",
-    "prompt": "Lost that position. That move was better than my defense and now it's response time. Chase it down.",
+    "prompt": "{behind} got me. That's a position gone and I need to respond \u2014 not panic, respond. Next corner.",
     "interrupted": false,
     "interruptedTopic": null
   },
@@ -60,7 +60,7 @@
     "severity": 4,
     "severityLabel": "Urgent",
     "color": "#D9EC407A",
-    "prompt": "Successfully past. The car had the pace and the moment was right \u2014 that's how passes should feel. Next target.",
+    "prompt": "Past {behind}. The car had the pace and the moment was right \u2014 that's how passes should feel. Build on it.",
     "interrupted": false,
     "interruptedTopic": null
   },
@@ -73,7 +73,7 @@
     "severity": 4,
     "severityLabel": "Urgent",
     "color": "#D9EC407A",
-    "prompt": "Yellow on the track. The field bunches up and everything we built in terms of gap just resets \u2014 that's racing. Race on.",
+    "prompt": "Flag is out. The yellow changes everything about the race situation and the next call has to be smart.",
     "interrupted": false,
     "interruptedTopic": null
   },
@@ -86,7 +86,7 @@
     "severity": 4,
     "severityLabel": "Urgent",
     "color": "#D9EC407A",
-    "prompt": "Got through. That move had to be executed perfectly and it was \u2014 credit to the setup and the driving. Build on it.",
+    "prompt": "Successfully past. One position at a time is how you build a race and that's one closer to the goal. Next target.",
     "interrupted": false,
     "interruptedTopic": null
   },
@@ -99,7 +99,7 @@
     "severity": 3,
     "severityLabel": "Significant",
     "color": "#B3EC407A",
-    "prompt": "That's it \u2014 personal best. That lap felt fast and the timer confirms it \u2014 build on this feeling.",
+    "prompt": "Quickest lap yet. That's the confidence talking \u2014 the car's right and everything came together. Repeat that.",
     "interrupted": false,
     "interruptedTopic": null
   }
