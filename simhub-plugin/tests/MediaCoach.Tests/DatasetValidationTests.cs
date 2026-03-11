@@ -46,11 +46,13 @@ namespace MediaCoach.Tests
                 {
                     ContractResolver = new CamelCasePropertyNamesContractResolver()
                 };
-                dynamic obj = JsonConvert.DeserializeObject(json, settings);
-                List<CommentaryTopic> topics = JsonConvert.DeserializeObject<List<CommentaryTopic>>(
-                    JsonConvert.SerializeObject(obj["topics"], settings),
-                    settings
-                );
+                dynamic? obj = JsonConvert.DeserializeObject(json, settings);
+                List<CommentaryTopic>? topics = obj != null
+                    ? JsonConvert.DeserializeObject<List<CommentaryTopic>>(
+                        JsonConvert.SerializeObject(obj["topics"], settings),
+                        settings
+                      )
+                    : null;
                 return topics ?? new List<CommentaryTopic>();
             }
             catch (Exception ex)

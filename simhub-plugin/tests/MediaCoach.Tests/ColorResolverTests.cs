@@ -42,7 +42,7 @@ namespace MediaCoach.Tests
         [Test]
         public void ResolveSentimentColor_WithNullCategory_UsesFallback()
         {
-            string result = CommentaryColorResolver.ResolveSentimentColor(null, 2);
+            string result = CommentaryColorResolver.ResolveSentimentColor(null!, 2);
             // Should use fallback slate grey with 55% alpha
             Assert.AreEqual("#8C37474F", result);
         }
@@ -86,7 +86,7 @@ namespace MediaCoach.Tests
         [Test]
         public void ResolveTextColor_WithNullCategory_ReturnsFallback()
         {
-            string result = CommentaryColorResolver.ResolveTextColor(null);
+            string result = CommentaryColorResolver.ResolveTextColor(null!);
             Assert.AreEqual("#FFFFFFFF", result); // white fallback
         }
 
@@ -149,7 +149,7 @@ namespace MediaCoach.Tests
         [Test]
         public void NormalizeColor_WithNull_ReturnsFallback()
         {
-            string result = CommentaryColorResolver.NormalizeColor(null);
+            string result = CommentaryColorResolver.NormalizeColor(null!);
             Assert.AreEqual("#FF000000", result);
         }
 

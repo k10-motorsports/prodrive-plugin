@@ -5,6 +5,98 @@ import * as http from 'http';
 // Mock the http module
 jest.mock('http');
 
+/**
+ * Sets up http.get mock to return the given property values in order.
+ * Order: severity, visible, color, category, flagState, distance
+ */
+function setupMockResponses(props: {
+  severity: string;
+  visible: string;
+  color: string;
+  category: string;
+  flagState: string;
+  distance: string;
+}): void {
+  const mockGet = http.get as jest.MockedFunction<typeof http.get>;
+  const responses = [
+    { Value: props.severity },
+    { Value: props.visible },
+    { Value: props.color },
+    { Value: props.category },
+    { Value: props.flagState },
+    { Value: props.distance },
+  ];
+
+  let callCount = 0;
+  mockGet.mockImplementation((url: any, callback: any) => {
+    const response = responses[callCount++];
+    const mockRes = {
+      on: jest.fn(function (this: any, event: string, handler: Function) {
+        if (event === 'data') {
+          handler(JSON.stringify(response));
+        } else if (event === 'end') {
+          handler();
+        }
+      }),
+    };
+
+    setTimeout(() => {
+      callback(mockRes as any);
+    }, 10);
+
+    return {
+      on: jest.fn(),
+      destroy: jest.fn(),
+    } as any;
+  });
+}
+
+/**
+ * Sets up http.get mock to return raw string responses (for malformed JSON tests).
+ */
+function setupRawMockResponses(responses: string[]): void {
+  const mockGet = http.get as jest.MockedFunction<typeof http.get>;
+  let callCount = 0;
+  mockGet.mockImplementation((url: any, callback: any) => {
+    const response = responses[callCount++];
+    const mockRes = {
+      on: jest.fn(function (this: any, event: string, handler: Function) {
+        if (event === 'data') {
+          handler(response);
+        } else if (event === 'end') {
+          handler();
+        }
+      }),
+    };
+
+    setTimeout(() => {
+      callback(mockRes as any);
+    }, 10);
+
+    return {
+      on: jest.fn(),
+      destroy: jest.fn(),
+    } as any;
+  });
+}
+
+/**
+ * Sets up http.get mock to immediately fire an error on the request object.
+ */
+function setupErrorMock(errorMessage: string): void {
+  const mockGet = http.get as jest.MockedFunction<typeof http.get>;
+  mockGet.mockImplementation((url: any, callback: any) => {
+    return {
+      on: jest.fn(function (this: any, event: string, handler: Function) {
+        if (event === 'error') {
+          handler(new Error(errorMessage));
+        }
+      }),
+      destroy: jest.fn(),
+    } as any;
+  });
+}
+
 describe('SimHubClient', () => {
   let mockLog: jest.Mock;
   let client: SimHubClient;
@@ -21,8 +113,7 @@ describe('SimHubClient', () => {
         'http://localhost:8888/',
         mockLog,
       );
-      // Verify by checking internal behavior in getState
-      expect(client).toBeDefined();
+      expect(clientWithSlash).toBeDefined();
     });
 
     it('should accept URL without trailing slash', () => {
@@ -36,61 +127,99 @@ describe('SimHubClient', () => {
 
   describe('parseNumber', () => {
     it('should parse valid numeric strings', async () => {
-      mockHttpGet('100', () => new SimHubState());
-      // Create a mock for testing parseNumber behavior indirectly
-      // Since parseNumber is private, we test it through getState
-      const mockGet = http.get as jest.MockedFunction<typeof http.get>;
-      mockGet.mockImplementation((url, callback) => {
-        const mockRes = {
-          on: jest.fn(),
-        };
-        const mockReq = { destroy: jest.fn(), on: jest.fn() };
-
-        if (mockRes.on.mock.calls[1]) {
-          // Simulate end event with numeric data
-          const endCallback = mockRes.on.mock.calls.find(
-            (call) => call[0] === 'end',
-          )?.[1];
-          if (endCallback) {
-            endCallback();
-          }
-        }
-
-        return mockReq as any;
+      setupMockResponses({
+        severity: '100',
+        visible: '1',
+        color: '#FF000000',
+        category: '',
+        flagState: 'none',
+        distance: '0.5',
       });
 
-      // Test indirectly through a successful state fetch
-      const defaultState = client;
-      expect(defaultState).toBeDefined();
+      const state = await client.getState();
+      expect(state.commentarySeverity).toBe(100);
     });
 
     it('should return fallback for NaN values', async () => {
-      // This is tested indirectly through getState
-      expect(true).toBe(true);
+      setupMockResponses({
+        severity: 'not-a-number',
+        visible: '0',
+        color: '#FF000000',
+        category: '',
+        flagState: 'none',
+        distance: '0.5',
+      });
+
+      const state = await client.getState();
+      expect(state.commentarySeverity).toBe(0); // fallback
     });
 
     it('should return fallback for empty strings', async () => {
-      expect(true).toBe(true);
+      setupMockResponses({
+        severity: '',
+        visible: '0',
+        color: '#FF000000',
+        category: '',
+        flagState: 'none',
+        distance: '',
+      });
+
+      const state = await client.getState();
+      expect(state.commentarySeverity).toBe(0); // fallback
+      expect(state.nearestCarDistance).toBe(1.0); // fallback for NaN
     });
   });
 
   describe('parseString', () => {
     it('should trim whitespace from strings', async () => {
-      expect(true).toBe(true);
+      setupMockResponses({
+        severity: '0',
+        visible: '0',
+        color: '#FF000000',
+        category: '  hardware  ',
+        flagState: '  yellow  ',
+        distance: '0.5',
+      });
+
+      const state = await client.getState();
+      expect(state.commentaryCategory).toBe('hardware');
+      expect(state.currentFlagState).toBe('yellow');
     });
 
     it('should return fallback for empty strings', async () => {
-      expect(true).toBe(true);
+      setupMockResponses({
+        severity: '0',
+        visible: '0',
+        color: '#FF000000',
+        category: '',
+        flagState: '',
+        distance: '0.5',
+      });
+
+      const state = await client.getState();
+      expect(state.commentaryCategory).toBe('');
+      expect(state.currentFlagState).toBe('none');
     });
 
-    it('should return fallback for non-string values', async () => {
-      expect(true).toBe(true);
+    it('should return fallback for whitespace-only strings', async () => {
+      setupMockResponses({
+        severity: '0',
+        visible: '0',
+        color: '#FF000000',
+        category: '   ',
+        flagState: '   ',
+        distance: '0.5',
+      });
+
+      const state = await client.getState();
+      expect(state.commentaryCategory).toBe('');
+      expect(state.currentFlagState).toBe('none');
     });
   });
 
   describe('parseColor', () => {
     it('should handle #AARRGGBB format', async () => {
-      const state = mockGetStateWithResponses({
+      setupMockResponses({
         severity: '0',
         visible: '0',
         color: '#FFFF0000',
@@ -99,11 +228,12 @@ describe('SimHubClient', () => {
         distance: '0.5',
       });
 
+      const state = await client.getState();
       expect(state.commentarySentimentColor).toBe('#FFFF0000');
     });
 
     it('should convert #RRGGBB to #FFRRGGBB', async () => {
-      const state = mockGetStateWithResponses({
+      setupMockResponses({
         severity: '0',
         visible: '0',
         color: '#FF0000',
@@ -112,11 +242,12 @@ describe('SimHubClient', () => {
         distance: '0.5',
       });
 
+      const state = await client.getState();
       expect(state.commentarySentimentColor).toBe('#FFFF0000');
     });
 
     it('should default to black (#FF000000) for invalid color', async () => {
-      const state = mockGetStateWithResponses({
+      setupMockResponses({
         severity: '0',
         visible: '0',
         color: 'invalid',
@@ -125,11 +256,12 @@ describe('SimHubClient', () => {
         distance: '0.5',
       });
 
+      const state = await client.getState();
       expect(state.commentarySentimentColor).toBe('#FF000000');
     });
 
     it('should handle empty color string', async () => {
-      const state = mockGetStateWithResponses({
+      setupMockResponses({
         severity: '0',
         visible: '0',
         color: '',
@@ -138,11 +270,12 @@ describe('SimHubClient', () => {
         distance: '0.5',
       });
 
+      const state = await client.getState();
       expect(state.commentarySentimentColor).toBe('#FF000000');
     });
 
     it('should be case-insensitive for hex', async () => {
-      const state1 = mockGetStateWithResponses({
+      setupMockResponses({
         severity: '0',
         visible: '0',
         color: '#ffff0000',
@@ -151,7 +284,9 @@ describe('SimHubClient', () => {
         distance: '0.5',
       });
 
-      const state2 = mockGetStateWithResponses({
+      const state1 = await client.getState();
+
+      setupMockResponses({
         severity: '0',
         visible: '0',
         color: '#FFFF0000',
@@ -160,45 +295,21 @@ describe('SimHubClient', () => {
         distance: '0.5',
       });
 
+      const state2 = await client.getState();
+
       expect(state1.commentarySentimentColor).toBe(state2.commentarySentimentColor);
     });
   });
 
   describe('getState', () => {
     it('should fetch all properties successfully', async () => {
-      const mockGet = http.get as jest.MockedFunction<typeof http.get>;
-      const responses = [
-        { Value: '3' }, // severity
-        { Value: '1' }, // visible
-        { Value: '#FFAABBCC' }, // color
-        { Value: 'hardware' }, // category
-        { Value: 'yellow' }, // flag
-        { Value: '0.015' }, // distance
-      ];
-
-      let callCount = 0;
-      mockGet.mockImplementation((url, callback) => {
-        const response = responses[callCount++];
-        const mockRes = {
-          on: jest.fn(function (event, handler) {
-            if (event === 'data') {
-              handler(JSON.stringify(response));
-            } else if (event === 'end') {
-              handler();
-            }
-          }),
-        };
-
-        setTimeout(() => {
-          callback(mockRes as any);
-        }, 10);
-
-        return {
-          on: jest.fn(function (event, handler) {
-            // Handle error event
-          }),
-          destroy: jest.fn(),
-        } as any;
+      setupMockResponses({
+        severity: '3',
+        visible: '1',
+        color: '#FFAABBCC',
+        category: 'hardware',
+        flagState: 'yellow',
+        distance: '0.015',
       });
 
       const state = await client.getState();
@@ -213,17 +324,7 @@ describe('SimHubClient', () => {
     });
 
     it('should return default state on connection error', async () => {
-      const mockGet = http.get as jest.MockedFunction<typeof http.get>;
-      mockGet.mockImplementation((url, callback) => {
-        return {
-          on: jest.fn(function (event, handler) {
-            if (event === 'error') {
-              handler(new Error('Connection refused'));
-            }
-          }),
-          destroy: jest.fn(),
-        } as any;
-      });
+      setupErrorMock('Connection refused');
 
       const state = await client.getState();
 
@@ -237,17 +338,7 @@ describe('SimHubClient', () => {
     });
 
     it('should log error on connection failure', async () => {
-      const mockGet = http.get as jest.MockedFunction<typeof http.get>;
-      mockGet.mockImplementation((url, callback) => {
-        return {
-          on: jest.fn(function (event, handler) {
-            if (event === 'error') {
-              handler(new Error('Timeout fetching property'));
-            }
-          }),
-          destroy: jest.fn(),
-        } as any;
-      });
+      setupErrorMock('Timeout fetching property');
 
       await client.getState();
 
@@ -255,59 +346,20 @@ describe('SimHubClient', () => {
     });
 
     it('should handle timeout gracefully', async () => {
-      const mockGet = http.get as jest.MockedFunction<typeof http.get>;
-      mockGet.mockImplementation((url, callback) => {
-        const timeoutHandle = setTimeout(() => {
-          // Simulate timeout
-        }, 2000);
-
-        return {
-          on: jest.fn(function (event, handler) {
-            if (event === 'error') {
-              clearTimeout(timeoutHandle);
-              handler(new Error('Timeout'));
-            }
-          }),
-          destroy: jest.fn(() => clearTimeout(timeoutHandle)),
-        } as any;
-      });
+      setupErrorMock('Timeout');
 
       const state = await client.getState();
       expect(state.isConnected).toBe(false);
     });
 
     it('should parse numeric strings to numbers', async () => {
-      const mockGet = http.get as jest.MockedFunction<typeof http.get>;
-      const responses = [
-        { Value: '5' }, // severity as string
-        { Value: '0' }, // visible as string
-        { Value: '#FF000000' },
-        { Value: '' },
-        { Value: 'none' },
-        { Value: '0.25' }, // distance as string
-      ];
-
-      let callCount = 0;
-      mockGet.mockImplementation((url, callback) => {
-        const response = responses[callCount++];
-        const mockRes = {
-          on: jest.fn(function (event, handler) {
-            if (event === 'data') {
-              handler(JSON.stringify(response));
-            } else if (event === 'end') {
-              handler();
-            }
-          }),
-        };
-
-        setTimeout(() => {
-          callback(mockRes as any);
-        }, 10);
-
-        return {
-          on: jest.fn(),
-          destroy: jest.fn(),
-        } as any;
+      setupMockResponses({
+        severity: '5',
+        visible: '0',
+        color: '#FF000000',
+        category: '',
+        flagState: 'none',
+        distance: '0.25',
       });
 
       const state = await client.getState();
@@ -319,38 +371,14 @@ describe('SimHubClient', () => {
     });
 
     it('should handle malformed JSON response', async () => {
-      const mockGet = http.get as jest.MockedFunction<typeof http.get>;
-      const responses = [
+      setupRawMockResponses([
         'invalid json',
         '{ incomplete',
         '{ "Value": "1" }',
         '{ "Value": "" }',
         '{ "Value": "none" }',
         '{ "Value": "0.5" }',
-      ];
-
-      let callCount = 0;
-      mockGet.mockImplementation((url, callback) => {
-        const response = responses[callCount++];
-        const mockRes = {
-          on: jest.fn(function (event, handler) {
-            if (event === 'data') {
-              handler(response);
-            } else if (event === 'end') {
-              handler();
-            }
-          }),
-        };
-
-        setTimeout(() => {
-          callback(mockRes as any);
-        }, 10);
-
-        return {
-          on: jest.fn(),
-          destroy: jest.fn(),
-        } as any;
-      });
+      ]);
 
       const state = await client.getState();
 
@@ -360,55 +388,21 @@ describe('SimHubClient', () => {
     });
 
     it('should clear error on successful reconnection', async () => {
-      const mockGet = http.get as jest.MockedFunction<typeof http.get>;
-
       // First call: error
-      mockGet.mockImplementationOnce((url, callback) => {
-        return {
-          on: jest.fn(function (event, handler) {
-            if (event === 'error') {
-              handler(new Error('Connection refused'));
-            }
-          }),
-          destroy: jest.fn(),
-        } as any;
-      });
+      setupErrorMock('Connection refused');
 
       await client.getState();
       expect(mockLog).toHaveBeenCalledWith(expect.stringContaining('error'));
 
       // Second call: success
       mockLog.mockClear();
-      const responses = [
-        { Value: '0' },
-        { Value: '0' },
-        { Value: '#FF000000' },
-        { Value: '' },
-        { Value: 'none' },
-        { Value: '0.5' },
-      ];
-
-      let callCount = 0;
-      mockGet.mockImplementation((url, callback) => {
-        const response = responses[callCount++];
-        const mockRes = {
-          on: jest.fn(function (event, handler) {
-            if (event === 'data') {
-              handler(JSON.stringify(response));
-            } else if (event === 'end') {
-              handler();
-            }
-          }),
-        };
-
-        setTimeout(() => {
-          callback(mockRes as any);
-        }, 10);
-
-        return {
-          on: jest.fn(),
-          destroy: jest.fn(),
-        } as any;
+      setupMockResponses({
+        severity: '0',
+        visible: '0',
+        color: '#FF000000',
+        category: '',
+        flagState: 'none',
+        distance: '0.5',
       });
 
       await client.getState();
@@ -422,17 +416,7 @@ describe('SimHubClient', () => {
 
   describe('getDefaultState', () => {
     it('should return safe default state', async () => {
-      const mockGet = http.get as jest.MockedFunction<typeof http.get>;
-      mockGet.mockImplementation(() => {
-        return {
-          on: jest.fn(function (event, handler) {
-            if (event === 'error') {
-              handler(new Error('Connection failed'));
-            }
-          }),
-          destroy: jest.fn(),
-        } as any;
-      });
+      setupErrorMock('Connection failed');
 
       const state = await client.getState();
 
@@ -453,10 +437,10 @@ describe('SimHubClient', () => {
       const mockGet = http.get as jest.MockedFunction<typeof http.get>;
       const capturedUrls: string[] = [];
 
-      mockGet.mockImplementation((url: string, callback) => {
-        capturedUrls.push(url);
+      mockGet.mockImplementation((url: any, callback: any) => {
+        capturedUrls.push(String(url));
         return {
-          on: jest.fn(function (event, handler) {
+          on: jest.fn(function (this: any, event: string, handler: Function) {
             if (event === 'error') {
               handler(new Error('Timeout'));
             }
@@ -482,37 +466,13 @@ describe('SimHubClient', () => {
 
   describe('Complex scenarios', () => {
     it('should handle zero visibility as false', async () => {
-      const mockGet = http.get as jest.MockedFunction<typeof http.get>;
-      const responses = [
-        { Value: '0' },
-        { Value: '0' },
-        { Value: '#FF000000' },
-        { Value: '' },
-        { Value: 'none' },
-        { Value: '0.5' },
-      ];
-
-      let callCount = 0;
-      mockGet.mockImplementation((url, callback) => {
-        const response = responses[callCount++];
-        const mockRes = {
-          on: jest.fn(function (event, handler) {
-            if (event === 'data') {
-              handler(JSON.stringify(response));
-            } else if (event === 'end') {
-              handler();
-            }
-          }),
-        };
-
-        setTimeout(() => {
-          callback(mockRes as any);
-        }, 10);
-
-        return {
-          on: jest.fn(),
-          destroy: jest.fn(),
-        } as any;
+      setupMockResponses({
+        severity: '0',
+        visible: '0',
+        color: '#FF000000',
+        category: '',
+        flagState: 'none',
+        distance: '0.5',
       });
 
       const state = await client.getState();
@@ -520,37 +480,13 @@ describe('SimHubClient', () => {
     });
 
     it('should handle non-zero visibility as true', async () => {
-      const mockGet = http.get as jest.MockedFunction<typeof http.get>;
-      const responses = [
-        { Value: '0' },
-        { Value: '1' },
-        { Value: '#FF000000' },
-        { Value: '' },
-        { Value: 'none' },
-        { Value: '0.5' },
-      ];
-
-      let callCount = 0;
-      mockGet.mockImplementation((url, callback) => {
-        const response = responses[callCount++];
-        const mockRes = {
-          on: jest.fn(function (event, handler) {
-            if (event === 'data') {
-              handler(JSON.stringify(response));
-            } else if (event === 'end') {
-              handler();
-            }
-          }),
-        };
-
-        setTimeout(() => {
-          callback(mockRes as any);
-        }, 10);
-
-        return {
-          on: jest.fn(),
-          destroy: jest.fn(),
-        } as any;
+      setupMockResponses({
+        severity: '0',
+        visible: '1',
+        color: '#FF000000',
+        category: '',
+        flagState: 'none',
+        distance: '0.5',
       });
 
       const state = await client.getState();
@@ -558,85 +494,3 @@ describe('SimHubClient', () => {
     });
   });
 });
-
-// Helper to mock successful state fetch
-function mockGetStateWithResponses(props: {
-  severity: string;
-  visible: string;
-  color: string;
-  category: string;
-  flagState: string;
-  distance: string;
-}): SimHubState {
-  const mockGet = http.get as jest.MockedFunction<typeof http.get>;
-  const responses = [
-    { Value: props.severity },
-    { Value: props.visible },
-    { Value: props.color },
-    { Value: props.category },
-    { Value: props.flagState },
-    { Value: props.distance },
-  ];
-
-  let callCount = 0;
-  mockGet.mockImplementation((url, callback) => {
-    const response = responses[callCount++];
-    const mockRes = {
-      on: jest.fn(function (event, handler) {
-        if (event === 'data') {
-          handler(JSON.stringify(response));
-        } else if (event === 'end') {
-          handler();
-        }
-      }),
-    };
-
-    setTimeout(() => {
-      callback(mockRes as any);
-    }, 10);
-
-    return {
-      on: jest.fn(),
-      destroy: jest.fn(),
-    } as any;
-  });
-
-  // Return a dummy state - tests should use getState() for real results
-  return {
-    commentarySeverity: 0,
-    commentaryVisible: false,
-    commentarySentimentColor: '#FF000000',
-    commentaryCategory: '',
-    currentFlagState: 'none',
-    nearestCarDistance: 1.0,
-    isConnected: false,
-  };
-}
-
-function mockHttpGet(
-  responseValue: string,
-  callback?: (res: any) => void,
-): void {
-  const mockGet = http.get as jest.MockedFunction<typeof http.get>;
-  mockGet.mockImplementation((url, cb) => {
-    const mockRes = {
-      on: jest.fn(function (event, handler) {
-        if (event === 'data') {
-          handler(JSON.stringify({ Value: responseValue }));
-        } else if (event === 'end') {
-          handler();
-        }
-      }),
-    };
-
-    setTimeout(() => {
-      cb(mockRes as any);
-      if (callback) callback(mockRes);
-    }, 10);
-
-    return {
-      on: jest.fn(),
-      destroy: jest.fn(),
-    } as any;
-  });
-}

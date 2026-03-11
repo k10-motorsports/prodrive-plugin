@@ -4,11 +4,11 @@ on:
   push:
     branches: [main, master]
     paths:
-      - "simhub/**"
+      - "simhub-plugin/**"
   pull_request:
     branches: [main, master]
     paths:
-      - "simhub/**"
+      - "simhub-plugin/**"
 
 jobs:
 
@@ -28,22 +28,22 @@ jobs:
           python-version: "3.11"
 
       - name: Dataset validation (28 tests)
-        run: python3 simhub/tests/validate_datasets.py -v
+        run: python3 simhub-plugin/tests/validate_datasets.py -v
 
       - name: Telemetry replay — full race
-        run: python3 simhub/tools/replay_telemetry.py generate full_race
+        run: python3 simhub-plugin/tools/replay_telemetry.py generate full_race
 
       - name: Telemetry replay — tyre degradation
-        run: python3 simhub/tools/replay_telemetry.py generate tyre_degradation
+        run: python3 simhub-plugin/tools/replay_telemetry.py generate tyre_degradation
 
       - name: Telemetry replay — incident heavy
-        run: python3 simhub/tools/replay_telemetry.py generate incident_heavy
+        run: python3 simhub-plugin/tools/replay_telemetry.py generate incident_heavy
 
       - name: Telemetry replay — flag sequence
-        run: python3 simhub/tools/replay_telemetry.py generate flag_sequence
+        run: python3 simhub-plugin/tools/replay_telemetry.py generate flag_sequence
 
       - name: Installer and export tests (34 tests)
-        run: python3 simhub/tools/test_installer.py -v
+        run: python3 simhub-plugin/tools/test_installer.py -v
 
   # ---------------------------------------------------------------
   # C# unit tests: trigger evaluation, fragments, colors, datasets
@@ -61,13 +61,13 @@ jobs:
           dotnet-version: "6.0.x"
 
       - name: Restore NuGet packages
-        run: dotnet restore simhub/tests/MediaCoach.Tests/MediaCoach.Tests.csproj
+        run: dotnet restore simhub-plugin/tests/MediaCoach.Tests/MediaCoach.Tests.csproj
 
       - name: Build test project
-        run: dotnet build simhub/tests/MediaCoach.Tests/MediaCoach.Tests.csproj --no-restore
+        run: dotnet build simhub-plugin/tests/MediaCoach.Tests/MediaCoach.Tests.csproj --no-restore
 
       - name: Run tests (200+ tests)
-        run: dotnet test simhub/tests/MediaCoach.Tests/MediaCoach.Tests.csproj --no-build --verbosity normal
+        run: dotnet test simhub-plugin/tests/MediaCoach.Tests/MediaCoach.Tests.csproj --no-build --verbosity normal
 
   # ---------------------------------------------------------------
   # Windows-only: live .bat execution against fake SimHub directory
@@ -84,4 +84,4 @@ jobs:
           python-version: "3.11"
 
       - name: Run live installer tests (3 tests)
-        run: python simhub/tools/test_installer.py --live -v
+        run: python simhub-plugin/tools/test_installer.py --live -v

@@ -8,7 +8,7 @@
     "severity": 2,
     "severityLabel": "Notable",
     "color": "#8CEC407A",
-    "prompt": "Building to the start. This is the moment before it all gets real \u2014 get the car sorted, tyres warm, head in the right place. Almost here.",
+    "prompt": "Warming everything up. Running behind the leader, building temperature in the tyres and brakes for what's coming. One more lap.",
     "interrupted": false,
     "interruptedTopic": null
   },
@@ -21,7 +21,7 @@
     "severity": 4,
     "severityLabel": "Urgent",
     "color": "#D9EC407A",
-    "prompt": "Here we go. The race is alive and the chaos of first lap is where reputations are made and lost.",
+    "prompt": "Lights out. The season starts right now and the next few laps will set the tone for the whole race.",
     "interrupted": false,
     "interruptedTopic": null
   },
@@ -34,7 +34,7 @@
     "severity": 5,
     "severityLabel": "Critical",
     "color": "#FF66BB6A",
-    "prompt": "Caught it, barely. The car's telling you exactly what happens when you push past the edge \u2014 feel it in real time. Know what saved it.",
+    "prompt": "Full rotation. You can feel every bit of it through the wheel trying to communicate what just happened. Full correction needed.",
     "interrupted": false,
     "interruptedTopic": null
   },
@@ -47,7 +47,7 @@
     "severity": 4,
     "severityLabel": "Urgent",
     "color": "#D9EC407A",
-    "prompt": "{behind} got me. That's a position gone and I need to respond \u2014 not panic, respond. Next corner.",
+    "prompt": "{behind} found a way through. This is where the race either falls apart or I dig in and fix it. Chase it down.",
     "interrupted": false,
     "interruptedTopic": null
   },
@@ -60,7 +60,7 @@
     "severity": 4,
     "severityLabel": "Urgent",
     "color": "#D9EC407A",
-    "prompt": "Past {behind}. The car had the pace and the moment was right \u2014 that's how passes should feel. Build on it.",
+    "prompt": "Got through. The car had the pace and the moment was right \u2014 that's how passes should feel. Next target.",
     "interrupted": false,
     "interruptedTopic": null
   },
@@ -73,7 +73,7 @@
     "severity": 4,
     "severityLabel": "Urgent",
     "color": "#D9EC407A",
-    "prompt": "Flag is out. The yellow changes everything about the race situation and the next call has to be smart.",
+    "prompt": "Caution flag. Something happened and the race has paused itself \u2014 this changes the calculation completely.",
     "interrupted": false,
     "interruptedTopic": null
   },
@@ -86,7 +86,7 @@
     "severity": 4,
     "severityLabel": "Urgent",
     "color": "#D9EC407A",
-    "prompt": "Successfully past. One position at a time is how you build a race and that's one closer to the goal. Next target.",
+    "prompt": "Got through. That was the opportunity and you took it cleanly \u2014 now capitalize on it. Move ahead.",
     "interrupted": false,
     "interruptedTopic": null
   },
@@ -99,7 +99,7 @@
     "severity": 3,
     "severityLabel": "Significant",
     "color": "#B3EC407A",
-    "prompt": "Quickest lap yet. That's the confidence talking \u2014 the car's right and everything came together. Repeat that.",
+    "prompt": "New PB. The lap did what it needed to do \u2014 clean, committed, no mistakes where it mattered. There's more.",
     "interrupted": false,
     "interruptedTopic": null
   }

@@ -8,7 +8,7 @@
     "severity": 4,
     "severityLabel": "Urgent",
     "color": "#D9EC407A",
-    "prompt": "Yellow flag out. Depending on where this falls in the stint it either saves us or costs us the strategy.",
+    "prompt": "Caution deployed. Depending on where this falls in the stint it either saves us or costs us the strategy. Race on.",
     "interrupted": false,
     "interruptedTopic": null
   }

@@ -8,7 +8,7 @@
     "severity": 2,
     "severityLabel": "Notable",
     "color": "#8C66BB6A",
-    "prompt": "The tyres are going. The tire model is showing exactly how grip falls off and the car reacts accordingly. Nearly there.",
+    "prompt": "Tyre wear critical. The car's character is changing and what worked before doesn't work anymore. Make the stop.",
     "interrupted": false,
     "interruptedTopic": null
   },
@@ -21,7 +21,7 @@
     "severity": 3,
     "severityLabel": "Significant",
     "color": "#B366BB6A",
-    "prompt": "Too hot on the fronts. The grip is going away and there's a physical reason \u2014 the compound can't handle this temperature. Back off now.",
+    "prompt": "Tyre temp spike. The grip is going away and there's a physical reason \u2014 the compound can't handle this temperature. Manage temps.",
     "interrupted": false,
     "interruptedTopic": null
   }

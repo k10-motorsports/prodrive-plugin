@@ -6,8 +6,8 @@ namespace MediaCoach.Tests
     [TestFixture]
     public class TriggerEvaluatorTests
     {
-        private TelemetrySnapshot _baseCurrent;
-        private TelemetrySnapshot _basePrevious;
+        private TelemetrySnapshot _baseCurrent = null!;
+        private TelemetrySnapshot _basePrevious = null!;
 
         [SetUp]
         public void Setup()
@@ -22,7 +22,7 @@ namespace MediaCoach.Tests
         public void Evaluate_WithNullCurrent_ReturnsFalse()
         {
             var trigger = new TriggerCondition { Condition = ">", DataPoint = "SpeedKmh", Value = 100 };
-            Assert.IsFalse(TriggerEvaluator.Evaluate(trigger, null, _basePrevious));
+            Assert.IsFalse(TriggerEvaluator.Evaluate(trigger, null!, _basePrevious));
         }
 
         [Test]
@@ -328,7 +328,7 @@ namespace MediaCoach.Tests
         public void SuddenDrop_WithNullPrevious_ReturnsFalse()
         {
             var trigger = new TriggerCondition { Condition = "sudden_drop", DataPoint = "VertAccel", ThresholdDelta = -8.0 };
-            Assert.IsFalse(TriggerEvaluator.Evaluate(trigger, _baseCurrent, null));
+            Assert.IsFalse(TriggerEvaluator.Evaluate(trigger, _baseCurrent, null!));
         }
 
         #endregion

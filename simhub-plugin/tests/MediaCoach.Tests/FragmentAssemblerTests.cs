@@ -42,9 +42,9 @@ namespace MediaCoach.Tests
             _assembler.LoadFragmentsFromJson(json);
             string result = _assembler.Assemble("test_topic", _context);
             Assert.IsNotNull(result);
-            Assert.Contains("The car", result);
-            Assert.Contains("is working well", result);
-            Assert.Contains("today", result);
+            StringAssert.Contains("The car", result);
+            StringAssert.Contains("is working well", result);
+            StringAssert.Contains("today", result);
         }
 
         [Test]
@@ -129,8 +129,8 @@ namespace MediaCoach.Tests
             _assembler.LoadFragmentsFromJson(json);
             string result = _assembler.Assemble("test", _context);
             Assert.IsNotNull(result);
-            Assert.Contains("Opener", result);
-            Assert.Contains("end", result);
+            StringAssert.Contains("Opener", result);
+            StringAssert.Contains("end", result);
         }
 
         [Test]
@@ -151,8 +151,8 @@ namespace MediaCoach.Tests
             _assembler.LoadFragmentsFromJson(json);
             string result = _assembler.Assemble("test", _context);
             Assert.IsNotNull(result);
-            Assert.Contains("Opener", result);
-            Assert.Contains("middle", result);
+            StringAssert.Contains("Opener", result);
+            StringAssert.Contains("middle", result);
         }
 
         #endregion
@@ -176,8 +176,8 @@ namespace MediaCoach.Tests
 }";
             _assembler.LoadFragmentsFromJson(json);
             string result = _assembler.Assemble("test", _context);
-            Assert.Contains("Sarah K.", result);
-            Assert.Contains("2,847 iR", result);
+            StringAssert.Contains("Sarah K.", result);
+            StringAssert.Contains("2,847 iR", result);
         }
 
         [Test]
@@ -197,8 +197,8 @@ namespace MediaCoach.Tests
 }";
             _assembler.LoadFragmentsFromJson(json);
             string result = _assembler.Assemble("test", _context);
-            Assert.Contains("James W.", result);
-            Assert.Contains("2,100 iR", result);
+            StringAssert.Contains("James W.", result);
+            StringAssert.Contains("2,100 iR", result);
         }
 
         [Test]
@@ -219,7 +219,7 @@ namespace MediaCoach.Tests
 }";
             _assembler.LoadFragmentsFromJson(json);
             string result = _assembler.Assemble("test", _context);
-            Assert.Contains("the car", result);
+            StringAssert.Contains("the car", result);
         }
 
         [Test]
@@ -240,7 +240,7 @@ namespace MediaCoach.Tests
 }";
             _assembler.LoadFragmentsFromJson(json);
             string result = _assembler.Assemble("test", _context);
-            Assert.Contains("Sarah K.", result);
+            StringAssert.Contains("Sarah K.", result);
             Assert.IsFalse(result.Contains("iR"), "Should not include iR rating when rating is 0");
         }
 
@@ -308,8 +308,8 @@ namespace MediaCoach.Tests
 
             Assert.IsNotNull(result1);
             Assert.IsNotNull(result2);
-            Assert.Contains("Only", result1);
-            Assert.Contains("Only", result2);
+            StringAssert.Contains("Only", result1);
+            StringAssert.Contains("Only", result2);
         }
 
         #endregion
@@ -332,7 +332,7 @@ namespace MediaCoach.Tests
   ]
 }";
             _assembler.LoadFragmentsFromJson(json);
-            string result = _assembler.Assemble("test", null);
+            string result = _assembler.Assemble("test", null!);
             Assert.IsNotNull(result);
         }
 
@@ -396,8 +396,8 @@ namespace MediaCoach.Tests
 
             Assert.IsNotNull(resultA);
             Assert.IsNotNull(resultB);
-            Assert.Contains("A", resultA);
-            Assert.Contains("B", resultB);
+            StringAssert.Contains("A", resultA);
+            StringAssert.Contains("B", resultB);
         }
 
         #endregion
