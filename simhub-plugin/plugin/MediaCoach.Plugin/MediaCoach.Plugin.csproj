@@ -77,23 +77,34 @@
   </Target>
 
   <!--
-    Post-build: copy the built DLL and PDB back into the repo so that
-    simhub-plugin/ always contains the latest build artifacts.
+    Post-build: export built artifacts and dashboard back into the repo
+    so simhub-plugin/ always contains the latest files for commit.
     RepoPluginDir = simhub-plugin/ (two levels up from this .csproj).
+    Mirrors what export.bat does, minus _Backups.
   -->
   <PropertyGroup>
     <RepoPluginDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\..'))\</RepoPluginDir>
   </PropertyGroup>
   <Target Name="ExportToRepo" AfterTargets="Build">
+    <!-- DLL -->
     <Copy SourceFiles="$(SimHubPath)MediaCoach.Plugin.dll"
           DestinationFolder="$(RepoPluginDir)"
           SkipUnchangedFiles="true" />
+    <!-- PDB (Debug builds only) -->
     <Copy SourceFiles="$(SimHubPath)MediaCoach.Plugin.pdb"
           DestinationFolder="$(RepoPluginDir)"
           Condition="Exists('$(SimHubPath)MediaCoach.Plugin.pdb')"
           SkipUnchangedFiles="true" />
+    <!-- Dashboard template (excluding _Backups) -->
+    <ItemGroup>
+      <SimHubDashFiles Include="$(SimHubPath)DashTemplates\media coach\**\*"
+                       Exclude="$(SimHubPath)DashTemplates\media coach\_Backups\**" />
+    </ItemGroup>
+    <Copy SourceFiles="@(SimHubDashFiles)"
+          DestinationFolder="$(RepoPluginDir)DashTemplates\media coach\%(RecursiveDir)"
+          SkipUnchangedFiles="true" />
     <Message Importance="high"
-             Text="Exported DLL+PDB to $(RepoPluginDir)" />
+             Text="Exported DLL+PDB+Dashboard to $(RepoPluginDir)" />
   </Target>
 
   <!-- Debug: launch SimHub when pressing F5 -->
