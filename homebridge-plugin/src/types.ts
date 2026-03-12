@@ -41,7 +41,7 @@ export interface LightConfig {
   merossPort?: number;       // Optional: Meross device port (default: 80)
   merossKey?: string;        // Optional: Meross device auth key (default: "")
   hapIp?: string;            // Optional: VOCOlinc/HAP device IP for direct local control
-  hapPort?: number;          // Optional: HAP device port (default: 80)
+  hapPort?: number;          // Optional: HAP device port (default: 8080)
   hapPin?: string;           // Optional: HomeKit PIN for initial pairing (e.g. "123-45-678")
   hapDeviceId?: string;      // Optional: HAP device ID/MAC (used as pairing identity)
 }

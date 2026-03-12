@@ -136,7 +136,7 @@ export class MediaCoachLightsPlatform implements DynamicPlatformPlugin {
         const vocolinc = new VocolincClient(
           lightConfig.hapDeviceId,
           lightConfig.hapIp,
-          lightConfig.hapPort ?? 80,
+          lightConfig.hapPort ?? 8080,
           this.api.user.storagePath(),
           (msg: string) => this.log.debug(msg),
         );

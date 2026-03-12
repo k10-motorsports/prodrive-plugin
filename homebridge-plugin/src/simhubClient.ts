@@ -2,45 +2,39 @@ import * as http from 'http';
 import { SimHubState } from './types';
 
 /**
- * HTTP client for SimHub API polling
- * Fetches Media Coach plugin properties via SimHub's built-in HTTP API
+ * HTTP client for Media Coach state endpoint.
+ *
+ * The SimHub plugin exposes a lightweight JSON REST endpoint on port 8889:
+ *   GET http://<host>:8889/mediacoach/
+ * This is served by System.Net.HttpListener inside Plugin.cs and bypasses
+ * SimHub's web server (which does not expose plugin properties via REST in 9.x).
  */
 export class SimHubClient {
-  private baseUrl: string;
+  private stateUrl: string;
   private log: (message: string) => void;
   private lastError: string = '';
 
   constructor(baseUrl: string, log: (message: string) => void) {
-    this.baseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
+    // baseUrl is e.g. "http://playbox.local:8888" — we replace port 8888 with 8889
+    // and use the /mediacoach/ path served by the plugin's own HttpListener.
+    const host = baseUrl.replace(/:\d+$/, '');
+    this.stateUrl = `${host}:8889/mediacoach/`;
     this.log = log;
   }
 
-  /**
-   * Polls SimHub API to get current Media Coach state
-   * Returns default state if connection fails or times out
-   */
   async getState(): Promise<SimHubState> {
     try {
-      const [severity, visible, color, category, flagState, distance] = await Promise.all([
-        this.fetchProperty('MediaCoach.Plugin.CommentarySeverity'),
-        this.fetchProperty('MediaCoach.Plugin.CommentaryVisible'),
-        this.fetchProperty('MediaCoach.Plugin.CommentarySentimentColor'),
-        this.fetchProperty('MediaCoach.Plugin.CommentaryCategory'),
-        this.fetchProperty('MediaCoach.Plugin.CurrentFlagState'),
-        this.fetchProperty('MediaCoach.Plugin.NearestCarDistance'),
-      ]);
-
+      const raw = await this.fetchJson(this.stateUrl);
       const state: SimHubState = {
-        commentarySeverity: this.parseNumber(severity, 0),
-        commentaryVisible: this.parseNumber(visible, 0) !== 0,
-        commentarySentimentColor: this.parseColor(color),
-        commentaryCategory: this.parseString(category, ''),
-        currentFlagState: this.parseString(flagState, 'none'),
-        nearestCarDistance: this.parseNumber(distance, 1.0),
+        commentarySeverity: this.num(raw.commentarySeverity, 0),
+        commentaryVisible: raw.commentaryVisible === true,
+        commentarySentimentColor: this.color(raw.commentarySentimentColor),
+        commentaryCategory: this.str(raw.commentaryCategory, ''),
+        currentFlagState: this.str(raw.currentFlagState, 'none'),
+        nearestCarDistance: this.num(raw.nearestCarDistance, 1.0),
         isConnected: true,
       };
 
-      // Clear error on successful fetch
       if (this.lastError) {
         this.lastError = '';
         this.log('[MediaCoach] SimHub connection restored');
@@ -48,102 +42,58 @@ export class SimHubClient {
 
       return state;
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      if (this.lastError !== errorMsg) {
-        this.lastError = errorMsg;
-        this.log(`[MediaCoach] SimHub connection error: ${errorMsg}`);
+      const msg = error instanceof Error ? error.message : String(error);
+      if (this.lastError !== msg) {
+        this.lastError = msg;
+        this.log(`[MediaCoach] SimHub connection error: ${msg}`);
       }
-
-      return this.getDefaultState();
+      return this.defaultState();
     }
   }
 
-  /**
-   * Fetches a single property from SimHub API
-   * Timeout: 1.5 seconds
-   */
-  private async fetchProperty(propertyName: string): Promise<string> {
+  private fetchJson(url: string): Promise<Record<string, unknown>> {
     return new Promise((resolve, reject) => {
-      const url = `${this.baseUrl}/api/pluginproperty/${propertyName}`;
-
-      const timeoutHandle = setTimeout(() => {
+      const timeout = setTimeout(() => {
         req.destroy();
-        reject(new Error(`Timeout fetching ${propertyName}`));
+        reject(new Error('Timeout'));
       }, 1500);
 
       const req = http.get(url, (res) => {
         let data = '';
-
-        res.on('data', (chunk) => {
-          data += chunk;
-        });
-
+        res.on('data', (chunk) => { data += chunk; });
         res.on('end', () => {
-          clearTimeout(timeoutHandle);
-          try {
-            const json = JSON.parse(data);
-            resolve(json.Value !== undefined ? String(json.Value) : '');
-          } catch {
-            resolve('');
+          clearTimeout(timeout);
+          if (res.statusCode !== 200) {
+            reject(new Error(`HTTP ${res.statusCode}`));
+            return;
           }
+          try { resolve(JSON.parse(data) as Record<string, unknown>); }
+          catch { reject(new Error('Invalid JSON')); }
         });
       });
 
-      req.on('error', (err) => {
-        clearTimeout(timeoutHandle);
-        reject(err);
-      });
+      req.on('error', (err) => { clearTimeout(timeout); reject(err); });
     });
   }
 
-  /**
-   * Parse a numeric value with fallback
-   */
-  private parseNumber(value: string, fallback: number): number {
-    try {
-      const num = parseFloat(value);
-      return isNaN(num) ? fallback : num;
-    } catch {
-      return fallback;
-    }
+  private num(v: unknown, fallback: number): number {
+    const n = parseFloat(String(v));
+    return isNaN(n) ? fallback : n;
   }
 
-  /**
-   * Parse a string value with fallback
-   */
-  private parseString(value: string, fallback: string): string {
-    return value && typeof value === 'string' && value.trim() ? value.trim() : fallback;
+  private str(v: unknown, fallback: string): string {
+    return v && typeof v === 'string' && v.trim() ? v.trim() : fallback;
   }
 
-  /**
-   * Parse and normalize color to #AARRGGBB format
-   * Handles #RRGGBB and #AARRGGBB inputs
-   */
-  private parseColor(value: string): string {
-    if (!value || typeof value !== 'string') {
-      return '#FF000000'; // Default black with full opacity
-    }
-
-    const hex = value.trim().toUpperCase();
-
-    // Already 8-digit with alpha
-    if (hex.match(/^#[0-9A-F]{8}$/)) {
-      return hex;
-    }
-
-    // 6-digit RGB, add full alpha
-    if (hex.match(/^#[0-9A-F]{6}$/)) {
-      return '#FF' + hex.substring(1);
-    }
-
-    // Invalid format, default to black
+  private color(v: unknown): string {
+    if (!v || typeof v !== 'string') return '#FF000000';
+    const hex = v.trim().toUpperCase();
+    if (hex.match(/^#[0-9A-F]{8}$/)) return hex;
+    if (hex.match(/^#[0-9A-F]{6}$/)) return '#FF' + hex.substring(1);
     return '#FF000000';
   }
 
-  /**
-   * Returns a safe default state when connection fails
-   */
-  private getDefaultState(): SimHubState {
+  private defaultState(): SimHubState {
     return {
       commentarySeverity: 0,
       commentaryVisible: false,

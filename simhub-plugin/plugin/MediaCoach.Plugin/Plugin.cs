@@ -1,5 +1,8 @@
 using System;
 using System.IO;
+using System.Net;
+using System.Text;
+using System.Threading;
 using System.Windows.Media;
 using GameReaderCommon;
 using MediaCoach.Plugin.Engine;
@@ -31,6 +34,10 @@ namespace MediaCoach.Plugin
         // at 60fps, every 6 frames = ~100ms evaluation cadence
         private int _frameCount = 0;
         private const int EvalEveryNFrames = 6;
+
+        // HTTP state server — exposes plugin state on port 8889 for Homebridge
+        private HttpListener _httpListener;
+        private Thread _httpThread;
 
         // ── IWPFSettingsV2 ────────────────────────────────────────────────────
 
@@ -186,6 +193,9 @@ namespace MediaCoach.Plugin
             // Show a brief placeholder so the dashboard is visible before any game starts
             _engine.ShowDemoPrompt();
 
+            // Start local HTTP server for Homebridge integration
+            StartHttpServer();
+
             SimHub.Logging.Current.Info("[MediaCoach] Initialisation complete");
         }
 
@@ -214,6 +224,7 @@ namespace MediaCoach.Plugin
 
         public void End(PluginManager pluginManager)
         {
+            StopHttpServer();
             _recorder.StopRecording();
             this.SaveCommonSettings("GeneralSettings", Settings);
             SimHub.Logging.Current.Info("[MediaCoach] Plugin stopped, settings saved");
@@ -260,6 +271,102 @@ namespace MediaCoach.Plugin
                 return _engine.CurrentTitle + "\n" + _engine.CurrentText;
             return _engine.CurrentText;
         }
+
+        private void StartHttpServer()
+        {
+            try
+            {
+                _httpListener = new HttpListener();
+                _httpListener.Prefixes.Add("http://*:8889/mediacoach/");
+                _httpListener.Start();
+                _httpThread = new Thread(HttpServerLoop) { IsBackground = true, Name = "MediaCoach-HTTP" };
+                _httpThread.Start();
+                SimHub.Logging.Current.Info("[MediaCoach] HTTP state server listening on port 8889");
+            }
+            catch (Exception ex)
+            {
+                SimHub.Logging.Current.Warn($"[MediaCoach] HTTP server failed to start: {ex.Message}");
+            }
+        }
+
+        private void StopHttpServer()
+        {
+            try { _httpListener?.Stop(); } catch { }
+        }
+
+        private void HttpServerLoop()
+        {
+            while (_httpListener != null && _httpListener.IsListening)
+            {
+                HttpListenerContext ctx;
+                try { ctx = _httpListener.GetContext(); }
+                catch { break; }
+
+                try
+                {
+                    string flagState = "none";
+                    if (_current.GameRunning)
+                    {
+                        int f = _current.SessionFlags;
+                        if ((f & TelemetrySnapshot.FLAG_RED)       != 0) flagState = "red";
+                        else if ((f & TelemetrySnapshot.FLAG_BLACK) != 0) flagState = "black";
+                        else if ((f & TelemetrySnapshot.FLAG_YELLOW) != 0) flagState = "yellow";
+                        else if ((f & TelemetrySnapshot.FLAG_BLUE)   != 0) flagState = "blue";
+                        else if ((f & TelemetrySnapshot.FLAG_DEBRIS) != 0) flagState = "debris";
+                        else if ((f & TelemetrySnapshot.FLAG_WHITE)  != 0) flagState = "white";
+                        else if ((f & TelemetrySnapshot.FLAG_CHECKERED) != 0) flagState = "checkered";
+                        else if ((f & TelemetrySnapshot.FLAG_GREEN)  != 0) flagState = "green";
+                    }
+
+                    double nearestDist = 1.0;
+                    if (_current.GameRunning && _current.CarIdxLapDistPct != null && _current.CarIdxLapDistPct.Length > 0)
+                    {
+                        double playerPos = _current.TrackPositionPct;
+                        int playerIdx   = _current.PlayerCarIdx;
+                        for (int i = 0; i < _current.CarIdxLapDistPct.Length; i++)
+                        {
+                            if (i == playerIdx) continue;
+                            double other = _current.CarIdxLapDistPct[i];
+                            if (other <= 0) continue;
+                            double d = Math.Abs(playerPos - other);
+                            d = Math.Min(d, 1.0 - d);
+                            if (d < nearestDist) nearestDist = d;
+                        }
+                    }
+
+                    string cat   = _engine.CurrentCategory ?? "";
+                    string label = _engine.CurrentSentimentLabel ?? "";
+                    string category = string.IsNullOrEmpty(label) ? cat : cat + " \u2014 " + label;
+
+                    string json = $@"{{
+  ""commentarySeverity"": {(_engine.IsVisible ? _engine.CurrentSeverity : 0)},
+  ""commentaryVisible"": {(_engine.IsVisible ? "true" : "false")},
+  ""commentarySentimentColor"": ""{_engine.CurrentSentimentColor ?? "#FF000000"}"",
+  ""commentaryCategory"": ""{Escape(category)}"",
+  ""currentFlagState"": ""{flagState}"",
+  ""nearestCarDistance"": {nearestDist.ToString("F4", System.Globalization.CultureInfo.InvariantCulture)},
+  ""gameRunning"": {(_current.GameRunning ? "true" : "false")}
+}}";
+
+                    byte[] buf = Encoding.UTF8.GetBytes(json);
+                    ctx.Response.ContentType     = "application/json";
+                    ctx.Response.ContentLength64 = buf.Length;
+                    ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                    ctx.Response.OutputStream.Write(buf, 0, buf.Length);
+                }
+                catch (Exception ex)
+                {
+                    SimHub.Logging.Current.Warn($"[MediaCoach] HTTP handler error: {ex.Message}");
+                }
+                finally
+                {
+                    try { ctx.Response.OutputStream.Close(); } catch { }
+                }
+            }
+        }
+
+        private static string Escape(string s) =>
+            s?.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "") ?? "";
 
         private string ResolveTopicsPath()
         {
