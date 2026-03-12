@@ -37,6 +37,13 @@ export interface LightConfig {
   uniqueId: string;
   mode?: LightMode;          // Per-light mode override (falls back to global mode)
   enableBlink?: boolean;     // Per-light blink override (falls back to global enableBlink)
+  merossIp?: string;         // Optional: Meross device IP for direct local control
+  merossPort?: number;       // Optional: Meross device port (default: 80)
+  merossKey?: string;        // Optional: Meross device auth key (default: "")
+  hapIp?: string;            // Optional: VOCOlinc/HAP device IP for direct local control
+  hapPort?: number;          // Optional: HAP device port (default: 80)
+  hapPin?: string;           // Optional: HomeKit PIN for initial pairing (e.g. "123-45-678")
+  hapDeviceId?: string;      // Optional: HAP device ID/MAC (used as pairing identity)
 }
 
 export interface PluginConfig {
@@ -46,6 +53,7 @@ export interface PluginConfig {
   enableBlink: boolean;
   ambientColor: AmbientColor;
   lights: LightConfig[];
+  enableFlagSensors: boolean;  // Register OccupancySensor accessories per flag for HomeKit automations
 }
 
 export interface PlatformAccessoryContext {
