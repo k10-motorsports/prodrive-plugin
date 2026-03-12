@@ -3,68 +3,56 @@ import * as path from 'path';
 import { HSBColor } from './types';
 
 /**
- * Local HAP client for VOCOlinc HomeKit bulbs.
- * Uses the `hap-controller` npm package to pair directly with the bulb over the local network,
- * bypassing Apple Home and HomeKit automation latency.
+ * Local HAP client for VOCOlinc HomeKit bulbs (and other HAP/IP accessories).
+ * Uses the `hap-controller` npm package (Apollon77/hap-controller-node).
  *
- * SETUP: The bulb must be factory-reset (not currently paired) before calling pair().
- * After pairing, credentials are stored in storagePath and used on subsequent starts.
+ * Install dependency on the Pi:
+ *   sudo /opt/homebridge/bin/npm install \
+ *     --prefix /var/lib/homebridge/node_modules/homebridge-media-coach-lights \
+ *     hap-controller
  *
- * Install dependency:
- *   npm install hap-controller
- * or on the Pi:
- *   sudo /opt/homebridge/bin/npm install --prefix /var/lib/homebridge/node_modules/homebridge-media-coach-lights hap-controller
- *
- * Configuration example in config.json lights array:
- *   {
- *     "name": "Sim Rig Overhead",
- *     "uniqueId": "media-coach-light-2",
- *     "hapIp": "192.168.1.200",
- *     "hapPort": 80,
- *     "hapPin": "123-45-678",
- *     "hapDeviceId": "AA:BB:CC:DD:EE:FF"
- *   }
+ * Setup flow:
+ *   1. Factory-reset the bulb (remove from Apple Home, or hold button)
+ *   2. Add it back to Apple Home (to get it on WiFi), then Remove Accessory immediately
+ *   3. Add hapIp, hapPort, hapDeviceId, hapPin to this light's config
+ *   4. Restart Homebridge — pairing happens automatically on first run
+ *   5. Once paired, hapPin can be removed from config
  */
 
-// Lazy import: hap-controller is optional (not in peerDependencies)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let HttpClient: any = null;
+let HttpClientClass: any = null;
+
 function getHttpClient() {
-  if (!HttpClient) {
+  if (!HttpClientClass) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      HttpClient = require('hap-controller').HttpClient;
+      HttpClientClass = require('hap-controller').HttpClient;
     } catch {
       throw new Error(
         'hap-controller package not found. Install it with:\n' +
-        'sudo /opt/homebridge/bin/npm install --prefix ' +
-        '/var/lib/homebridge/node_modules/homebridge-media-coach-lights hap-controller',
+        'sudo /opt/homebridge/bin/npm install ' +
+        '--prefix /var/lib/homebridge/node_modules/homebridge-media-coach-lights hap-controller',
       );
     }
   }
-  return HttpClient;
+  return HttpClientClass;
 }
 
-/** Standard HAP characteristic type UUIDs (short form) for a colour bulb */
+/** Short-form HAP characteristic type UUIDs for a colour bulb */
 const CHAR_ON = '25';
 const CHAR_HUE = '13';
 const CHAR_SATURATION = '2F';
 const CHAR_BRIGHTNESS = '8';
 
-interface PairingData {
-  [key: string]: unknown;
-}
-
 interface CharMap {
-  on: string;
+  on: string;       // "aid.iid" format, e.g. "1.10"
   hue: string;
   saturation: string;
   brightness: string;
 }
 
 export class VocolincClient {
-  private client: unknown = null;
-  private pairingData: PairingData | null = null;
+  private pairingData: object | null = null;
   private charMap: CharMap | null = null;
   private readonly pairingDataPath: string;
   private lastError: string = '';
@@ -72,7 +60,7 @@ export class VocolincClient {
   constructor(
     private readonly deviceId: string,
     private readonly ip: string,
-    private readonly port: number = 80,
+    private readonly port: number = 8080,
     storagePath: string,
     private readonly log: (msg: string) => void,
   ) {
@@ -85,27 +73,31 @@ export class VocolincClient {
   }
 
   /**
-   * One-time pairing. The bulb must be unpaired (factory reset) first.
-   * pin format: "XXX-XX-XXX" or "XXXXXXXX"
+   * One-time pairing with the bulb. Accepts any PIN format (dashes optional).
+   * Stores credentials to disk; subsequent restarts load them automatically.
    */
   async pair(pin: string): Promise<void> {
+    const digits = pin.replace(/\D/g, '');
+    const normalizedPin = `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5, 8)}`;
+
     const Client = getHttpClient();
     const client = new Client(this.deviceId, this.ip, this.port);
-    this.pairingData = await client.pairSetup(pin) as PairingData;
+    await client.pairSetup(normalizedPin);
+
+    // getLongTermData() returns the credentials after a successful pairSetup
+    this.pairingData = client.getLongTermData();
     fs.mkdirSync(path.dirname(this.pairingDataPath), { recursive: true });
     fs.writeFileSync(this.pairingDataPath, JSON.stringify(this.pairingData, null, 2));
-    this.client = client;
+
+    this.log(`[VOCOlinc ${this.ip}] Paired successfully — credentials saved`);
     await this.discoverCharacteristics();
-    this.log(`[VOCOlinc ${this.ip}] Paired successfully — credentials saved to ${this.pairingDataPath}`);
   }
 
   /**
-   * Drive the bulb to match the given color. Fire-and-forget; errors are logged only.
+   * Drive the bulb color. Fire-and-forget; errors are logged only.
    */
   setColor(color: HSBColor, on: boolean): void {
     if (!this.pairingData || !this.charMap) return;
-
-    // Re-establish session and set characteristics
     this.sendColor(color, on).catch((err: Error) => {
       const msg = err.message;
       if (msg !== this.lastError) {
@@ -117,7 +109,8 @@ export class VocolincClient {
 
   private async sendColor(color: HSBColor, on: boolean): Promise<void> {
     const Client = getHttpClient();
-    const client = this.client ?? new Client(this.deviceId, this.ip, this.port);
+    // Pass pairingData as 4th constructor arg for authenticated requests
+    const client = new Client(this.deviceId, this.ip, this.port, this.pairingData);
     const map = this.charMap!;
     const isOn = on && color.brightness > 0;
 
@@ -125,10 +118,10 @@ export class VocolincClient {
     if (isOn) {
       chars[map.hue] = color.hue;
       chars[map.saturation] = color.saturation;
-      chars[map.brightness] = color.brightness;
+      chars[map.brightness] = Math.round(color.brightness);
     }
 
-    await client.setCharacteristics(chars, this.pairingData);
+    await client.setCharacteristics(chars);
 
     if (this.lastError) {
       this.lastError = '';
@@ -140,40 +133,36 @@ export class VocolincClient {
     try {
       if (fs.existsSync(this.pairingDataPath)) {
         this.pairingData = JSON.parse(fs.readFileSync(this.pairingDataPath, 'utf8'));
-        const Client = getHttpClient();
-        this.client = new Client(this.deviceId, this.ip, this.port);
-        this.log(`[VOCOlinc ${this.ip}] Loaded pairing data from ${this.pairingDataPath}`);
-        // Discover characteristics on startup
+        this.log(`[VOCOlinc ${this.ip}] Loaded pairing credentials`);
         this.discoverCharacteristics().catch((err: Error) => {
-          this.log(`[VOCOlinc ${this.ip}] Could not discover characteristics: ${err.message}`);
+          this.log(`[VOCOlinc ${this.ip}] Characteristic discovery failed: ${err.message}`);
         });
       } else {
-        this.log(
-          `[VOCOlinc ${this.ip}] No pairing data found. ` +
-          `Factory-reset the bulb and call pair() with its HomeKit PIN before it can be controlled.`,
-        );
+        this.log(`[VOCOlinc ${this.ip}] No credentials — will pair on first run if hapPin is set`);
       }
     } catch (err) {
-      this.log(`[VOCOlinc ${this.ip}] Failed to load pairing data: ${(err as Error).message}`);
+      this.log(`[VOCOlinc ${this.ip}] Failed to load credentials: ${(err as Error).message}`);
     }
   }
 
   private async discoverCharacteristics(): Promise<void> {
-    if (!this.client || !this.pairingData) return;
+    if (!this.pairingData) return;
     const Client = getHttpClient();
-    const client = this.client ?? new Client(this.deviceId, this.ip, this.port);
+    const client = new Client(this.deviceId, this.ip, this.port, this.pairingData);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const accessories = await (client as any).getAccessories(this.pairingData);
+    const result: any = await client.getAccessories();
 
     const map: Partial<CharMap> = {};
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const acc of accessories.accessories ?? []) {
+    for (const acc of result.accessories ?? []) {
+      const aid: number = acc.aid ?? 1;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const svc of acc.services ?? []) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         for (const ch of svc.characteristics ?? []) {
-          const type = String(ch.type ?? '').toUpperCase().replace(/-.*/, '');
-          const id = `${svc.iid}.${ch.iid}`;
+          // Type is a full UUID like "00000025-0000-1000-8000-0026BB765291" — match short prefix
+          const type = String(ch.type ?? '').toUpperCase().replace(/^0+/, '').split('-')[0];
+          const id = `${aid}.${ch.iid}`;
           if (type === CHAR_ON) map.on = id;
           if (type === CHAR_HUE) map.hue = id;
           if (type === CHAR_SATURATION) map.saturation = id;
@@ -184,9 +173,9 @@ export class VocolincClient {
 
     if (map.on && map.hue && map.saturation && map.brightness) {
       this.charMap = map as CharMap;
-      this.log(`[VOCOlinc ${this.ip}] Characteristics ready`);
+      this.log(`[VOCOlinc ${this.ip}] Ready (on=${map.on} hue=${map.hue} sat=${map.saturation} bri=${map.brightness})`);
     } else {
-      this.log(`[VOCOlinc ${this.ip}] Warning: could not find all light characteristics`);
+      this.log(`[VOCOlinc ${this.ip}] Warning: could not map all light characteristics (found: ${JSON.stringify(map)})`);
     }
   }
 }
