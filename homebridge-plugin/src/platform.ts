@@ -47,7 +47,7 @@ export class MediaCoachLightsPlatform implements DynamicPlatformPlugin {
     this.log.info('Initializing Media Coach Lights platform');
 
     // Parse and validate configuration
-    this.config = this.parseConfig(config.platforms[0] as unknown as PluginConfig);
+    this.config = this.parseConfig(config as unknown as PluginConfig);
 
     // Initialize SimHub client
     this.simhubClient = new SimHubClient(

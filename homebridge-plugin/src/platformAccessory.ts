@@ -2,7 +2,6 @@ import {
   Service,
   PlatformAccessory,
   CharacteristicValue,
-  HAPStatus,
 } from 'homebridge';
 import { HSBColor, LightConfig, PlatformAccessoryContext } from './types';
 
@@ -23,34 +22,34 @@ export class MediaCoachLightAccessory {
   ) {
     // Get or create Lightbulb service
     this.service =
-      this.accessory.getService('Lightbulb') ||
-      this.accessory.addService('Lightbulb');
+      this.accessory.getService(this.platform.Service.Lightbulb) ||
+      this.accessory.addService(this.platform.Service.Lightbulb);
 
     // Set accessory information
     this.accessory
-      .getService('AccessoryInformation')!
-      .setCharacteristic('Manufacturer', 'Media Coach')
-      .setCharacteristic('Model', 'SimHub Light Control')
-      .setCharacteristic('SerialNumber', 'MC-' + this.accessory.UUID);
+      .getService(this.platform.Service.AccessoryInformation)!
+      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'Media Coach')
+      .setCharacteristic(this.platform.Characteristic.Model, 'SimHub Light Control')
+      .setCharacteristic(this.platform.Characteristic.SerialNumber, 'MC-' + this.accessory.UUID);
 
     // Register handlers for HomeKit get/set
     this.service
-      .getCharacteristic('On')
+      .getCharacteristic(this.platform.Characteristic.On)!
       .onGet(this.handleOnGet.bind(this))
       .onSet(this.handleOnSet.bind(this));
 
     this.service
-      .getCharacteristic('Hue')
+      .getCharacteristic(this.platform.Characteristic.Hue)!
       .onGet(this.handleHueGet.bind(this))
       .onSet(this.handleHueSet.bind(this));
 
     this.service
-      .getCharacteristic('Saturation')
+      .getCharacteristic(this.platform.Characteristic.Saturation)!
       .onGet(this.handleSaturationGet.bind(this))
       .onSet(this.handleSaturationSet.bind(this));
 
     this.service
-      .getCharacteristic('Brightness')
+      .getCharacteristic(this.platform.Characteristic.Brightness)!
       .onGet(this.handleBrightnessGet.bind(this))
       .onSet(this.handleBrightnessSet.bind(this));
   }
@@ -73,10 +72,10 @@ export class MediaCoachLightAccessory {
     this.currentOn = color.brightness > 0;
 
     // Update HomeKit characteristics
-    this.service.updateCharacteristic('Hue', this.currentHue);
-    this.service.updateCharacteristic('Saturation', this.currentSaturation);
-    this.service.updateCharacteristic('Brightness', this.currentBrightness);
-    this.service.updateCharacteristic('On', this.currentOn);
+    this.service.updateCharacteristic(this.platform.Characteristic.Hue, this.currentHue);
+    this.service.updateCharacteristic(this.platform.Characteristic.Saturation, this.currentSaturation);
+    this.service.updateCharacteristic(this.platform.Characteristic.Brightness, this.currentBrightness);
+    this.service.updateCharacteristic(this.platform.Characteristic.On, this.currentOn);
   }
 
   /**

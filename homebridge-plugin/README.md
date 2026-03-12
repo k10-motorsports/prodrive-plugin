@@ -126,7 +126,6 @@ When enabled (default), lights blink for:
 cd homebridge-plugin
 npm install
 npm run build
-npm link
 ```
 
 ### Watch mode
@@ -134,6 +133,58 @@ npm link
 ```bash
 npm run watch
 ```
+
+### Manual install on a Homebridge host (Raspberry Pi / hb-service)
+
+When the plugin isn't published to npm yet, deploy directly from the repo:
+
+```bash
+# 1. Install dev dependencies and build
+cd homebridge-plugin
+npm install
+npm run build
+
+# 2. Copy the built plugin into Homebridge's plugin directory
+sudo cp -r /path/to/media-coach-plugins/homebridge-plugin \
+    /var/lib/homebridge/node_modules/homebridge-media-coach-lights
+
+# 3. Fix ownership (Homebridge runs as the homebridge user)
+sudo chown -R homebridge:homebridge \
+    /var/lib/homebridge/node_modules/homebridge-media-coach-lights
+
+# 4. Restart Homebridge
+sudo systemctl restart homebridge
+```
+
+On subsequent deploys, only the `dist/` folder needs to be re-copied:
+
+```bash
+npm run build && \
+sudo cp -r dist /var/lib/homebridge/node_modules/homebridge-media-coach-lights/ && \
+sudo chown -R homebridge:homebridge /var/lib/homebridge/node_modules/homebridge-media-coach-lights && \
+sudo systemctl restart homebridge
+```
+
+Watch the log to confirm the plugin loaded cleanly:
+
+```bash
+sudo tail -f /var/lib/homebridge/homebridge.log
+```
+
+Expected startup output:
+```
+Loaded plugin: homebridge-media-coach-lights@1.0.0
+Registered accessory: Sim Rig Light
+Starting SimHub polling (interval: 500ms)
+Homebridge v1.x.x is running on port 51370
+```
+
+> **SimHub URL**: The config at `/var/lib/homebridge/config.json` uses `simhubUrl: "http://playbox.local:8888"` — change this to match wherever SimHub is running on your network.
+
+### Known issues fixed at v1.0.0
+
+- `platformAccessory.ts` originally used string literals (`'Lightbulb'`, `'On'`, etc.) for service and characteristic lookups. These must use `this.platform.Service.*` and `this.platform.Characteristic.*` references from the Homebridge HAP API.
+- `platform.ts` constructor incorrectly accessed `config.platforms[0]`. Homebridge passes the platform config object directly as the `config` argument, not the full `config.json` structure.
 
 ## API Reference
 
