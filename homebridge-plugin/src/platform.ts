@@ -10,6 +10,9 @@ import {
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings';
 import { MediaCoachLightAccessory } from './platformAccessory';
 import { SimHubClient } from './simhubClient';
+import { MerossClient } from './merossClient';
+import { VocolincClient } from './vocolincClient';
+import { FlagSensorAccessory, FLAG_SENSOR_NAMES, FlagSensorName } from './flagSensorAccessory';
 import { ColorMapper } from './colorMapper';
 import {
   SimHubState,
@@ -29,6 +32,9 @@ export class MediaCoachLightsPlatform implements DynamicPlatformPlugin {
   // Track accessories
   public readonly accessories: PlatformAccessory[] = [];
   private lightAccessories: Map<string, MediaCoachLightAccessory> = new Map();
+  private merossClients: Map<string, MerossClient> = new Map();
+  private vocolincClients: Map<string, VocolincClient> = new Map();
+  private flagSensors: Map<FlagSensorName, FlagSensorAccessory> = new Map();
 
   // Configuration and clients
   private config: PluginConfig;
@@ -47,7 +53,7 @@ export class MediaCoachLightsPlatform implements DynamicPlatformPlugin {
     this.log.info('Initializing Media Coach Lights platform');
 
     // Parse and validate configuration
-    this.config = this.parseConfig(config.platforms[0] as unknown as PluginConfig);
+    this.config = this.parseConfig(config as unknown as PluginConfig);
 
     // Initialize SimHub client
     this.simhubClient = new SimHubClient(
@@ -80,6 +86,7 @@ export class MediaCoachLightsPlatform implements DynamicPlatformPlugin {
         brightness: 30,
       },
       lights: config.lights || [{ name: 'Media Coach', uniqueId: 'media-coach-light-1' }],
+      enableFlagSensors: config.enableFlagSensors !== false,
     };
   }
 
@@ -95,7 +102,11 @@ export class MediaCoachLightsPlatform implements DynamicPlatformPlugin {
 
       if (!accessory) {
         // Create new accessory
-        accessory = new this.api.platformAccessory(lightConfig.name, uuid);
+        accessory = new this.api.platformAccessory(
+          lightConfig.name,
+          uuid,
+          this.api.hap.Categories.LIGHTBULB,
+        );
         accessory.context = { lightConfig } as PlatformAccessoryContext;
         this.accessories.push(accessory);
         this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
@@ -107,6 +118,44 @@ export class MediaCoachLightsPlatform implements DynamicPlatformPlugin {
       // Create the light accessory handler and store reference
       const lightAccessory = new MediaCoachLightAccessory(this, accessory);
       this.lightAccessories.set(uuid, lightAccessory);
+
+      // Create Meross client if this light has a local Meross device configured
+      if (lightConfig.merossIp) {
+        const meross = new MerossClient(
+          lightConfig.merossIp,
+          lightConfig.merossPort ?? 80,
+          lightConfig.merossKey ?? '',
+          (msg: string) => this.log.debug(msg),
+        );
+        this.merossClients.set(uuid, meross);
+        this.log.info(`Meross local control enabled for ${lightConfig.name} (${lightConfig.merossIp})`);
+      }
+
+      // Create VOCOlinc HAP client if this light has a local HAP device configured
+      if (lightConfig.hapIp && lightConfig.hapDeviceId) {
+        const vocolinc = new VocolincClient(
+          lightConfig.hapDeviceId,
+          lightConfig.hapIp,
+          lightConfig.hapPort ?? 80,
+          this.api.user.storagePath(),
+          (msg: string) => this.log.debug(msg),
+        );
+        this.vocolincClients.set(uuid, vocolinc);
+        this.log.info(`VOCOlinc HAP control enabled for ${lightConfig.name} (${lightConfig.hapIp})`);
+
+        // Auto-pair on first run if PIN is provided and no credentials are stored yet
+        if (!vocolinc.isPaired && lightConfig.hapPin) {
+          this.log.info(`[VOCOlinc ${lightConfig.hapIp}] No pairing data found — pairing now with PIN ${lightConfig.hapPin}`);
+          vocolinc.pair(lightConfig.hapPin).catch((err: Error) => {
+            this.log.error(`[VOCOlinc ${lightConfig.hapIp}] Pairing failed: ${err.message}`);
+          });
+        }
+      }
+    }
+
+    // Register flag sensor accessories if enabled
+    if (this.config.enableFlagSensors) {
+      this.discoverFlagSensors();
     }
 
     // Start polling loop
@@ -114,11 +163,41 @@ export class MediaCoachLightsPlatform implements DynamicPlatformPlugin {
   }
 
   /**
+   * Register one OccupancySensor per flag so Apple Home automations can trigger on flag changes.
+   * Sensors are named "<first light name> - <Flag> Flag", e.g. "Sim Rig Light - Yellow Flag"
+   */
+  private discoverFlagSensors(): void {
+    const baseName = this.config.lights[0]?.name ?? 'Media Coach';
+
+    for (const flagName of FLAG_SENSOR_NAMES) {
+      const displayName = `${baseName} - ${flagName.charAt(0).toUpperCase() + flagName.slice(1)} Flag`;
+      const uuid = this.api.hap.uuid.generate(`media-coach-flag-sensor-${flagName}`);
+      let accessory = this.accessories.find((acc) => acc.UUID === uuid);
+
+      if (!accessory) {
+        accessory = new this.api.platformAccessory(
+          displayName,
+          uuid,
+          this.api.hap.Categories.SENSOR,
+        );
+        accessory.context = { flagSensor: flagName };
+        this.accessories.push(accessory);
+        this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+        this.log.info(`Registered flag sensor: ${displayName}`);
+      } else {
+        this.log.info(`Restored flag sensor: ${displayName}`);
+      }
+
+      this.flagSensors.set(flagName, new FlagSensorAccessory(this, accessory, flagName));
+    }
+  }
+
+  /**
    * Called when HomeKit removes an accessory
    */
   configureAccessory(accessory: PlatformAccessory): void {
     this.log.debug(`Configuring accessory: ${accessory.displayName}`);
-    // Implementation handled in discoverAccessories
+    this.accessories.push(accessory);
   }
 
   /**
@@ -193,6 +272,26 @@ export class MediaCoachLightsPlatform implements DynamicPlatformPlugin {
         }
 
         lightAccessory.updateColor(finalColor);
+
+        // Drive Meross device directly if configured for this light
+        const merossClient = this.merossClients.get(uuid);
+        if (merossClient) {
+          merossClient.setColor(finalColor, finalColor.brightness > 0);
+        }
+
+        // Drive VOCOlinc HAP device directly if configured for this light
+        const vocolincClient = this.vocolincClients.get(uuid);
+        if (vocolincClient) {
+          vocolincClient.setColor(finalColor, finalColor.brightness > 0);
+        }
+      }
+
+      // Update flag sensors
+      if (this.flagSensors.size > 0) {
+        const activeFlag = state.currentFlagState as FlagSensorName;
+        for (const [flagName, sensor] of this.flagSensors) {
+          sensor.updateState(flagName === activeFlag);
+        }
       }
     } catch (error) {
       this.log.warn(
