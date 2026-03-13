@@ -118,7 +118,7 @@ namespace K10MediaCoach.Plugin.Engine
             {
                 var val = pm.GetPropertyValue("DataCorePlugin.GameRawData.Telemetry." + name);
                 if (val is T typed) return typed;
-                if (val != null) return (T)Convert.ChangeType(val, typeof(T));
+                if (val is IConvertible) return (T)Convert.ChangeType(val, typeof(T));
             }
             catch { }
             return default(T);
@@ -145,7 +145,16 @@ namespace K10MediaCoach.Plugin.Engine
                 if (prop == null) return default(T);
                 var val = prop.GetValue(d);
                 if (val is T typed) return typed;
-                if (val != null) return (T)Convert.ChangeType(val, typeof(T));
+                // TimeSpan → numeric: extract TotalSeconds so lap-time properties work
+                // for non-iRacing games where the normalized API returns TimeSpan.
+                if (val is TimeSpan ts)
+                {
+                    if (typeof(T) == typeof(float))  return (T)(object)(float)ts.TotalSeconds;
+                    if (typeof(T) == typeof(double)) return (T)(object)ts.TotalSeconds;
+                }
+                // Guard: only attempt conversion if the value supports IConvertible
+                // (e.g. TimeSpan does NOT, and Convert.ChangeType throws InvalidCastException)
+                if (val is IConvertible) return (T)Convert.ChangeType(val, typeof(T));
             }
             catch { }
             return default(T);

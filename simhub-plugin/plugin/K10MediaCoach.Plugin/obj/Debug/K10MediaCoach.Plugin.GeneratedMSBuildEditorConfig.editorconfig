@@ -1,5 +1,8 @@
 is_global = true
 build_property.RootNamespace = K10MediaCoach.Plugin
-build_property.ProjectDir = C:\Users\Owner\Documents\GitHub\media-coach-simhub-plugin\simhub-plugin\plugin\K10MediaCoach.Plugin\
+build_property.ProjectDir = y:\media-coach-simhub-plugin\simhub-plugin\plugin\K10MediaCoach.Plugin\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.CsWinRTUseWindowsUIXamlProjections = false
+build_property.EffectiveAnalysisLevelStyle = 
+build_property.EnableCodeStyleSeverity = 

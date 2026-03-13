@@ -5,7 +5,7 @@ import { SimHubState } from './types';
  * HTTP client for K10 Media Coach state endpoint.
  *
  * The SimHub plugin exposes a lightweight JSON REST endpoint on port 8889:
- *   GET http://<host>:8889/mediacoach/
+ *   GET http://<host>:8889/k10mediacoach/
  * This is served by System.Net.HttpListener inside Plugin.cs and bypasses
  * SimHub's web server (which does not expose plugin properties via REST in 9.x).
  */
@@ -16,9 +16,9 @@ export class SimHubClient {
 
   constructor(baseUrl: string, log: (message: string) => void) {
     // baseUrl is e.g. "http://playbox.local:8888" — we replace port 8888 with 8889
-    // and use the /mediacoach/ path served by the plugin's own HttpListener.
+    // and use the /k10mediacoach/ path served by the plugin's own HttpListener.
     const host = baseUrl.replace(/:\d+$/, '');
-    this.stateUrl = `${host}:8889/mediacoach/`;
+    this.stateUrl = `${host}:8889/k10mediacoach/`;
     this.log = log;
   }
 
