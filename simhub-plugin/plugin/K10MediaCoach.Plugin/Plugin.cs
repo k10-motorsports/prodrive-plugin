@@ -640,8 +640,8 @@ namespace K10MediaCoach.Plugin
                     Jp(sb, "DataCorePlugin.GameData.Clutch", 0.0, ic); // not in snapshot currently
                     Jp(sb, "DataCorePlugin.GameData.Fuel", s.FuelLevel, ic);
                     Jp(sb, "DataCorePlugin.GameData.MaxFuel", s.FuelLevel > 0 ? s.FuelLevel / Math.Max(s.FuelPercent, 0.01) : 0, ic);
-                    Jp(sb, "DataCorePlugin.Computed.Fuel_LitersPerLap", 0.0, ic);
-                    Jp(sb, "DataCorePlugin.GameData.RemainingLaps", 0.0, ic);
+                    Jp(sb, "DataCorePlugin.Computed.Fuel_LitersPerLap", s.FuelPerLap, ic);
+                    Jp(sb, "DataCorePlugin.GameData.RemainingLaps", s.RemainingLaps, ic);
                     Jp(sb, "DataCorePlugin.GameData.TyreTempFrontLeft", s.TyreTempFL, ic);
                     Jp(sb, "DataCorePlugin.GameData.TyreTempFrontRight", s.TyreTempFR, ic);
                     Jp(sb, "DataCorePlugin.GameData.TyreTempRearLeft", s.TyreTempRL, ic);
@@ -668,8 +668,8 @@ namespace K10MediaCoach.Plugin
                     Jp(sb, "DataCorePlugin.GameData.CarModel", Escape(s.CarModel ?? ""));
                     Jp(sb, "IRacingExtraProperties.iRacing_DriverInfo_IRating", s.IRating);
                     Jp(sb, "IRacingExtraProperties.iRacing_DriverInfo_SafetyRating", s.SafetyRating, ic);
-                    Jp(sb, "IRacingExtraProperties.iRacing_Opponent_Ahead_Gap", 0.0, ic);
-                    Jp(sb, "IRacingExtraProperties.iRacing_Opponent_Behind_Gap", 0.0, ic);
+                    Jp(sb, "IRacingExtraProperties.iRacing_Opponent_Ahead_Gap", s.GapAhead, ic);
+                    Jp(sb, "IRacingExtraProperties.iRacing_Opponent_Behind_Gap", s.GapBehind, ic);
                     Jp(sb, "IRacingExtraProperties.iRacing_Opponent_Ahead_Name", Escape(s.NearestAheadName ?? ""));
                     Jp(sb, "IRacingExtraProperties.iRacing_Opponent_Behind_Name", Escape(s.NearestBehindName ?? ""));
                     Jp(sb, "IRacingExtraProperties.iRacing_Opponent_Ahead_IRating", s.NearestAheadRating);
@@ -687,6 +687,8 @@ namespace K10MediaCoach.Plugin
                     Jp(sb, "K10MediaCoach.Plugin.DS.TrackPct", s.TrackPositionPct, ic);
                     Jp(sb, "K10MediaCoach.Plugin.DS.LapDelta", s.LapDeltaToBest, ic);
                     Jp(sb, "K10MediaCoach.Plugin.DS.CompletedLaps", s.CompletedLaps);
+                    Jp(sb, "K10MediaCoach.Plugin.DS.IsInPitLane", s.IsInPitLane ? 1 : 0);
+                    Jp(sb, "K10MediaCoach.Plugin.DS.SpeedKmh", s.SpeedKmh, ic);
 
                     // ── Commentary ──
                     Jp(sb, "K10MediaCoach.Plugin.CommentaryVisible", _engine.IsVisible ? 1 : 0);
@@ -748,10 +750,42 @@ namespace K10MediaCoach.Plugin
                     Jp(sb, "K10MediaCoach.Plugin.Demo.DS.AbsActive", dt.AbsActive ? 1 : 0);
                     Jp(sb, "K10MediaCoach.Plugin.Demo.DS.TcActive", dt.TcActive ? 1 : 0);
                     Jp(sb, "K10MediaCoach.Plugin.Demo.DS.LapDelta", dt.LapDelta, ic);
+                    Jp(sb, "K10MediaCoach.Plugin.Demo.DS.IsInPitLane", dt.IsInPitLane ? 1 : 0);
+                    Jp(sb, "K10MediaCoach.Plugin.Demo.DS.SpeedKmh", dt.SpeedKmh, ic);
+
+                    // ── Grid / Formation state ──
+                    Jp(sb, "K10MediaCoach.Plugin.Grid.SessionState", s.SessionState);
+                    Jp(sb, "K10MediaCoach.Plugin.Grid.GriddedCars", s.GriddedCars);
+                    Jp(sb, "K10MediaCoach.Plugin.Grid.TotalCars", s.TotalCars);
+                    Jp(sb, "K10MediaCoach.Plugin.Grid.PaceMode", s.PaceMode);
+                    // Start type: detect from session info (rolling for iRacing road by default)
+                    Jp(sb, "K10MediaCoach.Plugin.Grid.StartType", Escape("rolling"));
+                    // Lights phase: 0=off for live (dashboard derives from state changes)
+                    Jp(sb, "K10MediaCoach.Plugin.Grid.LightsPhase", 0);
+
+                    // ── Demo Grid state ──
+                    Jp(sb, "K10MediaCoach.Plugin.Demo.Grid.SessionState", dt.SessionState);
+                    Jp(sb, "K10MediaCoach.Plugin.Demo.Grid.GriddedCars", dt.GriddedCars);
+                    Jp(sb, "K10MediaCoach.Plugin.Demo.Grid.TotalCars", dt.TotalCars);
+                    Jp(sb, "K10MediaCoach.Plugin.Demo.Grid.PaceMode", dt.PaceMode);
+                    Jp(sb, "K10MediaCoach.Plugin.Demo.Grid.LightsPhase", dt.LightsPhase);
+                    Jp(sb, "K10MediaCoach.Plugin.Demo.Grid.StartType", Escape(dt.IsStandingStart ? "standing" : "rolling"));
 
                     // ── Driver name (for leaderboard display) ──
-                    Jp(sb, "K10MediaCoach.Plugin.DriverFirstName", Escape(Settings.DriverFirstName ?? ""));
-                    Jp(sb, "K10MediaCoach.Plugin.DriverLastName", Escape(Settings.DriverLastName ?? ""));
+                    // Prefer live player name from game data; fall back to settings
+                    string livePlayerName = s.PlayerName ?? "";
+                    if (!string.IsNullOrEmpty(livePlayerName))
+                    {
+                        // Split "First Last" into first/last for dashboard display
+                        var nameParts = livePlayerName.Trim().Split(new[] { ' ' }, 2);
+                        Jp(sb, "K10MediaCoach.Plugin.DriverFirstName", Escape(nameParts[0]));
+                        Jp(sb, "K10MediaCoach.Plugin.DriverLastName", Escape(nameParts.Length > 1 ? nameParts[1] : ""));
+                    }
+                    else
+                    {
+                        Jp(sb, "K10MediaCoach.Plugin.DriverFirstName", Escape(Settings.DriverFirstName ?? ""));
+                        Jp(sb, "K10MediaCoach.Plugin.DriverLastName", Escape(Settings.DriverLastName ?? ""));
+                    }
 
                     // ── Track map ──
                     Jp(sb, "K10MediaCoach.Plugin.TrackMap.Ready", _trackMap.IsReady ? 1 : 0);

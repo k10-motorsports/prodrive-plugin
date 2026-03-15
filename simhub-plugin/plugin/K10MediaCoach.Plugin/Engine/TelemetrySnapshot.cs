@@ -101,6 +101,27 @@ namespace K10MediaCoach.Plugin.Engine
         public string NearestBehindName  { get; set; } = "";
         public int    NearestBehindRating { get; set; }
 
+        // ── Gap times (seconds) — from IRacingExtraProperties plugin ───────
+        public double GapAhead  { get; set; }
+        public double GapBehind { get; set; }
+
+        // ── Fuel computation — from SimHub computed properties ──────────────
+        public double FuelPerLap     { get; set; }
+        public double RemainingLaps  { get; set; }
+
+        // ── Player identity — from game data ────────────────────────────────
+        public string PlayerName { get; set; } = "";
+
+        // ── Grid / Formation lap state ─────────────────────────────────────
+        // SessionState: iRacing → 0=Invalid, 1=GetInCar, 2=Warmup, 3=ParadeLaps, 4=Racing, 5=Checkered, 6=Cooldown
+        public int    SessionState      { get; set; }
+        /// <summary>Number of cars that have left pit road and are on track.</summary>
+        public int    GriddedCars       { get; set; }
+        /// <summary>Total car count in the session.</summary>
+        public int    TotalCars         { get; set; }
+        /// <summary>iRacing PaceMode: 0=NotPacing, 1=Pacing, 2=Approaching, 3=FieldCrossSF.</summary>
+        public int    PaceMode          { get; set; }
+
         // ── iRacing flag bitmasks (from irsdk_Flags enum) ────────────────────
         public const int FLAG_CHECKERED = 0x0001;
         public const int FLAG_WHITE     = 0x0002;

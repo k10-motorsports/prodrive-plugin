@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "1df1bghHhWI=",
+  "dgSpecHash": "9YjogTOUFfs=",
   "success": true,
-  "projectFilePath": "y:\\media-coach-simhub-plugin\\simhub-plugin\\plugin\\K10MediaCoach.Plugin\\K10MediaCoach.Plugin.csproj",
+  "projectFilePath": "Y:\\media-coach-simhub-plugin\\simhub-plugin\\plugin\\K10MediaCoach.Plugin\\K10MediaCoach.Plugin.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\kevinconboy\\.nuget\\packages\\microsoft.netframework.referenceassemblies\\1.0.3\\microsoft.netframework.referenceassemblies.1.0.3.nupkg.sha512",
     "C:\\Users\\kevinconboy\\.nuget\\packages\\microsoft.netframework.referenceassemblies.net48\\1.0.3\\microsoft.netframework.referenceassemblies.net48.1.0.3.nupkg.sha512"

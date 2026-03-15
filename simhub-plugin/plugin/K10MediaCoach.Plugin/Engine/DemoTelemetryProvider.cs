@@ -101,6 +101,23 @@ namespace K10MediaCoach.Plugin.Engine
         public bool   AbsActive      { get; private set; } = false;
         public bool   TcActive       { get; private set; } = false;
         public double LapDelta       { get; private set; } = 0;
+        public bool   IsInPitLane    { get; private set; } = false;
+        public double SpeedKmh       { get; private set; } = 0;
+
+        // ── Grid / Formation demo state ──
+        public int    SessionState    { get; private set; } = 1; // start in GetInCar
+        public int    GriddedCars     { get; private set; } = 0;
+        public int    TotalCars       { get; private set; } = 24;
+        public int    PaceMode        { get; private set; } = 0;
+        /// <summary>Start lights phase: 0=off, 1-5=red lights building, 6=all red, 7=green (go!), 8=done.</summary>
+        public int    LightsPhase     { get; private set; } = 0;
+        public bool   IsStandingStart { get; private set; } = false;
+
+        // ── Formation lap demo cycle ──
+        private double _formationTimer   = 0;
+        private bool   _formationCycleDone = false; // start with formation sequence active
+        private int    _formationLightsStep = 0;
+        private double _formationLightsTimer = 0;
 
         /// <summary>
         /// Advance simulation by dt seconds (~0.1s at 6-frame eval cadence at 60fps).
@@ -181,6 +198,7 @@ namespace K10MediaCoach.Plugin.Engine
             // Smooth toward target (low-pass filter)
             double lerpRate = 3.5 * dt;
             SpeedMph = SpeedMph + (targetSpeed - SpeedMph) * Math.Min(1.0, lerpRate);
+            SpeedKmh = SpeedMph * 1.60934;
 
             // Speed delta for pedal derivation
             double speedDelta = SpeedMph - _prevSpeed;
@@ -271,6 +289,105 @@ namespace K10MediaCoach.Plugin.Engine
                 GapAhead  = Math.Max(0.2, GapAhead  + (_rng.NextDouble() - 0.48) * 0.3);
                 GapBehind = Math.Max(0.2, GapBehind + (_rng.NextDouble() - 0.48) * 0.3);
             }
+
+            // ── Formation / pre-race demo sequence ──
+            // Runs at startup: GetInCar → Warmup → Formation → Lights → Race
+            // Then repeats every ~3 minutes during the race simulation
+            if (_formationCycleDone && _elapsed > 60 && ((int)_elapsed % 180) < 1)
+            {
+                // Re-trigger formation sequence periodically during race
+                _formationCycleDone = false;
+                _formationTimer = 0;
+                SessionState = 1; // GetInCar
+                GriddedCars = 0;
+                PaceMode = 0;
+                LightsPhase = 0;
+                _formationLightsStep = 0;
+                _formationLightsTimer = 0;
+            }
+
+            if (!_formationCycleDone)
+            {
+                _formationTimer += dt;
+
+                if (SessionState == 1) // GetInCar — 3 seconds
+                {
+                    if (_formationTimer > 3.0)
+                    {
+                        SessionState = 2; // Warmup
+                    }
+                }
+                else if (SessionState == 2) // Warmup — 4 seconds
+                {
+                    if (_formationTimer > 7.0) // 3s GetInCar + 4s Warmup
+                    {
+                        SessionState = 3; // ParadeLaps (Formation)
+                        PaceMode = 1;
+                    }
+                }
+                else if (SessionState == 3) // Formation/Parade
+                {
+                    double formPhaseTime = _formationTimer - 7.0; // time since formation started
+                    // Cars gridding over 10 seconds
+                    GriddedCars = Math.Min(TotalCars, (int)(formPhaseTime / 10.0 * TotalCars));
+                    PaceMode = formPhaseTime < 5 ? 1 : (formPhaseTime < 10 ? 2 : 3);
+
+                    // After 12s of formation, transition to lights sequence
+                    if (formPhaseTime > 12)
+                    {
+                        SessionState = 4; // Racing (lights sequence begins)
+                        GriddedCars = TotalCars;
+                        LightsPhase = 1;
+                        _formationLightsStep = 1;
+                        _formationLightsTimer = 0;
+                    }
+                }
+                else if (LightsPhase >= 1 && LightsPhase < 6) // Lights building (1-5)
+                {
+                    _formationLightsTimer += dt;
+                    if (_formationLightsTimer > 1.0) // 1 second per light
+                    {
+                        _formationLightsTimer = 0;
+                        _formationLightsStep++;
+                        LightsPhase = _formationLightsStep;
+                        if (_formationLightsStep >= 6)
+                        {
+                            LightsPhase = 6; // All red, hold
+                            _formationLightsTimer = 0;
+                        }
+                    }
+                }
+                else if (LightsPhase == 6) // All red hold
+                {
+                    _formationLightsTimer += dt;
+                    // Hold all-red for 1.5-3s then green
+                    if (_formationLightsTimer > 2.0)
+                    {
+                        LightsPhase = 7; // GREEN!
+                        _formationLightsTimer = 0;
+                    }
+                }
+                else if (LightsPhase == 7) // Green — GO!
+                {
+                    _formationLightsTimer += dt;
+                    if (_formationLightsTimer > 3.0) // Show green for 3s
+                    {
+                        LightsPhase = 8; // Done
+                        _formationLightsTimer = 0;
+                    }
+                }
+                else if (LightsPhase == 8) // Fade out
+                {
+                    _formationLightsTimer += dt;
+                    if (_formationLightsTimer > 2.0)
+                    {
+                        // Sequence complete — race begins
+                        _formationCycleDone = true;
+                        LightsPhase = 0;
+                        PaceMode = 0;
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -302,9 +419,11 @@ namespace K10MediaCoach.Plugin.Engine
             {
                 IncidentCount = snap.IncidentCount;
             }
+            IsInPitLane = snap.IsInPitLane;
             if (snap.IsInPitLane)
             {
                 SpeedMph = 45;
+                SpeedKmh = 45 * 1.60934;
                 Throttle = 0.2;
                 Brake = 0;
                 Gear = "2";
@@ -336,6 +455,17 @@ namespace K10MediaCoach.Plugin.Engine
             DriverBehind = "J. Williams";
             IRAhead  = 2847;
             IRBehind = 3214;
+            // Start with pre-race sequence
+            SessionState         = 1; // GetInCar
+            GriddedCars          = 0;
+            TotalCars            = 24;
+            PaceMode             = 0;
+            LightsPhase          = 0;
+            IsStandingStart      = (_rng.NextDouble() < 0.4); // choose once at reset, keep consistent
+            _formationCycleDone  = false; // sequence runs at startup
+            _formationTimer      = 0;
+            _formationLightsStep = 0;
+            _formationLightsTimer = 0;
         }
 
         // ── Helpers ─────────────────────────────────────────────────────────

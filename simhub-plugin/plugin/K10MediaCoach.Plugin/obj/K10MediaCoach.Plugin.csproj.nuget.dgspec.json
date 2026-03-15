@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "y:\\media-coach-simhub-plugin\\simhub-plugin\\plugin\\K10MediaCoach.Plugin\\K10MediaCoach.Plugin.csproj": {}
+    "Y:\\media-coach-simhub-plugin\\simhub-plugin\\plugin\\K10MediaCoach.Plugin\\K10MediaCoach.Plugin.csproj": {}
   },
   "projects": {
-    "y:\\media-coach-simhub-plugin\\simhub-plugin\\plugin\\K10MediaCoach.Plugin\\K10MediaCoach.Plugin.csproj": {
+    "Y:\\media-coach-simhub-plugin\\simhub-plugin\\plugin\\K10MediaCoach.Plugin\\K10MediaCoach.Plugin.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "y:\\media-coach-simhub-plugin\\simhub-plugin\\plugin\\K10MediaCoach.Plugin\\K10MediaCoach.Plugin.csproj",
+        "projectUniqueName": "Y:\\media-coach-simhub-plugin\\simhub-plugin\\plugin\\K10MediaCoach.Plugin\\K10MediaCoach.Plugin.csproj",
         "projectName": "K10MediaCoach.Plugin",
-        "projectPath": "y:\\media-coach-simhub-plugin\\simhub-plugin\\plugin\\K10MediaCoach.Plugin\\K10MediaCoach.Plugin.csproj",
+        "projectPath": "Y:\\media-coach-simhub-plugin\\simhub-plugin\\plugin\\K10MediaCoach.Plugin\\K10MediaCoach.Plugin.csproj",
         "packagesPath": "C:\\Users\\kevinconboy\\.nuget\\packages\\",
-        "outputPath": "y:\\media-coach-simhub-plugin\\simhub-plugin\\plugin\\K10MediaCoach.Plugin\\obj\\",
+        "outputPath": "Y:\\media-coach-simhub-plugin\\simhub-plugin\\plugin\\K10MediaCoach.Plugin\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\kevinconboy\\AppData\\Roaming\\NuGet\\NuGet.Config"

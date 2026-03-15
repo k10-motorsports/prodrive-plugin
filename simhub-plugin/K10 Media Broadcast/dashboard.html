@@ -52,10 +52,10 @@
     --dash-h: 200px;
     --row-h: calc((var(--dash-h) - var(--gap)) / 2);
 
-    --bg: hsla(0, 0%, 8%, 0.80);
+    --bg: hsla(0, 0%, 8%, 1.0);
     --bg-panel: hsla(0, 0%, 6%, 1.0);
-    --bg-logo: hsla(0, 0%, 4%, 1.0);
-    --border: hsla(0, 0%, 100%, 0.07);
+    --bg-logo: hsla(0, 0%, 12%, 1.0);
+    --border: hsla(0, 0%, 100%, 0.14);
     --text-primary: hsla(0, 0%, 100%, 1.0);
     --text-secondary: hsla(0, 0%, 100%, 0.69);
     --text-dim: hsla(0, 0%, 100%, 0.55);
@@ -334,8 +334,8 @@
     position: relative;
     width: 280px;
     flex: 1;
-    background: hsla(var(--commentary-h, 0), 50%, 13%, 0.48);
-    border: 1px solid hsla(var(--commentary-h, 0), 50%, 27%, 0.25);
+    background: hsla(var(--commentary-h, 0), 50%, 13%, 0.96);
+    border: 1px solid hsla(var(--commentary-h, 0), 50%, 27%, 0.50);
     border-radius: var(--corner-r);
     padding: 14px;
     backdrop-filter: blur(50px);
@@ -523,9 +523,11 @@
   .tacho-top-row {
     display: flex;
     align-items: flex-start;
+    height: var(--row-h);
+    overflow: hidden;
   }
   .tacho-gear {
-    font-size: 48px;
+    font-size: 96px;
     font-weight: var(--fw-black);
     line-height: 0.85;
     text-align: left;
@@ -709,7 +711,7 @@
 
   .pos-layout {
     display: flex;
-    align-items: flex-start;
+    align-items: baseline;
     gap: 4px;
     height: 100%;
   }
@@ -740,6 +742,7 @@
     flex-direction: column;
     gap: 1px;
     margin-left: auto;
+    padding-top: 2px;
   }
   .pos-meta-row {
     font-size: var(--fs-sm);
@@ -897,8 +900,8 @@
   .gaps-block.flag-yellow .flag-label { color: hsl(48, 95%, 65%); }
   .gaps-block.flag-yellow .flag-context { color: hsl(48, 80%, 70%); }
   @keyframes flag-glow-yellow {
-    0%   { box-shadow: inset 0 0 18px hsla(48, 95%, 50%, 0.20), 0 0 10px hsla(48, 95%, 50%, 0.10); }
-    100% { box-shadow: inset 0 0 30px hsla(48, 95%, 50%, 0.40), 0 0 20px hsla(48, 95%, 50%, 0.22); }
+    0%   { box-shadow: inset 0 0 18px hsla(48, 95%, 50%, 0.60), 0 0 10px hsla(48, 95%, 50%, 0.30); }
+    100% { box-shadow: inset 0 0 30px hsla(48, 95%, 50%, 1.0), 0 0 20px hsla(48, 95%, 50%, 0.66); }
   }
 
   /* ── Red Flag — WebGL flag background ── */
@@ -910,8 +913,8 @@
   .gaps-block.flag-red .flag-label { color: hsl(0, 90%, 65%); }
   .gaps-block.flag-red .flag-context { color: hsl(0, 70%, 75%); }
   @keyframes flag-glow-red {
-    0%   { box-shadow: inset 0 0 18px hsla(0, 85%, 50%, 0.22), 0 0 10px hsla(0, 85%, 50%, 0.12); }
-    100% { box-shadow: inset 0 0 30px hsla(0, 85%, 50%, 0.45), 0 0 20px hsla(0, 85%, 50%, 0.25); }
+    0%   { box-shadow: inset 0 0 18px hsla(0, 85%, 50%, 0.66), 0 0 10px hsla(0, 85%, 50%, 0.36); }
+    100% { box-shadow: inset 0 0 30px hsla(0, 85%, 50%, 1.0), 0 0 20px hsla(0, 85%, 50%, 0.75); }
   }
 
   /* ── Blue Flag — WebGL flag background ── */
@@ -923,8 +926,8 @@
   .gaps-block.flag-blue .flag-label { color: hsl(220, 85%, 68%); }
   .gaps-block.flag-blue .flag-context { color: hsl(220, 65%, 75%); }
   @keyframes flag-glow-blue {
-    0%   { box-shadow: inset 0 0 18px hsla(220, 80%, 55%, 0.20), 0 0 10px hsla(220, 80%, 55%, 0.10); }
-    100% { box-shadow: inset 0 0 30px hsla(220, 80%, 55%, 0.40), 0 0 20px hsla(220, 80%, 55%, 0.22); }
+    0%   { box-shadow: inset 0 0 18px hsla(220, 80%, 55%, 0.60), 0 0 10px hsla(220, 80%, 55%, 0.30); }
+    100% { box-shadow: inset 0 0 30px hsla(220, 80%, 55%, 1.0), 0 0 20px hsla(220, 80%, 55%, 0.66); }
   }
 
   /* ── Green Flag — WebGL flag background ── */
@@ -934,8 +937,8 @@
   .gaps-block.flag-green .flag-label { color: hsl(130, 75%, 58%); }
   .gaps-block.flag-green .flag-context { color: hsl(130, 55%, 70%); }
   @keyframes flag-glow-green {
-    0%   { box-shadow: inset 0 0 18px hsla(130, 70%, 45%, 0.20), 0 0 10px hsla(130, 70%, 45%, 0.10); border-color: hsla(130, 70%, 45%, 0.25); }
-    100% { box-shadow: inset 0 0 30px hsla(130, 70%, 45%, 0.40), 0 0 20px hsla(130, 70%, 45%, 0.22); border-color: hsla(130, 70%, 45%, 0.50); }
+    0%   { box-shadow: inset 0 0 18px hsla(130, 70%, 45%, 0.60), 0 0 10px hsla(130, 70%, 45%, 0.30); border-color: hsla(130, 70%, 45%, 0.75); }
+    100% { box-shadow: inset 0 0 30px hsla(130, 70%, 45%, 1.0), 0 0 20px hsla(130, 70%, 45%, 0.66); border-color: hsla(130, 70%, 45%, 1.0); }
   }
 
   /* ── White Flag — WebGL flag background ── */
@@ -945,8 +948,8 @@
   .gaps-block.flag-white .flag-label { color: hsl(0, 0%, 92%); }
   .gaps-block.flag-white .flag-context { color: hsl(0, 0%, 75%); }
   @keyframes flag-glow-white {
-    0%   { box-shadow: inset 0 0 14px hsla(0, 0%, 90%, 0.15), 0 0 8px hsla(0, 0%, 90%, 0.08); border-color: hsla(0, 0%, 90%, 0.18); }
-    100% { box-shadow: inset 0 0 26px hsla(0, 0%, 90%, 0.30), 0 0 16px hsla(0, 0%, 90%, 0.16); border-color: hsla(0, 0%, 90%, 0.35); }
+    0%   { box-shadow: inset 0 0 14px hsla(0, 0%, 90%, 0.45), 0 0 8px hsla(0, 0%, 90%, 0.24); border-color: hsla(0, 0%, 90%, 0.54); }
+    100% { box-shadow: inset 0 0 26px hsla(0, 0%, 90%, 0.90), 0 0 16px hsla(0, 0%, 90%, 0.48); border-color: hsla(0, 0%, 90%, 1.0); }
   }
 
   /* ── Debris — WebGL flag background ── */
@@ -958,8 +961,8 @@
   .gaps-block.flag-debris .flag-label { color: hsl(45, 90%, 65%); }
   .gaps-block.flag-debris .flag-context { color: hsl(30, 70%, 70%); }
   @keyframes flag-glow-debris {
-    0%   { box-shadow: inset 0 0 18px hsla(35, 80%, 50%, 0.15), 0 0 10px hsla(0, 80%, 50%, 0.08); }
-    100% { box-shadow: inset 0 0 30px hsla(35, 80%, 50%, 0.30), 0 0 20px hsla(0, 80%, 50%, 0.15); }
+    0%   { box-shadow: inset 0 0 18px hsla(35, 80%, 50%, 0.45), 0 0 10px hsla(0, 80%, 50%, 0.24); }
+    100% { box-shadow: inset 0 0 30px hsla(35, 80%, 50%, 0.90), 0 0 20px hsla(0, 80%, 50%, 0.45); }
   }
 
   /* ── Checkered — WebGL flag background ── */
@@ -971,8 +974,8 @@
   .gaps-block.flag-checkered .flag-label { color: #fff; }
   .gaps-block.flag-checkered .flag-context { color: hsl(0, 0%, 80%); }
   @keyframes flag-glow-checkered {
-    0%   { box-shadow: inset 0 0 14px hsla(0, 0%, 100%, 0.12), 0 0 8px hsla(0, 0%, 100%, 0.06); }
-    100% { box-shadow: inset 0 0 26px hsla(0, 0%, 100%, 0.28), 0 0 16px hsla(0, 0%, 100%, 0.14); }
+    0%   { box-shadow: inset 0 0 14px hsla(0, 0%, 100%, 0.36), 0 0 8px hsla(0, 0%, 100%, 0.18); }
+    100% { box-shadow: inset 0 0 26px hsla(0, 0%, 100%, 0.84), 0 0 16px hsla(0, 0%, 100%, 0.42); }
   }
 
   /* ── Black Flag — WebGL flag background ── */
@@ -984,8 +987,8 @@
   .gaps-block.flag-black .flag-label { color: hsl(0, 80%, 58%); }
   .gaps-block.flag-black .flag-context { color: hsl(0, 50%, 65%); }
   @keyframes flag-glow-black {
-    0%   { box-shadow: inset 0 0 18px hsla(0, 80%, 40%, 0.15), 0 0 8px hsla(0, 80%, 40%, 0.08); }
-    100% { box-shadow: inset 0 0 28px hsla(0, 80%, 40%, 0.35), 0 0 16px hsla(0, 80%, 40%, 0.18); }
+    0%   { box-shadow: inset 0 0 18px hsla(0, 80%, 40%, 0.45), 0 0 8px hsla(0, 80%, 40%, 0.24); }
+    100% { box-shadow: inset 0 0 28px hsla(0, 80%, 40%, 1.0), 0 0 16px hsla(0, 80%, 40%, 0.54); }
   }
 
   /* ═══════════════════════════════════════════════
@@ -1431,8 +1434,8 @@
   .leaderboard-panel.lb-center { left: 50%; transform: translateX(-50%); }
 
   .lb-inner {
-    background: hsla(0, 0%, 5%, 0.82);
-    border: 1px solid hsla(0, 0%, 100%, 0.07);
+    background: hsla(0, 0%, 5%, 1.0);
+    border: 1px solid hsla(0, 0%, 100%, 0.14);
     border-radius: 8px;
     padding: 6px 0;
     backdrop-filter: blur(50px);
@@ -1446,7 +1449,7 @@
     letter-spacing: 0.12em;
     color: hsla(0, 0%, 100%, 0.35);
     padding: 2px 10px 5px;
-    border-bottom: 1px solid hsla(0, 0%, 100%, 0.06);
+    border-bottom: 1px solid hsla(0, 0%, 100%, 0.12);
   }
   .lb-row {
     display: grid;
@@ -1456,36 +1459,39 @@
     padding: 3px 10px;
     font-size: 11px;
     font-variant-numeric: tabular-nums;
-    border-bottom: 1px solid hsla(0, 0%, 100%, 0.03);
+    border-bottom: 1px solid hsla(0, 0%, 100%, 0.06);
     transition: background 0.3s ease;
     position: relative;
   }
   .lb-row:last-child { border-bottom: none; }
   .lb-row.lb-player {
-    background: hsla(195, 80%, 30%, 0.10);
+    background: hsla(195, 80%, 30%, 0.20);
     border-left: 2px solid var(--cyan);
     padding-left: 8px;
     transition: background 0.6s ease, border-color 0.6s ease;
   }
   .lb-row.lb-player.lb-p1 {
-    background: hsla(42, 70%, 27%, 0.12);
+    background: hsla(42, 70%, 27%, 0.24);
     border-left-color: hsla(42, 80%, 55%, 1.0);
   }
   .lb-row.lb-player.lb-ahead {
-    background: hsla(145, 70%, 25%, 0.10);
+    background: hsla(145, 70%, 25%, 0.20);
     border-left-color: hsla(145, 75%, 50%, 1.0);
   }
   .lb-row.lb-player.lb-behind {
-    background: hsla(0, 70%, 30%, 0.10);
+    background: hsla(0, 70%, 30%, 0.20);
     border-left-color: hsla(0, 75%, 50%, 1.0);
   }
   .lb-row.lb-player.lb-same {
-    background: hsla(210, 70%, 30%, 0.10);
+    background: hsla(210, 70%, 30%, 0.20);
     border-left-color: hsla(210, 75%, 55%, 1.0);
   }
   .lb-row.lb-start-pos {
-    background: hsla(0, 0%, 100%, 0.025);
-    border-left-color: hsla(0, 0%, 100%, 0.10);
+    background: hsla(0, 0%, 100%, 0.10);
+    border-left: 2px solid hsla(0, 0%, 100%, 0.20);
+    padding-left: 8px;
+    border-top: 1px solid hsla(0, 0%, 100%, 0.10);
+    border-bottom: 1px solid hsla(0, 0%, 100%, 0.10);
   }
   .lb-row.lb-pit { opacity: 0.45; }
   .lb-pos {
@@ -1562,8 +1568,8 @@
     margin-top: 4px;
     border-radius: 6px;
     overflow: hidden;
-    background: hsla(0, 0%, 5%, 0.82);
-    border: 1px solid hsla(0, 0%, 100%, 0.07);
+    background: hsla(0, 0%, 5%, 1.0);
+    border: 1px solid hsla(0, 0%, 100%, 0.14);
     backdrop-filter: blur(50px);
     -webkit-backdrop-filter: blur(50px);
     padding: 2px;
@@ -1588,13 +1594,13 @@
   .datastream-panel.ds-bottom { bottom: 28px; }
   .datastream-panel.ds-top { top: 10px; }
   .datastream-panel.ds-right { right: 326px; }   /* leaderboard (310) + 16px gap */
-  .datastream-panel.ds-left { left: 326px; }
+  .datastream-panel.ds-left { left: 326px; }     /* same offset from left */
   .datastream-panel.ds-center-right { right: 172px; }  /* half LB + gap from center */
   .datastream-panel.ds-center-left { left: 172px; }
 
   .ds-inner {
-    background: hsla(0, 0%, 5%, 0.82);
-    border: 1px solid hsla(0, 0%, 100%, 0.07);
+    background: hsla(0, 0%, 5%, 1.0);
+    border: 1px solid hsla(0, 0%, 100%, 0.14);
     border-radius: 8px;
     padding: 6px 10px 8px;
     backdrop-filter: blur(50px);
@@ -1709,8 +1715,8 @@
   .incidents-panel.inc-center-left { left: 378px; }
 
   .inc-inner {
-    background: hsla(0, 0%, 5%, 0.82);
-    border: 1px solid hsla(0, 0%, 100%, 0.07);
+    background: hsla(0, 0%, 5%, 1.0);
+    border: 1px solid hsla(0, 0%, 100%, 0.14);
     border-radius: 8px;
     padding: 4px 8px 6px;
     backdrop-filter: blur(50px);
@@ -1758,12 +1764,12 @@
   .incidents-panel.inc-level-5 .inc-count { color: hsl(0, 80%, 50%); }
 
   /* Border + background escalation */
-  .incidents-panel.inc-level-0 .inc-inner { border-color: hsla(145, 50%, 40%, 0.12); }
-  .incidents-panel.inc-level-1 .inc-inner { border-color: hsla(90, 50%, 40%, 0.15); }
-  .incidents-panel.inc-level-2 .inc-inner { border-color: hsla(48, 60%, 40%, 0.18); }
-  .incidents-panel.inc-level-3 .inc-inner { border-color: hsla(30, 65%, 40%, 0.20); background: hsla(30, 40%, 8%, 0.85); }
-  .incidents-panel.inc-level-4 .inc-inner { border-color: hsla(8, 65%, 40%, 0.25); background: hsla(8, 40%, 8%, 0.88); }
-  .incidents-panel.inc-level-5 .inc-inner { border-color: hsla(0, 70%, 40%, 0.30); background: hsla(0, 45%, 8%, 0.90); }
+  .incidents-panel.inc-level-0 .inc-inner { border-color: hsla(145, 50%, 40%, 0.24); }
+  .incidents-panel.inc-level-1 .inc-inner { border-color: hsla(90, 50%, 40%, 0.30); }
+  .incidents-panel.inc-level-2 .inc-inner { border-color: hsla(48, 60%, 40%, 0.36); }
+  .incidents-panel.inc-level-3 .inc-inner { border-color: hsla(30, 65%, 40%, 0.40); background: hsla(30, 40%, 8%, 1.0); }
+  .incidents-panel.inc-level-4 .inc-inner { border-color: hsla(8, 65%, 40%, 0.50); background: hsla(8, 40%, 8%, 1.0); }
+  .incidents-panel.inc-level-5 .inc-inner { border-color: hsla(0, 70%, 40%, 0.60); background: hsla(0, 45%, 8%, 1.0); }
 
   /* Threshold rows — penalty / DQ remaining */
   .inc-thresholds {
@@ -1825,8 +1831,8 @@
     display: flex;
     align-items: center;
     gap: 18px;
-    background: hsla(0, 0%, 3%, 0.96);
-    border: 2px solid hsla(48, 90%, 55%, 0.40);
+    background: hsla(0, 0%, 3%, 1.0);
+    border: 2px solid hsla(48, 90%, 55%, 0.80);
     border-top: none;
     border-radius: 0 0 14px 14px;
     padding: 16px 36px 18px 28px;
@@ -1937,8 +1943,8 @@
     animation: rc-glow 3s ease-in-out infinite alternate;
   }
   @keyframes rc-glow {
-    0%   { box-shadow: 0 4px 24px hsla(0, 0%, 0%, 0.6), inset 0 -1px 0 hsla(48, 90%, 55%, 0.08), 0 0 8px hsla(48, 85%, 50%, 0.08); }
-    100% { box-shadow: 0 4px 24px hsla(0, 0%, 0%, 0.6), inset 0 -1px 0 hsla(48, 90%, 55%, 0.15), 0 0 18px hsla(48, 85%, 50%, 0.18); }
+    0%   { box-shadow: 0 4px 24px hsla(0, 0%, 0%, 0.6), inset 0 -1px 0 hsla(48, 90%, 55%, 0.24), 0 0 8px hsla(48, 85%, 50%, 0.24); }
+    100% { box-shadow: 0 4px 24px hsla(0, 0%, 0%, 0.6), inset 0 -1px 0 hsla(48, 90%, 55%, 0.45), 0 0 18px hsla(48, 85%, 50%, 0.54); }
   }
 
   /* Per-flag accent overrides — only critical flags (red, black, yellow, checkered) */
@@ -1951,8 +1957,8 @@
   .rc-banner.rc-flag-red .rc-detail   { color: hsl(0, 80%, 65%); }
   .rc-banner.rc-flag-red.rc-visible .rc-inner { animation-name: rc-glow-red; }
   @keyframes rc-glow-red {
-    0%   { box-shadow: 0 4px 24px hsla(0, 0%, 0%, 0.6), 0 0 8px hsla(0, 80%, 50%, 0.10); }
-    100% { box-shadow: 0 4px 24px hsla(0, 0%, 0%, 0.6), 0 0 18px hsla(0, 80%, 50%, 0.22); }
+    0%   { box-shadow: 0 4px 24px hsla(0, 0%, 0%, 0.6), 0 0 8px hsla(0, 80%, 50%, 0.30); }
+    100% { box-shadow: 0 4px 24px hsla(0, 0%, 0%, 0.6), 0 0 18px hsla(0, 80%, 50%, 0.66); }
   }
 
   /* ── Checkered ── */
@@ -1964,6 +1970,373 @@
   .rc-banner.rc-flag-black .rc-inner  { border-color: hsla(0, 75%, 40%, 0.40); }
   .rc-banner.rc-flag-black .rc-inner::before { background: hsl(0, 75%, 45%); }
   .rc-banner.rc-flag-black .rc-detail { color: hsl(0, 60%, 60%); }
+
+  /* ═══════════════════════════════════════════════
+     PIT LIMITER INDICATOR
+     ═══════════════════════════════════════════════ */
+  .pit-banner {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 55;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    padding-top: 8px;
+    opacity: 0;
+    transform: translateY(-12px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .pit-banner.pit-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .pit-inner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: hsla(200, 60%, 8%, 1.0);
+    border: 2px solid hsla(200, 80%, 60%, 0.60);
+    border-radius: 10px;
+    padding: 10px 28px;
+    backdrop-filter: blur(50px);
+    -webkit-backdrop-filter: blur(50px);
+    animation: pit-glow 2.5s ease-in-out infinite alternate;
+  }
+  .pit-icon {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: hsl(200, 80%, 60%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800; color: #000;
+    line-height: 1;
+  }
+  .pit-label {
+    font-size: 15px;
+    font-weight: var(--fw-black);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: hsl(200, 80%, 70%);
+  }
+  .pit-speed {
+    font-size: 13px;
+    font-weight: var(--fw-bold);
+    color: hsla(0, 0%, 100%, 0.60);
+    font-variant-numeric: tabular-nums;
+  }
+  @keyframes pit-glow {
+    0%   { box-shadow: inset 0 0 14px hsla(200, 80%, 60%, 0.15), 0 0 10px hsla(200, 80%, 60%, 0.10); }
+    100% { box-shadow: inset 0 0 28px hsla(200, 80%, 60%, 0.35), 0 0 20px hsla(200, 80%, 60%, 0.22); }
+  }
+
+  /* Fade other modules when in pit lane */
+  body.pit-mode .panel,
+  body.pit-mode .leaderboard-panel,
+  body.pit-mode .datastream-panel,
+  body.pit-mode .incidents-panel,
+  body.pit-mode .spotter-panel {
+    transition: opacity 1.2s ease;
+    opacity: 0.25;
+  }
+  body:not(.pit-mode) .panel,
+  body:not(.pit-mode) .leaderboard-panel,
+  body:not(.pit-mode) .datastream-panel,
+  body:not(.pit-mode) .incidents-panel,
+  body:not(.pit-mode) .spotter-panel {
+    transition: opacity 1.2s ease;
+  }
+
+  /* ═══════════════════════════════════════════════
+     SPOTTER MESSAGES
+     ═══════════════════════════════════════════════ */
+  .spotter-panel {
+    position: fixed;
+    z-index: 52;
+    width: 200px;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .spotter-panel.section-hidden { display: none; }
+  .spotter-panel.sp-bottom { bottom: 28px; }
+  .spotter-panel.sp-top { top: 10px; }
+  .spotter-panel.sp-left { left: 10px; }
+  .spotter-panel.sp-right { right: 10px; }
+
+  .sp-inner {
+    background: hsla(220, 30%, 8%, 0.92);
+    border: 1px solid hsla(220, 60%, 50%, 0.20);
+    border-radius: 8px;
+    padding: 6px 10px;
+    backdrop-filter: blur(50px);
+    -webkit-backdrop-filter: blur(50px);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .sp-inner.sp-active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .sp-header {
+    font-size: 8px;
+    font-weight: var(--fw-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: hsla(220, 60%, 60%, 0.55);
+    margin-bottom: 3px;
+  }
+  .sp-message {
+    font-size: 12px;
+    font-weight: var(--fw-semi);
+    color: hsla(220, 50%, 80%, 0.90);
+    line-height: 1.3;
+  }
+  .sp-inner.sp-warn { border-color: hsla(35, 80%, 50%, 0.30); }
+  .sp-inner.sp-warn .sp-message { color: hsl(35, 80%, 65%); }
+  .sp-inner.sp-danger { border-color: hsla(0, 70%, 50%, 0.30); }
+  .sp-inner.sp-danger .sp-message { color: hsl(0, 70%, 65%); }
+  .sp-inner.sp-clear { border-color: hsla(145, 60%, 45%, 0.25); }
+  .sp-inner.sp-clear .sp-message { color: hsl(145, 60%, 60%); }
+
+  /* ═══════════════════════════════════════════════
+     FORMATION LAP / GRID START MODULE
+     ═══════════════════════════════════════════════ */
+  .grid-module {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 200;
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+  .grid-module.grid-visible {
+    opacity: 1;
+  }
+  .grid-module.grid-fadeout {
+    opacity: 0;
+    transition: opacity 1.5s ease;
+  }
+
+  /* Pre-race info card */
+  .grid-info {
+    background: hsla(220, 25%, 6%, 0.96);
+    border: 1px solid hsla(220, 60%, 40%, 0.25);
+    border-radius: 14px;
+    padding: 28px 48px;
+    backdrop-filter: blur(60px);
+    -webkit-backdrop-filter: blur(60px);
+    min-width: 340px;
+    transition: opacity 0.6s ease, transform 0.5s ease;
+  }
+  .grid-info.info-hidden {
+    opacity: 0;
+    transform: scale(0.92);
+    pointer-events: none;
+    position: absolute;
+  }
+  .grid-title {
+    font-size: 10px;
+    font-weight: var(--fw-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: hsla(220, 60%, 65%, 0.60);
+    margin-bottom: 14px;
+  }
+  .grid-countdown {
+    font-size: 64px;
+    font-weight: var(--fw-black);
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 12px;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 30px hsla(220, 80%, 60%, 0.15);
+  }
+  .grid-cars {
+    font-size: 22px;
+    font-weight: var(--fw-bold);
+    color: hsla(0, 0%, 100%, 0.85);
+    margin-bottom: 8px;
+  }
+  .grid-cars-total {
+    color: hsla(0, 0%, 100%, 0.35);
+    font-weight: var(--fw-medium);
+  }
+  .grid-start-type {
+    font-size: 12px;
+    font-weight: var(--fw-semi);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: hsla(220, 50%, 65%, 0.70);
+    margin-top: 6px;
+  }
+  .grid-start-type.standing { color: hsla(35, 80%, 60%, 0.85); }
+  .grid-start-type.rolling  { color: hsla(145, 60%, 55%, 0.75); }
+
+  /* ── F1-STYLE START LIGHTS ───────────────────── */
+  .start-lights {
+    display: flex;
+    gap: 18px;
+    justify-content: center;
+    align-items: center;
+    padding: 20px 0;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  .start-lights.lights-active {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  .light-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+  .light-bulb {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: hsla(0, 0%, 15%, 0.95);
+    border: 3px solid hsla(0, 0%, 25%, 0.60);
+    transition: background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    position: relative;
+  }
+  .light-bulb::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 16px;
+    height: 12px;
+    border-radius: 50%;
+    background: hsla(0, 0%, 100%, 0.06);
+  }
+  .light-bulb.lit-red {
+    background: hsl(0, 85%, 48%);
+    border-color: hsl(0, 90%, 55%);
+    box-shadow: 0 0 24px 8px hsla(0, 90%, 50%, 0.50),
+                0 0 60px 16px hsla(0, 90%, 50%, 0.20),
+                inset 0 0 12px hsla(0, 100%, 70%, 0.40);
+    animation: light-pulse-red 0.6s ease-in-out infinite alternate;
+  }
+  .light-bulb.lit-green {
+    background: hsl(130, 85%, 42%);
+    border-color: hsl(130, 90%, 50%);
+    box-shadow: 0 0 32px 12px hsla(130, 90%, 45%, 0.55),
+                0 0 80px 24px hsla(130, 90%, 45%, 0.25),
+                inset 0 0 16px hsla(130, 100%, 65%, 0.45);
+    animation: light-pulse-green 0.3s ease-in-out infinite alternate;
+  }
+  @keyframes light-pulse-red {
+    0%   { box-shadow: 0 0 20px 6px hsla(0, 90%, 50%, 0.45), 0 0 50px 14px hsla(0, 90%, 50%, 0.15), inset 0 0 10px hsla(0, 100%, 70%, 0.35); }
+    100% { box-shadow: 0 0 30px 10px hsla(0, 90%, 50%, 0.60), 0 0 70px 20px hsla(0, 90%, 50%, 0.25), inset 0 0 14px hsla(0, 100%, 70%, 0.50); }
+  }
+  @keyframes light-pulse-green {
+    0%   { box-shadow: 0 0 28px 10px hsla(130, 90%, 45%, 0.50), 0 0 70px 20px hsla(130, 90%, 45%, 0.20), inset 0 0 14px hsla(130, 100%, 65%, 0.40); }
+    100% { box-shadow: 0 0 40px 16px hsla(130, 90%, 45%, 0.65), 0 0 100px 30px hsla(130, 90%, 45%, 0.30), inset 0 0 18px hsla(130, 100%, 65%, 0.55); }
+  }
+
+  /* Light housing plate */
+  .lights-housing {
+    background: hsla(0, 0%, 4%, 0.98);
+    border: 2px solid hsla(0, 0%, 20%, 0.50);
+    border-radius: 16px;
+    padding: 22px 30px;
+    display: flex;
+    gap: 18px;
+    box-shadow: 0 8px 40px hsla(0, 0%, 0%, 0.60);
+  }
+
+  /* GO! flash text */
+  .lights-go {
+    position: absolute;
+    bottom: -52px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 48px;
+    font-weight: var(--fw-black);
+    color: hsl(130, 85%, 50%);
+    text-shadow: 0 0 30px hsla(130, 90%, 50%, 0.60), 0 0 60px hsla(130, 90%, 50%, 0.30);
+    letter-spacing: 0.08em;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .lights-go.go-visible { opacity: 1; animation: go-flash 0.4s ease-in-out 3 alternate; }
+  @keyframes go-flash {
+    0%   { transform: translateX(-50%) scale(1); }
+    100% { transform: translateX(-50%) scale(1.12); }
+  }
+
+  /* Dim other modules during grid/lights */
+  body.grid-active .panel,
+  body.grid-active .leaderboard-panel,
+  body.grid-active .datastream-panel,
+  body.grid-active .incidents-panel,
+  body.grid-active .spotter-panel {
+    transition: opacity 1.0s ease;
+    opacity: 0.15;
+  }
+  body.grid-active .grid-module {
+    opacity: 1;
+  }
+
+  /* ═══════════════════════════════════════════════
+     SECONDARY BLOCK LAYOUT VARIATIONS
+     ═══════════════════════════════════════════════ */
+  /* Stack: vertical column (default) */
+  body.sec-stack .leaderboard-panel,
+  body.sec-stack .datastream-panel,
+  body.sec-stack .incidents-panel { /* default behavior, no override needed */ }
+
+  /* Row: horizontal row along edge */
+  body.sec-row .leaderboard-panel.lb-left,
+  body.sec-row .datastream-panel.ds-left,
+  body.sec-row .incidents-panel.inc-left {
+    left: auto;
+  }
+  body.sec-row .leaderboard-panel.lb-right,
+  body.sec-row .datastream-panel.ds-right,
+  body.sec-row .incidents-panel.inc-right {
+    right: auto;
+  }
+
+  /* Compact: narrower panels, tighter spacing */
+  body.sec-compact .leaderboard-panel { width: 260px; }
+  body.sec-compact .datastream-panel { width: 160px; }
+  body.sec-compact .lb-row { font-size: 10px; padding: 2px 8px; }
+  body.sec-compact .lb-row { grid-template-columns: 20px 1fr 48px 38px 46px; }
+
+  /* Minimal: leaderboard only, datastream and incidents hidden */
+  body.sec-minimal .datastream-panel,
+  body.sec-minimal .incidents-panel { display: none !important; }
+
+  /* Margin offsets — applied via CSS custom properties */
+  .leaderboard-panel,
+  .datastream-panel,
+  .incidents-panel,
+  .spotter-panel {
+    --sec-offset-x: 0px;
+    --sec-offset-y: 0px;
+  }
+  /* Apply offsets using translate so they compose with existing positioning */
+  body[data-sec-offset] .leaderboard-panel,
+  body[data-sec-offset] .datastream-panel,
+  body[data-sec-offset] .incidents-panel,
+  body[data-sec-offset] .spotter-panel {
+    transform: translate(var(--sec-offset-x), var(--sec-offset-y));
+  }
+  /* Center leaderboard needs special handling since it already uses transform */
+  body[data-sec-offset] .leaderboard-panel.lb-center {
+    transform: translateX(calc(-50% + var(--sec-offset-x))) translateY(var(--sec-offset-y));
+  }
 
   /* ═══════════════════════════════════════════════
      SETTINGS PANEL
@@ -2327,7 +2700,7 @@
             <div class="pos-number"><span class="skew-accent">P—</span><div class="pos-delta"></div></div>
             <div class="pos-meta">
               <div class="pos-meta-row">Lap <span class="val">—</span></div>
-              <div class="pos-meta-row best-row">Best <span class="val purple">—:——.———</span></div>
+              <div class="pos-meta-row best-row"><span class="val purple">—:——.———</span></div>
             </div>
           </div>
         </div>
@@ -2377,7 +2750,7 @@
             <div class="pos-number"><span class="skew-accent">P—</span><div class="pos-delta"></div></div>
             <div class="pos-meta">
               <div class="pos-meta-row">Lap <span class="val">—</span></div>
-              <div class="pos-meta-row best-row">Best <span class="val purple">—:——.———</span></div>
+              <div class="pos-meta-row best-row"><span class="val purple">—:——.———</span></div>
             </div>
           </div>
         </div>
@@ -2551,6 +2924,12 @@
       <span class="ds-value" id="dsTrackTemp">—°C</span>
     </div>
 
+    <!-- FPS -->
+    <div class="ds-row">
+      <span class="ds-label">FPS</span>
+      <span class="ds-value" id="dsFps" style="color:var(--text-dim);">—</span>
+    </div>
+
   </div>
 </div>
 
@@ -2594,6 +2973,45 @@
       <div class="rc-title" id="rcTitle">RACE CONTROL</div>
       <div class="rc-detail" id="rcDetail">—</div>
     </div>
+  </div>
+</div>
+
+<!-- PIT LIMITER BANNER -->
+<div class="pit-banner" id="pitBanner">
+  <div class="pit-inner">
+    <div class="pit-icon">P</div>
+    <div class="pit-label">Pit Limiter</div>
+    <div class="pit-speed" id="pitSpeed"></div>
+  </div>
+</div>
+
+<!-- SPOTTER MESSAGES -->
+<div class="spotter-panel sp-bottom sp-left" id="spotterPanel">
+  <div class="sp-inner" id="spotterInner">
+    <div class="sp-header">Spotter</div>
+    <div class="sp-message" id="spotterMsg"></div>
+  </div>
+</div>
+
+<!-- FORMATION LAP / GRID START -->
+<div class="grid-module" id="gridModule">
+  <!-- Pre-race info (visible during formation) -->
+  <div class="grid-info" id="gridInfo">
+    <div class="grid-title">Formation Lap</div>
+    <div class="grid-countdown" id="gridCountdown">—</div>
+    <div class="grid-cars"><span id="gridCarsGridded">0</span> <span class="grid-cars-total">/ <span id="gridCarsTotal">0</span> gridded</span></div>
+    <div class="grid-start-type" id="gridStartType">Rolling Start</div>
+  </div>
+  <!-- F1-style start lights (replaces info when lights active) -->
+  <div class="start-lights" id="startLights">
+    <div class="lights-housing">
+      <div class="light-col"><div class="light-bulb" id="light1t"></div><div class="light-bulb" id="light1b"></div></div>
+      <div class="light-col"><div class="light-bulb" id="light2t"></div><div class="light-bulb" id="light2b"></div></div>
+      <div class="light-col"><div class="light-bulb" id="light3t"></div><div class="light-bulb" id="light3b"></div></div>
+      <div class="light-col"><div class="light-bulb" id="light4t"></div><div class="light-bulb" id="light4b"></div></div>
+      <div class="light-col"><div class="light-bulb" id="light5t"></div><div class="light-bulb" id="light5b"></div></div>
+    </div>
+    <div class="lights-go" id="lightsGo">GO!</div>
   </div>
 </div>
 
@@ -2645,6 +3063,28 @@
     <div class="settings-row">
       <span class="settings-label">Swap Vertical</span>
       <div class="settings-toggle" id="vswapToggle" data-key="verticalSwap" onclick="toggleVerticalSwap(this)"></div>
+    </div>
+    <div class="settings-row">
+      <span class="settings-label">Secondary Layout</span>
+      <select class="settings-select" id="settingsSecLayout" onchange="updateSecLayout(this.value)">
+        <option value="stack">Stack (Default)</option>
+        <option value="compact">Compact</option>
+        <option value="minimal">Minimal</option>
+      </select>
+    </div>
+    <div class="settings-row">
+      <span class="settings-label">Secondary Offset X</span>
+      <div class="settings-range-row">
+        <input class="settings-range" id="settingsSecOffsetX" type="range" min="-200" max="200" step="5" value="0" oninput="updateSecOffset('x', this.value)"/>
+        <span class="settings-range-val" id="secOffsetXVal">0px</span>
+      </div>
+    </div>
+    <div class="settings-row">
+      <span class="settings-label">Secondary Offset Y</span>
+      <div class="settings-range-row">
+        <input class="settings-range" id="settingsSecOffsetY" type="range" min="-200" max="200" step="5" value="0" oninput="updateSecOffset('y', this.value)"/>
+        <span class="settings-range-val" id="secOffsetYVal">0px</span>
+      </div>
     </div>
     <div class="settings-row">
       <span class="settings-label">Zoom</span>
@@ -2746,27 +3186,27 @@
   // Colored logos (BMW, Chevy, Ford, Lotus) → keep black bg to preserve logo colors.
   // Honda → red bg with white-fill logo swap (honda_white key).
   const _mfrBrandColors = {
-    bmw:         'hsla(204, 100%, 15%, 0.49)',   // BMW blue (#0066B1)
-    mclaren:     'hsla(24, 100%, 21%, 0.49)',    // Papaya orange
-    mazda:       'hsla(0, 90%, 18%, 0.49)',       // Soul Red
-    nissan:      'hsla(0, 85%, 21%, 0.49)',       // Red
-    dallara:     'hsla(210, 85%, 20%, 0.49)',     // Blue
-    ferrari:     'hsla(0, 90%, 20%, 0.49)',       // Rosso Corsa
-    porsche:     'hsla(0, 0%, 25%, 0.39)',        // Silver grey
-    audi:        'hsla(0, 0%, 25%, 0.39)',        // Silver
-    mercedes:    'hsla(175, 65%, 19%, 0.45)',     // Petronas teal
-    lamborghini: 'hsla(48, 90%, 21%, 0.45)',      // Gold
-    chevrolet:   'hsla(40, 62%, 15%, 0.49)',      // Chevy gold (#977124)
-    ford:        'hsla(237, 100%, 8%, 0.49)',     // Ford blue (#00095B)
-    toyota:      'hsla(0, 85%, 21%, 0.49)',       // Red
-    hyundai:     'hsla(216, 85%, 19%, 0.49)',     // Blue
-    cadillac:    'hsla(0, 0%, 25%, 0.39)',        // Silver
-    astonmartin: 'hsla(155, 70%, 16%, 0.49)',     // Racing green
-    lotus:       'hsla(57, 100%, 21%, 0.49)',     // Lotus yellow (#FFF200)
-    honda:       'hsla(0, 90%, 18%, 0.70)'        // Red bg (white logo)
+    bmw:         'hsla(204, 100%, 45%, 0.85)',   // BMW blue (#0066B1)
+    mclaren:     'hsla(24, 100%, 52%, 0.85)',    // Papaya orange
+    mazda:       'hsla(0, 90%, 44%, 0.85)',       // Soul Red
+    nissan:      'hsla(0, 85%, 50%, 0.85)',       // Red
+    dallara:     'hsla(210, 85%, 48%, 0.85)',     // Blue
+    ferrari:     'hsla(0, 90%, 48%, 0.85)',       // Rosso Corsa
+    porsche:     'hsla(0, 0%, 50%, 0.80)',        // Silver grey
+    audi:        'hsla(0, 0%, 50%, 0.80)',        // Silver
+    mercedes:    'hsla(175, 65%, 42%, 0.82)',     // Petronas teal
+    lamborghini: 'hsla(48, 90%, 48%, 0.82)',      // Gold
+    chevrolet:   'hsla(40, 62%, 38%, 0.85)',      // Chevy gold (#977124)
+    ford:        'hsla(237, 100%, 28%, 0.85)',    // Ford blue (#00095B)
+    toyota:      'hsla(0, 85%, 48%, 0.85)',       // Red
+    hyundai:     'hsla(216, 85%, 45%, 0.85)',     // Blue
+    cadillac:    'hsla(0, 0%, 50%, 0.80)',        // Silver
+    astonmartin: 'hsla(155, 70%, 38%, 0.85)',     // Racing green
+    lotus:       'hsla(57, 100%, 50%, 0.85)',     // Lotus yellow (#FFF200)
+    honda:       'hsla(0, 90%, 42%, 0.90)'        // Red bg (white logo)
   };
   // Default bg for logos not in _mfrBrandColors (keeps original dark bg)
-  const _defaultLogoBg = 'hsla(0, 0%, 4%, 1.0)';
+  const _defaultLogoBg = 'hsla(0, 0%, 12%, 1.0)';
 
   // Sample car names for demo cycle (brand logo is already shown, so just the model)
   const _demoModels = {
@@ -3024,8 +3464,8 @@
 
   function showCommentary(hue, title, text, meta, topicId) {
     col.style.setProperty('--commentary-h', hue);
-    inner.style.background = `hsla(${hue}, 50%, 13%, 0.48)`;
-    inner.style.borderColor = `hsla(${hue}, 50%, 27%, 0.25)`;
+    inner.style.background = `hsla(${hue}, 50%, 13%, 0.96)`;
+    inner.style.borderColor = `hsla(${hue}, 50%, 27%, 0.50)`;
     document.getElementById('commentaryTitle').textContent = title;
     document.getElementById('commentaryTitle').style.color = `hsl(${hue},55%,65%)`;
     // Set commentary icon — try topicId, then title lookup, then category, then default
@@ -3213,6 +3653,8 @@
 
   // ═══ TRACK MAP ═══
   let _mapLastPath = '';
+  let _mapSmoothedX = 0, _mapSmoothedY = 0;
+  let _mapHasInit = false;
   const _SVG_NS = 'http://www.w3.org/2000/svg';
   const _MAP_MAX_OPPONENTS = 63; // iRacing max field size
 
@@ -3220,30 +3662,53 @@
     // Update track outline (only when path changes — new track or first load)
     if (svgPath && svgPath !== _mapLastPath) {
       _mapLastPath = svgPath;
+      _mapHasInit = false; // reset smoothing on track change
       const fullTrack = document.getElementById('fullMapTrack');
       const zoomTrack = document.getElementById('zoomMapTrack');
       if (fullTrack) fullTrack.setAttribute('d', svgPath);
       if (zoomTrack) zoomTrack.setAttribute('d', svgPath);
     }
 
+    // Sanity: clamp coordinates to 0–100 SVG range
+    playerX = Math.max(0, Math.min(100, playerX));
+    playerY = Math.max(0, Math.min(100, playerY));
+
+    // Smoothing: reject large jumps, low-pass filter coordinates
+    if (!_mapHasInit) {
+      _mapSmoothedX = playerX;
+      _mapSmoothedY = playerY;
+      _mapHasInit = true;
+    } else {
+      const dx = playerX - _mapSmoothedX;
+      const dy = playerY - _mapSmoothedY;
+      const jump = Math.sqrt(dx * dx + dy * dy);
+      // If jump is huge (>20 SVG units), blend slowly (glitch recovery)
+      const alpha = jump > 20 ? 0.08 : 0.45;
+      _mapSmoothedX += dx * alpha;
+      _mapSmoothedY += dy * alpha;
+    }
+
+    const sx = _mapSmoothedX;
+    const sy = _mapSmoothedY;
+
     // Update player dot
     const fullPlayer = document.getElementById('fullMapPlayer');
     const zoomPlayer = document.getElementById('zoomMapPlayer');
     if (fullPlayer) {
-      fullPlayer.setAttribute('cx', playerX.toFixed(1));
-      fullPlayer.setAttribute('cy', playerY.toFixed(1));
+      fullPlayer.setAttribute('cx', sx.toFixed(1));
+      fullPlayer.setAttribute('cy', sy.toFixed(1));
     }
     if (zoomPlayer) {
-      zoomPlayer.setAttribute('cx', playerX.toFixed(1));
-      zoomPlayer.setAttribute('cy', playerY.toFixed(1));
+      zoomPlayer.setAttribute('cx', sx.toFixed(1));
+      zoomPlayer.setAttribute('cy', sy.toFixed(1));
     }
 
-    // Update zoom map viewBox to track the player (±15 unit window)
+    // Update zoom map viewBox to track the player (±15 unit window) — use smoothed position
     const zoomSvg = document.getElementById('zoomMapSvg');
     if (zoomSvg) {
       const zr = 15; // zoom radius
-      const vx = Math.max(0, Math.min(100 - zr * 2, playerX - zr));
-      const vy = Math.max(0, Math.min(100 - zr * 2, playerY - zr));
+      const vx = Math.max(0, Math.min(100 - zr * 2, sx - zr));
+      const vy = Math.max(0, Math.min(100 - zr * 2, sy - zr));
       zoomSvg.setAttribute('viewBox', vx.toFixed(1) + ' ' + vy.toFixed(1) + ' ' + (zr * 2) + ' ' + (zr * 2));
     }
 
@@ -3266,18 +3731,20 @@
     for (let i = 0; i < count; i++) {
       const seg = parts[i].split(',');
       if (seg.length < 2) continue;
-      const ox = seg[0], oy = seg[1];
+      // Clamp opponent coords to 0–100
+      const ox = Math.max(0, Math.min(100, +seg[0]));
+      const oy = Math.max(0, Math.min(100, +seg[1]));
       const inPit = seg[2] === '1';
 
       fullDots[i].setAttribute('cx', ox);
       fullDots[i].setAttribute('cy', oy);
       fullDots[i].style.display = inPit ? 'none' : '';
-      fullDots[i].classList.toggle('close', _isClose(playerX, playerY, +ox, +oy));
+      fullDots[i].classList.toggle('close', _isClose(sx, sy, ox, oy));
 
       zoomDots[i].setAttribute('cx', ox);
       zoomDots[i].setAttribute('cy', oy);
       zoomDots[i].style.display = inPit ? 'none' : '';
-      zoomDots[i].classList.toggle('close', _isClose(playerX, playerY, +ox, +oy));
+      zoomDots[i].classList.toggle('close', _isClose(sx, sy, ox, oy));
     }
   }
 
@@ -3431,6 +3898,8 @@
     'K10MediaCoach.Plugin.DS.TrackPct',
     'K10MediaCoach.Plugin.DS.LapDelta',
     'K10MediaCoach.Plugin.DS.CompletedLaps',
+    'K10MediaCoach.Plugin.DS.IsInPitLane',
+    'K10MediaCoach.Plugin.DS.SpeedKmh',
     // Demo Datastream
     'K10MediaCoach.Plugin.Demo.DS.LatG',
     'K10MediaCoach.Plugin.Demo.DS.LongG',
@@ -3441,6 +3910,8 @@
     'K10MediaCoach.Plugin.Demo.DS.AbsActive',
     'K10MediaCoach.Plugin.Demo.DS.TcActive',
     'K10MediaCoach.Plugin.Demo.DS.LapDelta',
+    'K10MediaCoach.Plugin.Demo.DS.IsInPitLane',
+    'K10MediaCoach.Plugin.Demo.DS.SpeedKmh',
     // Track map
     'K10MediaCoach.Plugin.TrackMap.Ready',
     'K10MediaCoach.Plugin.TrackMap.SvgPath',
@@ -3453,7 +3924,20 @@
     'K10MediaCoach.Plugin.DriverFirstName',
     'K10MediaCoach.Plugin.DriverLastName',
     // Flag status
-    'currentFlagState'
+    'currentFlagState',
+    // Grid / Formation state
+    'K10MediaCoach.Plugin.Grid.SessionState',
+    'K10MediaCoach.Plugin.Grid.GriddedCars',
+    'K10MediaCoach.Plugin.Grid.TotalCars',
+    'K10MediaCoach.Plugin.Grid.PaceMode',
+    'K10MediaCoach.Plugin.Grid.StartType',
+    'K10MediaCoach.Plugin.Grid.LightsPhase',
+    'K10MediaCoach.Plugin.Demo.Grid.SessionState',
+    'K10MediaCoach.Plugin.Demo.Grid.GriddedCars',
+    'K10MediaCoach.Plugin.Demo.Grid.TotalCars',
+    'K10MediaCoach.Plugin.Demo.Grid.PaceMode',
+    'K10MediaCoach.Plugin.Demo.Grid.LightsPhase',
+    'K10MediaCoach.Plugin.Demo.Grid.StartType'
   ];
 
   // ─── State ───
@@ -3490,6 +3974,12 @@
   let _prevLap = 0;           // previous lap number — detect lap change
   let _timerHideTimeout = null; // auto-hide timer after showing
   let _timerPinned = false;    // true when timer stays visible for end-of-race
+
+  // ── Grid / Formation state ──
+  let _gridActive = false;
+  let _gridLightsPhase = 0;
+  let _gridPrevSessionState = 4; // assume racing initially
+  let _gridFadeTimer = null;
 
   // Manufacturer map — keys are lowercase substrings matched against CarModel
   const _mfrMap = {
@@ -4049,6 +4539,15 @@
     // ─── Leaderboard ───
     try { updateLeaderboard(p); } catch(e) { console.error('[K10] Leaderboard error:', e); }
 
+    // ─── Pit Limiter ───
+    try { updatePitLimiter(p, _demo); } catch(e) { console.error('[K10] Pit limiter error:', e); }
+
+    // ─── Grid / Formation ───
+    try { updateGrid(p, _demo); } catch(e) { console.error('[K10] Grid error:', e); }
+
+    // ─── Spotter ───
+    try { updateSpotter(p, _demo); } catch(e) { console.error('[K10] Spotter error:', e); }
+
     // ─── Race Timeline ───
     try { updateRaceTimeline(pos, lap, flagState); } catch(e) { console.error('[K10] Timeline error:', e); }
 
@@ -4056,6 +4555,9 @@
     // Suppress cycling while timer row is visible — keep position page showing
     const _timerShowing = timerRow && timerRow.classList.contains('timer-visible');
     if (_cycleFrameCount >= _cycleIntervalFrames) { _cycleFrameCount = 0; if (!_timerShowing) cycleRatingPos(); }
+
+    // ─── FPS counter ───
+    updateFps();
 
     } catch (err) {
       console.error('[K10 poll] Error in poll frame #' + _pollFrame + ':', err);
@@ -4334,11 +4836,19 @@
         const mn = Math.min(...hist), mx = Math.max(...hist);
         const range = mx - mn || 1;
         const w = 44, h2 = 14;
-        let pts = hist.map((v, i) => {
+        let pts = '';
+        for (let i = 0; i < hist.length; i++) {
           const x = (i / (hist.length - 1)) * w;
-          const y = h2 - ((v - mn) / range) * h2;
-          return x.toFixed(1) + ',' + y.toFixed(1);
-        }).join(' ');
+          const y = h2 - ((hist[i] - mn) / range) * h2;
+          if (i === 0) {
+            pts += x.toFixed(1) + ',' + y.toFixed(1);
+          } else {
+            // Step: horizontal to new x at old y, then vertical to new y
+            const prevY = h2 - ((hist[i - 1] - mn) / range) * h2;
+            pts += ' ' + x.toFixed(1) + ',' + prevY.toFixed(1);
+            pts += ' ' + x.toFixed(1) + ',' + y.toFixed(1);
+          }
+        }
         const lastY = h2 - ((hist[hist.length - 1] - mn) / range) * h2;
         let col = 'hsla(0,0%,100%,0.3)';
         if (isPlayer) {
@@ -4395,7 +4905,7 @@
     layoutPosition: 'top-right', layoutFlow: 'ltr', verticalSwap: false,
     greenScreen: false, showWebGL: true,
     zoom: 100, forceFlag: '', showLeaderboard: true, showDatastream: true, showIncidents: true,
-    incPenalty: 17, incDQ: 25
+    incPenalty: 17, incDQ: 25, secLayout: 'stack', secOffsetX: 0, secOffsetY: 0
   };
 
   let _settings = Object.assign({}, _defaultSettings);
@@ -4447,6 +4957,17 @@
 
     // Layout
     applyLayout();
+
+    // Secondary layout
+    applySecLayout();
+    applySecOffset();
+    // Restore secondary layout UI
+    const secLayoutSelect = document.getElementById('settingsSecLayout');
+    if (secLayoutSelect) secLayoutSelect.value = _settings.secLayout || 'stack';
+    const secOxSlider = document.getElementById('settingsSecOffsetX');
+    if (secOxSlider) { secOxSlider.value = _settings.secOffsetX || 0; document.getElementById('secOffsetXVal').textContent = (_settings.secOffsetX || 0) + 'px'; }
+    const secOySlider = document.getElementById('settingsSecOffsetY');
+    if (secOySlider) { secOySlider.value = _settings.secOffsetY || 0; document.getElementById('secOffsetYVal').textContent = (_settings.secOffsetY || 0) + 'px'; }
 
     // Zoom
     const zoomVal = _settings.zoom || 100;
@@ -4589,36 +5110,46 @@
     const vswapToggle = document.getElementById('vswapToggle');
     if (vswapToggle) vswapToggle.classList.toggle('on', vswap);
 
-    // Position leaderboard on vertically opposite side
+    // Position leaderboard on horizontally opposite side, same vertical edge
     const lb = document.getElementById('leaderboardPanel');
     if (lb) {
       lb.classList.remove('lb-top', 'lb-bottom', 'lb-left', 'lb-right', 'lb-center');
-      // Vertical opposite
-      lb.classList.add(pos.includes('bottom') ? 'lb-top' : 'lb-bottom');
-      // Horizontal: same side
-      if (pos.includes('right')) lb.classList.add('lb-right');
-      else if (pos.includes('left')) lb.classList.add('lb-left');
+      // Same vertical edge as dashboard
+      lb.classList.add(pos.includes('bottom') ? 'lb-bottom' : 'lb-top');
+      // Horizontal opposite
+      if (pos.includes('right')) lb.classList.add('lb-left');
+      else if (pos.includes('left')) lb.classList.add('lb-right');
       else lb.classList.add('lb-center');
     }
 
-    // Position datastream adjacent to leaderboard
+    // Position datastream adjacent to leaderboard (same side)
     const ds = document.getElementById('datastreamPanel');
     if (ds) {
       ds.classList.remove('ds-top', 'ds-bottom', 'ds-left', 'ds-right', 'ds-center-left', 'ds-center-right');
-      ds.classList.add(pos.includes('bottom') ? 'ds-top' : 'ds-bottom');
-      if (pos.includes('right')) ds.classList.add('ds-right');
-      else if (pos.includes('left')) ds.classList.add('ds-left');
-      else ds.classList.add('ds-center-right');
+      ds.classList.add(pos.includes('bottom') ? 'ds-bottom' : 'ds-top');
+      if (pos.includes('right')) ds.classList.add('ds-left');
+      else if (pos.includes('left')) ds.classList.add('ds-right');
+      else ds.classList.add('ds-center-left');
     }
 
-    // Position incidents module adjacent to datastream
+    // Position incidents module adjacent to datastream (same side)
     const inc = document.getElementById('incidentsPanel');
     if (inc) {
       inc.classList.remove('inc-top', 'inc-bottom', 'inc-left', 'inc-right', 'inc-center-left', 'inc-center-right');
-      inc.classList.add(pos.includes('bottom') ? 'inc-top' : 'inc-bottom');
-      if (pos.includes('right')) inc.classList.add('inc-right');
-      else if (pos.includes('left')) inc.classList.add('inc-left');
-      else inc.classList.add('inc-center-right');
+      inc.classList.add(pos.includes('bottom') ? 'inc-bottom' : 'inc-top');
+      if (pos.includes('right')) inc.classList.add('inc-left');
+      else if (pos.includes('left')) inc.classList.add('inc-right');
+      else inc.classList.add('inc-center-left');
+    }
+
+    // Position spotter module on the same side as leaderboard
+    const sp = document.getElementById('spotterPanel');
+    if (sp) {
+      sp.classList.remove('sp-top', 'sp-bottom', 'sp-left', 'sp-right');
+      sp.classList.add(pos.includes('bottom') ? 'sp-bottom' : 'sp-top');
+      if (pos.includes('right')) sp.classList.add('sp-left');
+      else if (pos.includes('left')) sp.classList.add('sp-right');
+      else sp.classList.add('sp-left');
     }
   }
 
@@ -4639,6 +5170,46 @@
     el.classList.toggle('on', _settings.verticalSwap);
     applyLayout();
     saveSettings();
+  }
+
+  function updateSecLayout(value) {
+    _settings.secLayout = value;
+    applySecLayout();
+    saveSettings();
+  }
+
+  function updateSecOffset(axis, val) {
+    val = Math.max(-200, Math.min(200, +val));
+    if (axis === 'x') {
+      _settings.secOffsetX = val;
+      document.getElementById('secOffsetXVal').textContent = val + 'px';
+    } else {
+      _settings.secOffsetY = val;
+      document.getElementById('secOffsetYVal').textContent = val + 'px';
+    }
+    applySecOffset();
+    saveSettings();
+  }
+
+  function applySecLayout() {
+    const mode = _settings.secLayout || 'stack';
+    document.body.classList.remove('sec-stack', 'sec-row', 'sec-compact', 'sec-minimal');
+    document.body.classList.add('sec-' + mode);
+  }
+
+  function applySecOffset() {
+    const ox = (_settings.secOffsetX || 0) + 'px';
+    const oy = (_settings.secOffsetY || 0) + 'px';
+    const panels = document.querySelectorAll('.leaderboard-panel, .datastream-panel, .incidents-panel, .spotter-panel');
+    panels.forEach(p => {
+      p.style.setProperty('--sec-offset-x', ox);
+      p.style.setProperty('--sec-offset-y', oy);
+    });
+    if (_settings.secOffsetX || _settings.secOffsetY) {
+      document.body.setAttribute('data-sec-offset', '1');
+    } else {
+      document.body.removeAttribute('data-sec-offset');
+    }
   }
 
   function updateZoom(val) {
@@ -4985,6 +5556,256 @@
   }
 
   // ═══════════════════════════════════════════════════════════════
+  //  PIT LIMITER
+  // ═══════════════════════════════════════════════════════════════
+  let _wasInPit = false;
+
+  function updatePitLimiter(p, isDemo) {
+    const pre = isDemo ? 'K10MediaCoach.Plugin.Demo.DS.' : 'K10MediaCoach.Plugin.DS.';
+    const inPitLane = +(p[pre + 'IsInPitLane']) > 0;
+    const speedKmh = +(p[pre + 'SpeedKmh']) || 0;
+
+    const banner = document.getElementById('pitBanner');
+    const speedEl = document.getElementById('pitSpeed');
+    if (!banner) return;
+
+    if (inPitLane) {
+      banner.classList.add('pit-visible');
+      document.body.classList.add('pit-mode');
+      if (speedEl) {
+        const mph = Math.round(speedKmh * 0.621371);
+        speedEl.textContent = mph > 0 ? mph + ' mph' : '';
+      }
+    } else {
+      banner.classList.remove('pit-visible');
+      document.body.classList.remove('pit-mode');
+    }
+    _wasInPit = inPitLane;
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  //  FORMATION LAP / GRID START
+  // ══════════════════════════════════════════════════════════════════
+
+  function updateGrid(p, isDemo) {
+    const pre = isDemo ? 'K10MediaCoach.Plugin.Demo.Grid.' : 'K10MediaCoach.Plugin.Grid.';
+    const sessionState = +(p[pre + 'SessionState']) || 0;
+    const griddedCars  = +(p[pre + 'GriddedCars']) || 0;
+    const totalCars    = +(p[pre + 'TotalCars']) || 0;
+    const paceMode     = +(p[pre + 'PaceMode']) || 0;
+    const lightsPhase  = +(p[pre + 'LightsPhase']) || 0;
+    const startType    = (p[pre + 'StartType'] || 'rolling').toLowerCase();
+
+    const mod  = document.getElementById('gridModule');
+    const info = document.getElementById('gridInfo');
+    const lights = document.getElementById('startLights');
+    if (!mod || !info || !lights) return;
+
+    // SessionState 3 = ParadeLaps (formation), or lights sequence active
+    const isFormation = sessionState === 3 || sessionState === 2 || sessionState === 1;
+    const isLightsActive = lightsPhase >= 1 && lightsPhase <= 7;
+    const shouldShow = isFormation || isLightsActive;
+
+    // Detect transition: was showing → no longer showing → start fadeout
+    if (!shouldShow && _gridActive) {
+      mod.classList.remove('grid-visible');
+      mod.classList.add('grid-fadeout');
+      document.body.classList.remove('grid-active');
+      _gridActive = false;
+      clearTimeout(_gridFadeTimer);
+      _gridFadeTimer = setTimeout(() => {
+        mod.classList.remove('grid-fadeout');
+        // Reset lights
+        resetLightBulbs();
+      }, 2000);
+      return;
+    }
+
+    if (!shouldShow) return;
+
+    // Show the module
+    if (!_gridActive) {
+      clearTimeout(_gridFadeTimer);
+      mod.classList.remove('grid-fadeout');
+      mod.classList.add('grid-visible');
+      document.body.classList.add('grid-active');
+      _gridActive = true;
+    }
+
+    // Toggle between info card and lights
+    if (isLightsActive) {
+      info.classList.add('info-hidden');
+      lights.classList.add('lights-active');
+      updateStartLights(lightsPhase);
+    } else {
+      info.classList.remove('info-hidden');
+      lights.classList.remove('lights-active');
+      resetLightBulbs();
+
+      // Update info card
+      document.getElementById('gridCarsGridded').textContent = griddedCars;
+      document.getElementById('gridCarsTotal').textContent = totalCars;
+
+      const stEl = document.getElementById('gridStartType');
+      stEl.textContent = startType === 'standing' ? 'Standing Start' : 'Rolling Start';
+      stEl.className = 'grid-start-type ' + startType;
+
+      // Countdown: pace mode progression
+      const countdownEl = document.getElementById('gridCountdown');
+      if (paceMode === 1) {
+        countdownEl.textContent = 'GRID';
+      } else if (paceMode === 2) {
+        countdownEl.textContent = 'PACE';
+      } else if (paceMode === 3) {
+        countdownEl.textContent = 'READY';
+      } else if (sessionState === 1) {
+        countdownEl.textContent = 'PIT';
+      } else if (sessionState === 2) {
+        countdownEl.textContent = 'WARM';
+      } else {
+        countdownEl.textContent = 'FORM';
+      }
+
+      // Title reflects state
+      const titleEl = mod.querySelector('.grid-title');
+      if (sessionState === 1) titleEl.textContent = 'Get In Car';
+      else if (sessionState === 2) titleEl.textContent = 'Warm Up';
+      else titleEl.textContent = 'Formation Lap';
+    }
+
+    _gridPrevSessionState = sessionState;
+    _gridLightsPhase = lightsPhase;
+  }
+
+  function updateStartLights(phase) {
+    // phase: 1-5 = red lights building (one column per phase)
+    //         6  = all red (hold)
+    //         7  = green (GO!)
+    const cols = [
+      ['light1t', 'light1b'],
+      ['light2t', 'light2b'],
+      ['light3t', 'light3b'],
+      ['light4t', 'light4b'],
+      ['light5t', 'light5b']
+    ];
+
+    if (phase >= 1 && phase <= 5) {
+      // Light columns 1..phase are red
+      for (let i = 0; i < 5; i++) {
+        const cls = i < phase ? 'lit-red' : '';
+        cols[i].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) { el.className = 'light-bulb' + (cls ? ' ' + cls : ''); }
+        });
+      }
+      document.getElementById('lightsGo').classList.remove('go-visible');
+    } else if (phase === 6) {
+      // All red
+      cols.forEach(col => col.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.className = 'light-bulb lit-red';
+      }));
+      document.getElementById('lightsGo').classList.remove('go-visible');
+    } else if (phase === 7) {
+      // All green — GO!
+      cols.forEach(col => col.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.className = 'light-bulb lit-green';
+      }));
+      document.getElementById('lightsGo').classList.add('go-visible');
+    }
+  }
+
+  function resetLightBulbs() {
+    for (let i = 1; i <= 5; i++) {
+      ['t', 'b'].forEach(s => {
+        const el = document.getElementById('light' + i + s);
+        if (el) el.className = 'light-bulb';
+      });
+    }
+    const go = document.getElementById('lightsGo');
+    if (go) go.classList.remove('go-visible');
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  SPOTTER MESSAGES
+  // ═══════════════════════════════════════════════════════════════
+  let _spotterTimeout = null;
+  let _spotterLastGapA = 0;
+  let _spotterLastGapB = 0;
+  let _spotterLastMsg = '';
+
+  function updateSpotter(p, isDemo) {
+    const inner = document.getElementById('spotterInner');
+    const msgEl = document.getElementById('spotterMsg');
+    if (!inner || !msgEl) return;
+
+    // Read gap data
+    const gAhead  = isDemo ? (+p['K10MediaCoach.Plugin.Demo.GapAhead'] || 0)  : (+p['IRacingExtraProperties.iRacing_Opponent_Ahead_Gap'] || 0);
+    const gBehind = isDemo ? (+p['K10MediaCoach.Plugin.Demo.GapBehind'] || 0) : (+p['IRacingExtraProperties.iRacing_Opponent_Behind_Gap'] || 0);
+
+    let msg = '';
+    let severity = '';
+
+    // Car alongside / very close warnings
+    if (gBehind > 0 && gBehind < 0.5) {
+      msg = 'Car right — ' + gBehind.toFixed(1) + 's';
+      severity = 'sp-danger';
+    } else if (gAhead > 0 && gAhead < 0.5) {
+      msg = 'Car left — ' + gAhead.toFixed(1) + 's';
+      severity = 'sp-danger';
+    } else if (gBehind > 0 && gBehind < 1.5) {
+      msg = 'Closing — ' + gBehind.toFixed(1) + 's behind';
+      severity = 'sp-warn';
+    } else if (gAhead > 0 && gAhead < 1.5) {
+      msg = 'Pulling — ' + gAhead.toFixed(1) + 's ahead';
+      severity = 'sp-warn';
+    }
+
+    // Detect pass events
+    if (_spotterLastGapA > 0 && gAhead === 0 && gBehind > 0) {
+      msg = 'Clear — you passed';
+      severity = 'sp-clear';
+    } else if (_spotterLastGapB > 0 && gBehind === 0 && gAhead > 0) {
+      msg = 'Car passed you';
+      severity = 'sp-warn';
+    }
+
+    _spotterLastGapA = gAhead;
+    _spotterLastGapB = gBehind;
+
+    if (msg && msg !== _spotterLastMsg) {
+      _spotterLastMsg = msg;
+      msgEl.textContent = msg;
+      inner.className = 'sp-inner sp-active ' + severity;
+      if (_spotterTimeout) clearTimeout(_spotterTimeout);
+      _spotterTimeout = setTimeout(() => {
+        inner.classList.remove('sp-active');
+        _spotterLastMsg = '';
+        _spotterTimeout = null;
+      }, 4000);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  FPS COUNTER
+  // ═══════════════════════════════════════════════════════════════
+  let _fpsFrames = 0;
+  let _fpsLastTime = performance.now();
+
+  function updateFps() {
+    _fpsFrames++;
+    const now = performance.now();
+    const elapsed = now - _fpsLastTime;
+    if (elapsed >= 1000) {
+      const fps = Math.round(_fpsFrames * 1000 / elapsed);
+      const el = document.getElementById('dsFps');
+      if (el) el.textContent = fps;
+      _fpsFrames = 0;
+      _fpsLastTime = now;
+    }
+  }
+  // ═══════════════════════════════════════════════════════════════
   //  WebGL FX ENGINE — Tachometer + Pedal Histograms
   // ═══════════════════════════════════════════════════════════════
   (function initWebGLFX() {
@@ -5229,50 +6050,42 @@
           vec3 col = vec3(0.0);
           float alpha = 0.0;
           float dprScale = max(uDPR, 1.0);
-          float dpr2 = dprScale * dprScale;  // quadratic compensation for HiDPI area scaling
+          float dpr2 = dprScale * dprScale;
 
-          // Glow centers — pinned to the live (current pressure) bar
-          float thrCenter = 0.97;   // throttle: live bar on right
-          float brkCenter = 0.03;   // brake: live bar on left (reversed)
-          float cltCenter = 0.97;   // clutch: live bar on right
+          // Edge-only glow — light hugs the panel borders, center stays clear
+          float rightEdge  = exp(-(1.0 - uv.x) * (16.0 / dpr2));
+          float leftEdge   = exp(-uv.x * (16.0 / dpr2));
+          float bottomEdge = exp(-uv.y * (14.0 / dpr2));
+          float topEdge    = exp(-(1.0 - uv.y) * (20.0 / dpr2));
 
-          // Each pedal projects a glow from the bottom upward proportional to input
-          // Throttle glow
+          // Throttle — right + bottom edge glow (bars grow right)
           if (uThr > 0.01) {
-            float dx = abs(uv.x - thrCenter) * (3.5 / dpr2);
-            float fillH = uThr * 0.8;
-            float dy = max(0.0, uv.y - (1.0 - fillH));
-            float glow = exp(-dx * dx * (4.0 / dpr2)) * exp(-dy * (0.8 / dpr2) / max(fillH, 0.01)) * uThr;
-            float p = pulse(uTime, 4.0 + uThr * 2.0, 0.88);
-            col += vec3(0.18, 0.82, 0.34) * glow * 0.3 * dpr2 * p;
-            alpha += glow * 0.12 * dpr2 * p;
+            float p = pulse(uTime, 4.0 + uThr * 2.0, 0.92);
+            float edge = max(rightEdge, bottomEdge * 0.4) + topEdge * 0.3;
+            float glow = edge * uThr * p;
+            col += vec3(0.18, 0.82, 0.34) * glow * 0.20 * dpr2;
+            alpha += glow * 0.07 * dpr2;
           }
 
-          // Brake glow
+          // Brake — left + bottom edge glow (bars grow left, reversed)
           if (uBrk > 0.01) {
-            float dx = abs(uv.x - brkCenter) * (3.5 / dpr2);
-            float fillH = uBrk * 0.8;
-            float dy = max(0.0, uv.y - (1.0 - fillH));
-            float glow = exp(-dx * dx * (4.0 / dpr2)) * exp(-dy * (0.8 / dpr2) / max(fillH, 0.01)) * uBrk;
-            float p = pulse(uTime, 3.5 + uBrk * 2.5, 0.88);
-            // Brake gets moderate extra intensity at full pressure
-            float intensity = uBrk >= 0.9 ? 0.45 : 0.35;
-            col += vec3(0.92, 0.22, 0.20) * glow * intensity * dpr2 * p;
-            alpha += glow * 0.12 * dpr2 * p;
+            float p = pulse(uTime, 3.5 + uBrk * 2.5, 0.92);
+            float edge = max(leftEdge, bottomEdge * 0.4) + topEdge * 0.3;
+            float glow = edge * uBrk * p;
+            col += vec3(0.92, 0.22, 0.20) * glow * 0.20 * dpr2;
+            alpha += glow * 0.07 * dpr2;
           }
 
-          // Clutch glow
+          // Clutch — right edge glow (shares side with throttle)
           if (uClt > 0.01) {
-            float dx = abs(uv.x - cltCenter) * (3.5 / dpr2);
-            float fillH = uClt * 0.8;
-            float dy = max(0.0, uv.y - (1.0 - fillH));
-            float glow = exp(-dx * dx * (4.0 / dpr2)) * exp(-dy * (0.8 / dpr2) / max(fillH, 0.01)) * uClt;
-            float p = pulse(uTime, 3.5 + uClt * 2.0, 0.88);
-            col += vec3(0.25, 0.50, 0.92) * glow * 0.28 * dpr2 * p;
-            alpha += glow * 0.11 * dpr2 * p;
+            float p = pulse(uTime, 3.5 + uClt * 2.0, 0.92);
+            float edge = rightEdge * 0.6 + bottomEdge * 0.25;
+            float glow = edge * uClt * p;
+            col += vec3(0.25, 0.50, 0.92) * glow * 0.14 * dpr2;
+            alpha += glow * 0.05 * dpr2;
           }
 
-          float maxAlpha = dprScale > 1.1 ? 0.9 : 0.65;
+          float maxAlpha = dprScale > 1.1 ? 0.4 : 0.3;
           alpha = clamp(alpha, 0.0, maxAlpha);
           fragColor = vec4(col * alpha, alpha);
         }`;
@@ -5397,10 +6210,10 @@
 
           col *= shade;
 
-          // Match old stripe opacity: ~0.14-0.18 alpha
-          float alpha = 0.16;
+          // Flag cloth alpha — tripled for high visibility
+          float alpha = 0.48;
 
-          // Subtle brightness variation from the wave folds
+          // Brightness variation from the wave folds
           alpha *= (0.85 + 0.30 * abs(dWave) * fx);
 
           fragColor = vec4(col * alpha, alpha);

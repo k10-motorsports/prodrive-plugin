@@ -72,6 +72,23 @@ namespace K10MediaCoach.Tests.TestHelpers
         public string NearestBehindName  { get; set; } = "";
         public int    NearestBehindRating { get; set; }
 
+        // ── Gap times (seconds) — from IRacingExtraProperties plugin ───────
+        public double GapAhead  { get; set; }
+        public double GapBehind { get; set; }
+
+        // ── Fuel computation — from SimHub computed properties ──────────────
+        public double FuelPerLap     { get; set; }
+        public double RemainingLaps  { get; set; }
+
+        // ── Player identity — from game data ────────────────────────────────
+        public string PlayerName { get; set; } = "";
+
+        // ── Grid / Formation lap state ─────────────────────────────────────
+        public int    SessionState      { get; set; }
+        public int    GriddedCars       { get; set; }
+        public int    TotalCars         { get; set; }
+        public int    PaceMode          { get; set; }
+
         // ── iRacing flag bitmasks (from irsdk_Flags enum) ────────────────────
         public const int FLAG_CHECKERED = 0x0001;
         public const int FLAG_WHITE     = 0x0002;

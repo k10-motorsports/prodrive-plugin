@@ -131,6 +131,47 @@ namespace K10MediaCoach.Plugin.Engine
             s.IRating      = GetPluginProp<int>(pm, "IRacingExtraProperties.iRacing_DriverInfo_IRating");
             s.SafetyRating = GetPluginProp<double>(pm, "IRacingExtraProperties.iRacing_DriverInfo_SafetyRating");
 
+            // ── Gap times (from IRacingExtraProperties plugin) ──────────────
+            s.GapAhead  = GetPluginProp<double>(pm, "IRacingExtraProperties.iRacing_Opponent_Ahead_Gap");
+            s.GapBehind = GetPluginProp<double>(pm, "IRacingExtraProperties.iRacing_Opponent_Behind_Gap");
+
+            // ── Fuel computation (from SimHub computed properties) ───────────
+            s.FuelPerLap    = GetPluginProp<double>(pm, "DataCorePlugin.Computed.Fuel_LitersPerLap");
+            s.RemainingLaps = GetPluginProp<double>(pm, "DataCorePlugin.GameData.RemainingLaps");
+
+            // ── Player name ─────────────────────────────────────────────────
+            try
+            {
+                var nameProp = d.GetType().GetProperty("PlayerName",
+                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+                s.PlayerName = nameProp?.GetValue(d) as string ?? "";
+            }
+            catch { }
+
+            // ── Grid / Formation state ────────────────────────────────────
+            s.SessionState = GetRaw<int>(pm, "SessionState");
+            s.PaceMode     = GetRaw<int>(pm, "PaceMode");
+
+            // Count gridded cars: cars NOT on pit road from CarIdxOnPitRoad array
+            if (s.CarIdxOnPitRoad != null && s.CarIdxOnPitRoad.Length > 0)
+            {
+                int total = 0, gridded = 0;
+                // CarIdxLapDistPct > 0 means the car slot is in use
+                for (int i = 0; i < s.CarIdxOnPitRoad.Length; i++)
+                {
+                    bool inUse = s.CarIdxLapDistPct != null
+                              && i < s.CarIdxLapDistPct.Length
+                              && s.CarIdxLapDistPct[i] > 0;
+                    if (inUse)
+                    {
+                        total++;
+                        if (!s.CarIdxOnPitRoad[i]) gridded++;
+                    }
+                }
+                s.TotalCars   = total;
+                s.GriddedCars = gridded;
+            }
+
             // ── In-car adjustments (driver controls) ────────────────────────
             // iRacing raw telemetry: dc* = driver control values
             s.BrakeBias              = GetRaw<float>(pm, "dcBrakeBias");

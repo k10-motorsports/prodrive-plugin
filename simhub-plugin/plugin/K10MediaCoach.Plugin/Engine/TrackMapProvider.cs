@@ -197,12 +197,27 @@ namespace K10MediaCoach.Plugin.Engine
             // ── Interpolation phase ────────────────────────────────────────
             if (!_ready || _outline.Length < 4) return;
 
-            // Player position
+            // Player position — with sanity clamping and smoothing
             var pp = InterpolatePosition(playerLapDistPct);
-            _playerX = pp.X;
-            _playerY = pp.Y;
+            // Clamp to valid SVG range (0–100)
+            pp.X = Math.Max(0, Math.Min(100, pp.X));
+            pp.Y = Math.Max(0, Math.Min(100, pp.Y));
+            // Reject jumps > 15 SVG units (teleport / data glitch) — keep previous position
+            double jumpDist = Math.Sqrt((_playerX - pp.X) * (_playerX - pp.X) + (_playerY - pp.Y) * (_playerY - pp.Y));
+            if (_playerX > 0 && _playerY > 0 && jumpDist > 15.0)
+            {
+                // Smooth toward new position instead of jumping
+                _playerX += (pp.X - _playerX) * 0.15;
+                _playerY += (pp.Y - _playerY) * 0.15;
+            }
+            else
+            {
+                // Normal smooth interpolation (low-pass filter)
+                _playerX += (pp.X - _playerX) * 0.5;
+                _playerY += (pp.Y - _playerY) * 0.5;
+            }
 
-            // Opponents
+            // Opponents — with sanity checks
             _opponents.Clear();
             if (carIdxLapDistPct != null)
             {
@@ -213,6 +228,9 @@ namespace K10MediaCoach.Plugin.Engine
                     if (dist <= 0 || dist > 1) continue;
 
                     var op = InterpolatePosition(dist);
+                    // Clamp to valid SVG range
+                    op.X = Math.Max(0, Math.Min(100, op.X));
+                    op.Y = Math.Max(0, Math.Min(100, op.Y));
                     bool inPit = carIdxOnPitRoad != null && i < carIdxOnPitRoad.Length && carIdxOnPitRoad[i];
                     _opponents.Add(new OpponentPos { X = op.X, Y = op.Y, InPit = inPit });
                 }
@@ -262,13 +280,21 @@ namespace K10MediaCoach.Plugin.Engine
                 return;
             }
 
-            // Check minimum distance from last sample
+            // Check minimum distance from last sample and reject outlier jumps
             if (_samples.Count > 0)
             {
                 var last = _samples[_samples.Count - 1];
                 double dx = wx - last.WorldX;
                 double dz = wz - last.WorldZ;
-                if (dx * dx + dz * dz < MinSampleDistSq)
+                double distSq = dx * dx + dz * dz;
+                // Too close — skip
+                if (distSq < MinSampleDistSq)
+                {
+                    _lastSampleDist = dist;
+                    return;
+                }
+                // Too far (>200m jump) — likely a dead-reckoning glitch, skip
+                if (distSq > 40000.0)
                 {
                     _lastSampleDist = dist;
                     return;
@@ -444,6 +470,23 @@ namespace K10MediaCoach.Plugin.Engine
             lapDistPct = lapDistPct % 1.0;
             if (lapDistPct < 0) lapDistPct += 1.0;
 
+            // Handle near-wrap: if lapDistPct is very close to 0 or 1, snap to endpoints
+            if (lapDistPct < outline[0].LapDistPct)
+            {
+                // Before the first sample — interpolate between last and first (wrap)
+                double d0 = outline[outline.Length - 1].LapDistPct;
+                double d1 = outline[0].LapDistPct + 1.0;
+                double range = d1 - d0;
+                if (range <= 0) range = 1;
+                double t = (lapDistPct + 1.0 - d0) / range;
+                t = Math.Max(0, Math.Min(1, t));
+                return new TrackPoint
+                {
+                    X = outline[outline.Length - 1].X + (outline[0].X - outline[outline.Length - 1].X) * t,
+                    Y = outline[outline.Length - 1].Y + (outline[0].Y - outline[outline.Length - 1].Y) * t
+                };
+            }
+
             // Binary search for the segment containing this lapDistPct
             int lo = 0, hi = outline.Length - 1;
             while (lo < hi - 1)
@@ -453,18 +496,18 @@ namespace K10MediaCoach.Plugin.Engine
                 else hi = mid;
             }
 
-            double d0 = outline[lo].LapDistPct;
-            double d1 = outline[hi].LapDistPct;
-            double range = d1 - d0;
-            if (range <= 0) range = 1;
+            double d0b = outline[lo].LapDistPct;
+            double d1b = outline[hi].LapDistPct;
+            double rangeb = d1b - d0b;
+            if (rangeb <= 0) rangeb = 1;
 
-            double t = (lapDistPct - d0) / range;
-            t = Math.Max(0, Math.Min(1, t));
+            double tb = (lapDistPct - d0b) / rangeb;
+            tb = Math.Max(0, Math.Min(1, tb));
 
             return new TrackPoint
             {
-                X = outline[lo].X + (outline[hi].X - outline[lo].X) * t,
-                Y = outline[lo].Y + (outline[hi].Y - outline[lo].Y) * t
+                X = outline[lo].X + (outline[hi].X - outline[lo].X) * tb,
+                Y = outline[lo].Y + (outline[hi].Y - outline[lo].Y) * tb
             };
         }
 
