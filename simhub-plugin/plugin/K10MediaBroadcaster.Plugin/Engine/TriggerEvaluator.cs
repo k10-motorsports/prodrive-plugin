@@ -21,6 +21,8 @@ namespace K10MediaBroadcaster.Plugin.Engine
                 case "==":             return CompareEquals(trigger, cur);
                 case "change":         return HasChanged(trigger, cur, prev);
                 case "increase":       return HasIncreased(trigger, cur, prev);
+                case "decrease":       return HasDecreased(trigger, cur, prev);
+                case "sustained":      return IsSustained(trigger, cur);
                 case "spike":          return IsSpike(trigger, cur, prev);
                 case "sudden_drop":    return IsSuddenDrop(trigger, cur, prev);
                 case "extreme":        return IsExtreme(trigger, cur);
@@ -152,7 +154,28 @@ namespace K10MediaBroadcaster.Plugin.Engine
         private static bool HasIncreased(TriggerCondition t, TelemetrySnapshot cur, TelemetrySnapshot prev)
         {
             if (prev == null) return false;
-            return GetValue(cur, t.DataPoint) > GetValue(prev, t.DataPoint);
+            double delta = GetValue(cur, t.DataPoint) - GetValue(prev, t.DataPoint);
+            double threshold = t.ThresholdDelta ?? 0.001;
+            return delta >= threshold;
+        }
+
+        private static bool HasDecreased(TriggerCondition t, TelemetrySnapshot cur, TelemetrySnapshot prev)
+        {
+            if (prev == null) return false;
+            double delta = GetValue(prev, t.DataPoint) - GetValue(cur, t.DataPoint);
+            double threshold = t.ThresholdDelta ?? 0.001;
+            return delta >= threshold;
+        }
+
+        /// <summary>
+        /// Returns true when the data point value is non-zero — used for educational
+        /// topics that should fire periodically when a system is in use. Cooldown
+        /// handles the pacing; the condition itself is simple.
+        /// </summary>
+        private static bool IsSustained(TriggerCondition t, TelemetrySnapshot cur)
+        {
+            double val = GetValue(cur, t.DataPoint);
+            return val > 0;
         }
 
         private static bool IsSpike(TriggerCondition t, TelemetrySnapshot cur, TelemetrySnapshot prev)

@@ -68,10 +68,10 @@ namespace K10MediaBroadcaster.Plugin.Models
         public string DataPoint { get; set; }
 
         /// <summary>
-        /// Comparison type: >, <, ==, change, spike, sudden_drop, extreme,
-        /// rapid_change, personal_best, player_gain_position, player_lost_position,
-        /// player_entering, off_track, yellow_flag, black_flag, race_start, increase,
-        /// close_proximity
+        /// Comparison type: >, <, ==, change, increase, decrease, sustained, spike,
+        /// sudden_drop, extreme, rapid_change, personal_best, player_gain_position,
+        /// player_lost_position, player_entering, off_track, yellow_flag, black_flag,
+        /// race_start, close_proximity
         /// </summary>
         public string Condition { get; set; }
 

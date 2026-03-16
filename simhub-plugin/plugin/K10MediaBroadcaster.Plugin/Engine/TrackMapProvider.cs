@@ -46,6 +46,8 @@ namespace K10MediaBroadcaster.Plugin.Engine
         // ── Per-frame car positions ────────────────────────────────────────
         private double _playerX, _playerY;
         private readonly List<OpponentPos> _opponents = new List<OpponentPos>();
+        private readonly Dictionary<int, OpponentPos> _oppSmoothed = new Dictionary<int, OpponentPos>();
+        private int _oppCleanupCounter = 0;
 
         // ── Demo track ─────────────────────────────────────────────────────
         private static TrackPoint[] _demoOutline;
@@ -152,7 +154,8 @@ namespace K10MediaBroadcaster.Plugin.Engine
             float[] carIdxLapDistPct,
             bool[] carIdxOnPitRoad,
             int playerCarIdx,
-            int playerPosition)
+            int playerPosition,
+            bool playerInPitLane = false)
         {
             if (_demoMode) return; // demo positions handled separately
 
@@ -168,18 +171,13 @@ namespace K10MediaBroadcaster.Plugin.Engine
                     double heading = yaw;
                     if (double.IsNaN(heading) || heading == 0)
                     {
-                        // Fallback: if Yaw isn't available, integrate YawRate or use raw values
-                        // (produces a straight line — better than nothing)
                         _drX += velocityX * dt;
                         _drZ += velocityZ * dt;
                     }
                     else
                     {
-                        // Convert car-local velocity to world-frame using heading
                         double cosH = Math.Cos(heading);
                         double sinH = Math.Sin(heading);
-                        // World X = forward * sin(heading) + lateral * cos(heading)
-                        // World Z = forward * cos(heading) - lateral * sin(heading)
                         _drX += (velocityZ * sinH + velocityX * cosH) * dt;
                         _drZ += (velocityZ * cosH - velocityX * sinH) * dt;
                     }
@@ -188,8 +186,10 @@ namespace K10MediaBroadcaster.Plugin.Engine
             _drLastTick = now;
 
             // ── Recording phase ────────────────────────────────────────────
+            // Skip samples while player is in pit lane — prevents pit road spurs
+            // in the track outline that cause extra lines and shape corruption.
             bool hasVelocity = Math.Abs(velocityX) > 0.01 || Math.Abs(velocityZ) > 0.01;
-            if (_recording && hasVelocity)
+            if (_recording && hasVelocity && !playerInPitLane)
             {
                 RecordSample(_drX, _drZ, playerLapDistPct);
             }
@@ -199,26 +199,23 @@ namespace K10MediaBroadcaster.Plugin.Engine
 
             // Player position — with sanity clamping and smoothing
             var pp = InterpolatePosition(playerLapDistPct);
-            // Clamp to valid SVG range (0–100)
             pp.X = Math.Max(0, Math.Min(100, pp.X));
             pp.Y = Math.Max(0, Math.Min(100, pp.Y));
-            // Reject jumps > 15 SVG units (teleport / data glitch) — keep previous position
             double jumpDist = Math.Sqrt((_playerX - pp.X) * (_playerX - pp.X) + (_playerY - pp.Y) * (_playerY - pp.Y));
             if (_playerX > 0 && _playerY > 0 && jumpDist > 15.0)
             {
-                // Smooth toward new position instead of jumping
                 _playerX += (pp.X - _playerX) * 0.15;
                 _playerY += (pp.Y - _playerY) * 0.15;
             }
             else
             {
-                // Normal smooth interpolation (low-pass filter)
                 _playerX += (pp.X - _playerX) * 0.5;
                 _playerY += (pp.Y - _playerY) * 0.5;
             }
 
-            // Opponents — with sanity checks
-            _opponents.Clear();
+            // Opponents — with smoothing to reduce jitter
+            // Reuse _opponents list but apply per-car low-pass filter
+            var newOpps = new List<OpponentPos>();
             if (carIdxLapDistPct != null)
             {
                 for (int i = 0; i < carIdxLapDistPct.Length; i++)
@@ -228,16 +225,76 @@ namespace K10MediaBroadcaster.Plugin.Engine
                     if (dist <= 0 || dist > 1) continue;
 
                     var op = InterpolatePosition(dist);
-                    // Clamp to valid SVG range
                     op.X = Math.Max(0, Math.Min(100, op.X));
                     op.Y = Math.Max(0, Math.Min(100, op.Y));
                     bool inPit = carIdxOnPitRoad != null && i < carIdxOnPitRoad.Length && carIdxOnPitRoad[i];
-                    _opponents.Add(new OpponentPos { X = op.X, Y = op.Y, InPit = inPit });
+
+                    // Apply per-car smoothing via the _oppSmoothed dictionary
+                    double sx = op.X, sy = op.Y;
+                    if (_oppSmoothed.TryGetValue(i, out var prev))
+                    {
+                        double odx = op.X - prev.X;
+                        double ody = op.Y - prev.Y;
+                        double oDist = Math.Sqrt(odx * odx + ody * ody);
+                        // Large jump = glitch or pit teleport — slow blend; else normal blend
+                        double alpha = oDist > 15.0 ? 0.10 : 0.40;
+                        sx = prev.X + odx * alpha;
+                        sy = prev.Y + ody * alpha;
+                    }
+                    _oppSmoothed[i] = new OpponentPos { X = sx, Y = sy, InPit = inPit };
+
+                    newOpps.Add(new OpponentPos { X = sx, Y = sy, InPit = inPit });
                 }
             }
 
-            // Build compact opponent string
+            // Clean up smoothing state for cars that are no longer present
+            if (_oppCleanupCounter++ > 120) // every ~2s at 60fps
+            {
+                _oppCleanupCounter = 0;
+                var activeIds = new HashSet<int>();
+                if (carIdxLapDistPct != null)
+                    for (int i = 0; i < carIdxLapDistPct.Length; i++)
+                        if (carIdxLapDistPct[i] > 0) activeIds.Add(i);
+                var stale = new List<int>();
+                foreach (var k in _oppSmoothed.Keys)
+                    if (!activeIds.Contains(k)) stale.Add(k);
+                foreach (var k in stale) _oppSmoothed.Remove(k);
+            }
+
+            _opponents.Clear();
+            _opponents.AddRange(newOpps);
+
             BuildOpponentData();
+        }
+
+        /// <summary>
+        /// Reset the track map and restart recording from scratch.
+        /// Call this when the map looks corrupted (wonky outlines, extra lines, etc.).
+        /// </summary>
+        public void ResetTrackMap()
+        {
+            SimHub.Logging.Current.Info("[K10MediaBroadcaster] Track map reset — will re-record next clean lap");
+            _samples.Clear();
+            _outline = new TrackPoint[0];
+            _svgPath = "";
+            _ready = false;
+            _recording = true;
+            _lastSampleDist = -1;
+            _drX = 0; _drZ = 0;
+            _drLastTick = DateTime.MinValue;
+            _lastYaw = double.NaN;
+            _playerX = 0; _playerY = 0;
+            _opponents.Clear();
+            _oppSmoothed.Clear();
+            OpponentData = "";
+
+            // Delete cached file so the bad data doesn't reload
+            try
+            {
+                string path = GetOwnCachePath(_currentTrackId);
+                if (File.Exists(path)) File.Delete(path);
+            }
+            catch { }
         }
 
         /// <summary>
@@ -277,6 +334,14 @@ namespace K10MediaBroadcaster.Plugin.Engine
             if (_lastSampleDist > 0.95 && dist < 0.05 && _samples.Count > 20)
             {
                 FinaliseRecording();
+                return;
+            }
+
+            // Reject samples where LapDistPct goes backwards significantly
+            // (happens with pit lane data bleed-in or teleport glitches)
+            if (_lastSampleDist >= 0 && dist < _lastSampleDist - 0.01 && !(dist < 0.05 && _lastSampleDist > 0.95))
+            {
+                // Not a normal lap wrap — skip this sample
                 return;
             }
 

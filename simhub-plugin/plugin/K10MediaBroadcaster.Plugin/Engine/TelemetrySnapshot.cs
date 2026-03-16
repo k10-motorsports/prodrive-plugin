@@ -75,6 +75,8 @@ namespace K10MediaBroadcaster.Plugin.Engine
 
         // ── iRacing-only ─────────────────────────────────────────────────────
         public double SteeringWheelTorque { get; set; } // torque (Nm), not angle
+        public double SteeringWheelAngle { get; set; } // angle (radians)
+        public double FrameRate           { get; set; } // game render FPS
         public int    SessionFlags        { get; set; } // yellow/black/etc. bitmask
         public int    IncidentCount       { get; set; } // iRacing incident points
         public int    DrsStatus           { get; set; }
@@ -95,6 +97,7 @@ namespace K10MediaBroadcaster.Plugin.Engine
         public double ArbRear             { get; set; }
         public float[] CarIdxLapDistPct   { get; set; } = new float[0];
         public bool[]  CarIdxOnPitRoad    { get; set; } = new bool[0];
+        public int[]   CarIdxLapCompleted { get; set; } = new int[0];
         public int     PlayerCarIdx       { get; set; }
 
         // ── Nearest opponents (populated from Opponents list) ────────────────
@@ -135,8 +138,10 @@ namespace K10MediaBroadcaster.Plugin.Engine
         public const int FLAG_BLUE      = 0x0020;
         public const int FLAG_DEBRIS    = 0x0040;
         public const int FLAG_BLACK     = 0x00010000;
+        public const int FLAG_REPAIR    = 0x100000;   // meatball flag — mechanical issue, pit for repairs
 
         // ── Derived flags ────────────────────────────────────────────────────
-        public bool IsDebrisFlag => (SessionFlags & FLAG_DEBRIS) != 0;
+        public bool IsDebrisFlag  => (SessionFlags & FLAG_DEBRIS) != 0;
+        public bool IsRepairFlag  => (SessionFlags & FLAG_REPAIR) != 0;
     }
 }

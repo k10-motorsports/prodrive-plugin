@@ -1001,6 +1001,210 @@
         "Rear anti-roll bar at {value} for {driver}. This is the most direct lever for mid-corner balance — it changes how much rear grip transfers during weight shift."
       ],
       "cooldownMinutes": 5
+    },
+
+    {
+      "id": "edu_brake_bias_forward",
+      "category": "car_response",
+      "title": "Brake Bias — Forward Shift",
+      "sentiment": "technical_analytical",
+      "severity": 1,
+      "eventExposition": "Brake bias moved forward to {value}% — more front braking",
+      "sessionTypes": [],
+      "description": "Educational: driver moved brake bias forward. Explains what forward bias does.",
+      "triggers": [
+        {
+          "dataPoint": "BrakeBias",
+          "condition": "increase",
+          "thresholdDelta": 0.001,
+          "context": "Brake bias moved forward (higher number = more front)"
+        }
+      ],
+      "commentaryPrompts": [
+        "Brake bias forward for {driver}. What that does: more braking force goes to the front axle. The car will brake straighter and more predictably, but the rear won't help rotate the car into the corner. You do this when the rear is locking up or stepping out under braking.",
+        "{driver} pushes bias forward. The physics: when you brake, weight transfers to the front wheels. Forward bias means the front tyres do more work — they have more load, so they can handle it. But the rear tyres now have less braking force AND less weight, so the rear end can become loose under heavy braking if you go too far.",
+        "More front bias from {driver}. This is a stability trade — the car will stop in a straight line more reliably, but you lose some ability to rotate the car under braking. In fast corners where braking stability matters, forward bias is the safer call.",
+        "Bias forward for {driver}. Think of it this way: the front axle is pulling the car to a stop. The rear axle is just following. More forward bias means the front does even more of the work — the car tracks straighter but turns in less aggressively. It's the conservative choice when confidence under braking drops."
+      ],
+      "cooldownMinutes": 8
+    },
+
+    {
+      "id": "edu_brake_bias_rear",
+      "category": "car_response",
+      "title": "Brake Bias — Rearward Shift",
+      "sentiment": "technical_analytical",
+      "severity": 1,
+      "eventExposition": "Brake bias moved rearward to {value}% — more rear braking",
+      "sessionTypes": [],
+      "description": "Educational: driver moved brake bias rearward. Explains what rear bias does.",
+      "triggers": [
+        {
+          "dataPoint": "BrakeBias",
+          "condition": "decrease",
+          "thresholdDelta": 0.001,
+          "context": "Brake bias moved rearward (lower number = more rear)"
+        }
+      ],
+      "commentaryPrompts": [
+        "Brake bias rearward from {driver}. This asks the rear tyres to do more braking work. The benefit: the car rotates better into corners under trail braking. The risk: if the rear tyres lock before the fronts, the car snaps into oversteer. This is the aggressive, time-finding adjustment.",
+        "{driver} shifts bias rearward. Here's what's happening: more rear braking creates a weight transfer effect that helps the rear end come around. It's essentially using the brakes as a steering tool — the car pivots on turn-in. But go too far and the rear steps out unpredictably.",
+        "More rear bias for {driver}. This is a pro move — it makes the braking zone part of the corner. Trail braking with rear bias means the car is already rotating before the steering input. But it requires precise pedal modulation — any lock-up goes to the rear first.",
+        "Bias rearward now for {driver}. Why you do this: slow corners where rotation matters more than straight-line stability. The rear helps turn the car. Why you don't go too far: high-speed braking zones where the rear stepping out is catastrophic."
+      ],
+      "cooldownMinutes": 8
+    },
+
+    {
+      "id": "edu_tc_increase",
+      "category": "car_response",
+      "title": "TC Up — More Protection",
+      "sentiment": "technical_analytical",
+      "severity": 1,
+      "eventExposition": "TC increased to {value} — more electronic traction protection",
+      "sessionTypes": [],
+      "description": "Educational: driver increased TC. Explains what higher TC does.",
+      "triggers": [
+        {
+          "dataPoint": "TractionControlSetting",
+          "condition": "increase",
+          "thresholdDelta": 0.5,
+          "context": "TC setting increased — more intervention"
+        }
+      ],
+      "commentaryPrompts": [
+        "TC up for {driver}. More traction control means the electronics cut engine power earlier when the rear wheels start to spin. The car is safer on corner exit but slower — every TC intervention is the computer saying 'you wanted more throttle than the tyres can handle.' The upside is consistency and tyre preservation.",
+        "{driver} adds more TC. What happens: the ECU monitors rear wheel speed relative to the fronts. When the rears spin faster, it cuts ignition or throttle. Higher TC means tighter tolerance — it intervenes sooner. You lose peak acceleration but gain predictability. In the wet or on worn tyres, more TC is often faster because it prevents the wheelspin that really kills lap time.",
+        "More TC from {driver}. The physics: a tyre generates peak forward force at about 5-8% slip ratio. Above that, it starts sliding and you lose both drive and wear them faster. Higher TC keeps you closer to that optimal window — you sacrifice the ability to use deliberate oversteer but gain reliability on every exit.",
+        "TC increased for {driver}. Here's when you want more: when the rear tyres are getting worn and grip is dropping, when the track surface is slippery, or when you're racing wheel-to-wheel and can't afford a snap of oversteer on exit. It's the smart play when consistency beats outright pace."
+      ],
+      "cooldownMinutes": 8
+    },
+
+    {
+      "id": "edu_tc_decrease",
+      "category": "car_response",
+      "title": "TC Down — Less Protection",
+      "sentiment": "technical_analytical",
+      "severity": 1,
+      "eventExposition": "TC decreased to {value} — less electronic traction protection",
+      "sessionTypes": [],
+      "description": "Educational: driver decreased TC. Explains what lower TC does.",
+      "triggers": [
+        {
+          "dataPoint": "TractionControlSetting",
+          "condition": "decrease",
+          "thresholdDelta": 0.5,
+          "context": "TC setting decreased — less intervention"
+        }
+      ],
+      "commentaryPrompts": [
+        "TC down from {driver}. Less traction control gives the driver more freedom — and more responsibility. The electronics intervene later, letting the rear slip more before cutting power. This means faster corner exits if the driver can manage the wheelspin. It also means the car can be used more aggressively — power oversteer becomes a tool, not a mistake.",
+        "{driver} lowers TC. Why: every TC intervention costs time. The system cuts power to save you, but that cut means you're not accelerating as hard as the tyres would actually allow. Reducing TC lets you exploit the full throttle map. The trade-off is that if the rear breaks away, you have less of a safety net. This is a confidence move.",
+        "Less TC for {driver}. The driver is saying 'I can manage the rear myself.' Lower TC allows deliberate wheelspin that the driver can control with throttle modulation. In high-power cars like GT3 or prototypes, the best drivers run as little TC as possible — they're faster because the computer isn't second-guessing their throttle inputs.",
+        "TC decreased by {driver}. Here's the gamble: on a dry track with good tyre temperature, less TC is almost always faster. But it requires precise throttle application — smoothly unwinding the steering while progressively adding throttle. If you stab the throttle, the rear goes immediately. It rewards finesse."
+      ],
+      "cooldownMinutes": 8
+    },
+
+    {
+      "id": "edu_abs_increase",
+      "category": "car_response",
+      "title": "ABS Up — Earlier Intervention",
+      "sentiment": "technical_analytical",
+      "severity": 1,
+      "eventExposition": "ABS increased to {value} — earlier anti-lock intervention",
+      "sessionTypes": [],
+      "description": "Educational: driver increased ABS. Explains what higher ABS does.",
+      "triggers": [
+        {
+          "dataPoint": "AbsSetting",
+          "condition": "increase",
+          "thresholdDelta": 0.5,
+          "context": "ABS level increased — more intervention"
+        }
+      ],
+      "commentaryPrompts": [
+        "ABS up for {driver}. Higher ABS means the anti-lock system kicks in earlier in the brake pedal travel. The car won't lock wheels as easily, but it also won't achieve peak deceleration because the system releases brake pressure before the tyre reaches its maximum braking grip. You trade stopping distance for predictability and tyre preservation.",
+        "{driver} raises ABS. Here's the trade-off: a tyre generates maximum braking force at around 8-12% slip — just before it locks. Higher ABS keeps the tyre below that peak, which means consistent braking and no flat spots, but you brake over a slightly longer distance. In traffic, this extra predictability can be worth more than raw stopping power.",
+        "More ABS from {driver}. What this changes: the braking zone gets slightly longer, but it becomes much more repeatable. You can hit the brakes hard without worrying about lock-ups. For drivers who struggle with modulation under pressure — in a battle or after a long stint — higher ABS is the safer, often faster choice because you brake later with more confidence.",
+        "ABS increased for {driver}. Think of ABS as a ceiling on how hard you can brake. Higher ABS sets that ceiling lower — you can never quite reach the tyre's absolute limit, but you also never exceed it. As tyres wear and grip drops, raising ABS prevents the lock-ups that increasingly worn rubber is prone to."
+      ],
+      "cooldownMinutes": 8
+    },
+
+    {
+      "id": "edu_abs_decrease",
+      "category": "car_response",
+      "title": "ABS Down — Later Intervention",
+      "sentiment": "technical_analytical",
+      "severity": 1,
+      "eventExposition": "ABS decreased to {value} — later anti-lock intervention",
+      "sessionTypes": [],
+      "description": "Educational: driver decreased ABS. Explains what lower ABS does.",
+      "triggers": [
+        {
+          "dataPoint": "AbsSetting",
+          "condition": "decrease",
+          "thresholdDelta": 0.5,
+          "context": "ABS level decreased — less intervention"
+        }
+      ],
+      "commentaryPrompts": [
+        "ABS down from {driver}. Less ABS means the system waits longer before modulating brake pressure, letting the tyres get closer to their absolute limit before intervening. This means shorter braking distances — you can brake later — but it's more demanding. A slight over-application locks a wheel, and that's a flat spot.",
+        "{driver} lowers ABS. The reward: shorter braking zones. The system lets the tyre reach higher slip ratios where braking force is at its peak. The risk: the margin between peak braking and a lock-up gets very thin. This works best on fresh tyres with full grip — as the tyre degrades, that margin shrinks and lock-ups become more likely.",
+        "Less ABS for {driver}. This is about extracting maximum braking performance. Lower ABS settings let the driver use more of the tyre's available grip under braking. It requires excellent pedal feel and modulation — knowing exactly how hard you can press before the tyre gives up. It's the faster setting, if you have the skill for it.",
+        "ABS reduced by {driver}. Here's why: on a grippy surface with fresh tyres, lower ABS is faster because you brake deeper into corners. The tyre can handle it. But conditions change — if it starts to rain, if the tyres go off, or if track temperature shifts — you might need to bump it back up. It's a dynamic adjustment through the race."
+      ],
+      "cooldownMinutes": 8
+    },
+
+    {
+      "id": "edu_abs_tc_interaction",
+      "category": "car_response",
+      "title": "ABS/TC Balance — The Setup Relationship",
+      "sentiment": "technical_analytical",
+      "severity": 1,
+      "eventExposition": "ABS and TC working together — {driver}'s electronic aids are calibrated",
+      "sessionTypes": [],
+      "description": "Educational: triggered after both ABS and TC have been adjusted. Explains how they interact.",
+      "triggers": [
+        {
+          "dataPoint": "AbsActive",
+          "condition": "sustained",
+          "context": "ABS actively intervening — brakes reaching limit"
+        }
+      ],
+      "commentaryPrompts": [
+        "ABS and TC work as a pair — here's how they interact. ABS manages the braking end of the corner: how hard you can stop without locking up. TC manages the exit: how hard you can accelerate without spinning. Together, they define the electronic envelope of the car. If you lower both, you have more freedom but more responsibility. If you raise both, the car drives itself more but you lose peak performance. The best drivers tune them asymmetrically — maybe low ABS because they have great pedal feel, but moderate TC because the exit grip is unpredictable.",
+        "An important concept: ABS and TC are not independent systems — they share the same tyres. If you've been leaning on high TC and the rear tyres are getting heat-cycled from wheelspin, your ABS performance changes too because those rear tyres also brake. The condition of the rubber connects everything. When {driver} adjusts one, the optimal setting for the other may shift too.",
+        "Here's the advanced concept: ABS and TC interact through tyre condition. Heavy TC intervention means the rear tyres see thermal cycles — heat from wheelspin, cool down, repeat. This changes their grip characteristics, which in turn affects how the ABS needs to work on those same tyres. The best approach is to find the minimum intervention level for both that you can drive consistently with."
+      ],
+      "cooldownMinutes": 15
+    },
+
+    {
+      "id": "edu_bias_for_conditions",
+      "category": "car_response",
+      "title": "Adapting Bias to Track Conditions",
+      "sentiment": "technical_analytical",
+      "severity": 1,
+      "eventExposition": "Brake bias strategy — adapting to changing conditions",
+      "sessionTypes": [],
+      "description": "Educational: general brake bias strategy based on conditions. Fires occasionally.",
+      "triggers": [
+        {
+          "dataPoint": "BrakeBias",
+          "condition": "sustained",
+          "context": "Brake bias has been consistent — educational moment about strategy"
+        }
+      ],
+      "commentaryPrompts": [
+        "A note on brake bias strategy: the optimal setting changes through a stint. At the start with full fuel and fresh tyres, more rear bias works because the tyres have grip and the extra weight keeps them loaded. As fuel burns off and tyres wear, the rear gets lighter and the tyres slide easier — that's when you move bias forward to keep the car stable. The best drivers make 3-4 adjustments through a fuel stint.",
+        "Brake bias isn't a set-and-forget adjustment. Track temperature matters: on a cold track, the tyres have less grip and rear lock-ups come easier — forward bias helps. As the track rubbers in and heats up, you can run more rear bias because the grip surface improves. Some drivers adjust bias corner-by-corner — more forward for fast stops, more rear for slow hairpins where they want rotation.",
+        "Here's how the pros think about brake bias: it's not about the number, it's about the feel. When the rear feels loose under braking, move forward. When the car won't turn in, move back. When the brakes feel wooden and you're just sliding straight, you might be too far forward — the fronts are overwhelmed. The ideal is to feel the rear just start to walk sideways, then hold it right there."
+      ],
+      "cooldownMinutes": 20
     }
 
   ]

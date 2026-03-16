@@ -150,11 +150,14 @@ namespace K10MediaBroadcaster.Plugin
 
             // Flag state for Homebridge and dashboard — priority order, most urgent first.
             // All iRacing flags are now exposed so lights respond correctly.
+            // "meatball" = repair required (iRacing 0x100000)
+            // "orange" = car ahead is being blue-flagged for us (we are lapping them)
             this.AttachDelegate("CurrentFlagState", () =>
             {
                 if (!_current.GameRunning) return "none";
                 int f = _current.SessionFlags;
                 if ((f & TelemetrySnapshot.FLAG_RED)       != 0) return "red";
+                if ((f & TelemetrySnapshot.FLAG_REPAIR)    != 0) return "meatball";
                 if ((f & TelemetrySnapshot.FLAG_BLACK)     != 0) return "black";
                 if ((f & TelemetrySnapshot.FLAG_YELLOW)    != 0) return "yellow";
                 if ((f & TelemetrySnapshot.FLAG_BLUE)      != 0) return "blue";
@@ -162,6 +165,8 @@ namespace K10MediaBroadcaster.Plugin
                 if ((f & TelemetrySnapshot.FLAG_WHITE)     != 0) return "white";
                 if ((f & TelemetrySnapshot.FLAG_CHECKERED) != 0) return "checkered";
                 if ((f & TelemetrySnapshot.FLAG_GREEN)     != 0) return "green";
+                // Orange flag: detect if we are lapping the car immediately ahead
+                if (IsLappingCarAhead(_current)) return "orange";
                 return "none";
             });
 
@@ -218,6 +223,7 @@ namespace K10MediaBroadcaster.Plugin
             this.AttachDelegate("TrackMap.PlayerY",    () => _trackMap.PlayerY);
             this.AttachDelegate("TrackMap.Opponents",  () => _trackMap.OpponentData);
             this.AttachDelegate("TrackMap.OpponentCount", () => _trackMap.OpponentCount);
+            this.AttachDelegate("TrackMap.Recording",  () => !_trackMap.IsReady ? 1 : 0);
 
             // Nearest car distance fraction for proximity-based lighting
             this.AttachDelegate("NearestCarDistance", () =>
@@ -286,6 +292,59 @@ namespace K10MediaBroadcaster.Plugin
             SimHub.Logging.Current.Info("[K10MediaBroadcaster] Initialisation complete");
         }
 
+        /// <summary>
+        /// Detect if the player is lapping the car immediately ahead.
+        /// Returns true when the nearest car ahead has fewer completed laps
+        /// AND is within ~3s gap — meaning they should be yielding (blue flag for them).
+        /// The dashboard shows this as an "orange flag" so the player knows the car
+        /// ahead is being told to let them through.
+        /// </summary>
+        private static bool IsLappingCarAhead(TelemetrySnapshot s)
+        {
+            if (s.CarIdxLapDistPct == null || s.CarIdxLapDistPct.Length == 0) return false;
+            if (s.CarIdxLapCompleted == null || s.CarIdxLapCompleted.Length == 0) return false;
+            if (s.PlayerCarIdx < 0 || s.PlayerCarIdx >= s.CarIdxLapCompleted.Length) return false;
+
+            int playerLaps = s.CarIdxLapCompleted[s.PlayerCarIdx];
+            if (playerLaps <= 0) return false;
+
+            float playerDist = s.PlayerCarIdx < s.CarIdxLapDistPct.Length
+                ? s.CarIdxLapDistPct[s.PlayerCarIdx] : 0;
+            if (playerDist <= 0) return false;
+
+            // Find the nearest car ahead on track (by LapDistPct)
+            double bestGap = double.MaxValue;
+            int bestIdx = -1;
+            for (int i = 0; i < s.CarIdxLapDistPct.Length; i++)
+            {
+                if (i == s.PlayerCarIdx) continue;
+                float dist = s.CarIdxLapDistPct[i];
+                if (dist <= 0 || dist > 1) continue;
+                // Skip cars in pit
+                if (s.CarIdxOnPitRoad != null && i < s.CarIdxOnPitRoad.Length && s.CarIdxOnPitRoad[i]) continue;
+
+                // Gap ahead = their dist - our dist (positive = they're ahead)
+                double gap = dist - playerDist;
+                if (gap < 0) gap += 1.0; // wrap around
+                if (gap > 0 && gap < bestGap)
+                {
+                    bestGap = gap;
+                    bestIdx = i;
+                }
+            }
+
+            if (bestIdx < 0) return false;
+            if (bestIdx >= s.CarIdxLapCompleted.Length) return false;
+
+            // The car ahead has fewer laps = they're a lapped car
+            int aheadLaps = s.CarIdxLapCompleted[bestIdx];
+            if (aheadLaps >= playerLaps) return false;
+
+            // Only show when we're close enough that the blue flag would be shown to them
+            // (~3% track distance ≈ within about 3-5 seconds at typical speeds)
+            return bestGap < 0.04;
+        }
+
         public void DataUpdate(PluginManager pluginManager, ref GameData data)
         {
             // Capture current telemetry every frame (cheap snapshot)
@@ -311,7 +370,8 @@ namespace K10MediaBroadcaster.Plugin
                     _current.CarIdxLapDistPct,
                     _current.CarIdxOnPitRoad,
                     _current.PlayerCarIdx,
-                    _current.Position);
+                    _current.Position,
+                    _current.IsInPitLane);
             }
 
             // Only run commentary evaluation every N frames
@@ -667,6 +727,20 @@ namespace K10MediaBroadcaster.Plugin
                         continue;
                     }
 
+                    // ── Handle action endpoints ──────────────────────────────
+                    string rawUrl = ctx.Request.RawUrl ?? "";
+                    if (rawUrl.Contains("action=resetmap"))
+                    {
+                        _trackMap.ResetTrackMap();
+                        byte[] okBytes = System.Text.Encoding.UTF8.GetBytes("{\"ok\":true}");
+                        ctx.Response.ContentType = "application/json";
+                        ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                        ctx.Response.StatusCode = 200;
+                        ctx.Response.OutputStream.Write(okBytes, 0, okBytes.Length);
+                        ctx.Response.OutputStream.Close();
+                        continue;
+                    }
+
                     // ── Build complete state snapshot ────────────────────────
                     var s = _current; // snapshot reference (safe — replaced atomically in DataUpdate)
                     var dt = _engine.DemoTelemetry;
@@ -681,6 +755,7 @@ namespace K10MediaBroadcaster.Plugin
                         else if (s.GameRunning)
                             f = s.SessionFlags;
                         if      ((f & TelemetrySnapshot.FLAG_RED)       != 0) flagState = "red";
+                        else if ((f & TelemetrySnapshot.FLAG_REPAIR)    != 0) flagState = "meatball";
                         else if ((f & TelemetrySnapshot.FLAG_BLACK)     != 0) flagState = "black";
                         else if ((f & TelemetrySnapshot.FLAG_YELLOW)    != 0) flagState = "yellow";
                         else if ((f & TelemetrySnapshot.FLAG_BLUE)      != 0) flagState = "blue";
@@ -688,6 +763,7 @@ namespace K10MediaBroadcaster.Plugin
                         else if ((f & TelemetrySnapshot.FLAG_WHITE)     != 0) flagState = "white";
                         else if ((f & TelemetrySnapshot.FLAG_CHECKERED) != 0) flagState = "checkered";
                         else if ((f & TelemetrySnapshot.FLAG_GREEN)     != 0) flagState = "green";
+                        else if (!demo && IsLappingCarAhead(s)) flagState = "orange";
                     }
 
                     // Nearest car distance
@@ -778,6 +854,8 @@ namespace K10MediaBroadcaster.Plugin
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.SpeedKmh", s.SpeedKmh, ic);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.PitLimiterOn", s.PitLimiterOn ? 1 : 0);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.PitSpeedLimitKmh", s.PitSpeedLimitKmh, ic);
+                    Jp(sb, "DataCorePlugin.GameRawData.Telemetry.FrameRate", s.FrameRate, ic);
+                    Jp(sb, "DataCorePlugin.GameRawData.Telemetry.SteeringWheelAngle", s.SteeringWheelAngle, ic);
 
                     // ── Commentary ──
                     Jp(sb, "K10MediaBroadcaster.Plugin.CommentaryVisible", _engine.IsVisible ? 1 : 0);

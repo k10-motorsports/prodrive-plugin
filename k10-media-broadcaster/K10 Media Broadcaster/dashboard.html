@@ -197,10 +197,10 @@
   /* Position anchoring — bottom uses same margin as sides */
   .dashboard.layout-tr { top: 10px; right: 10px; }
   .dashboard.layout-tl { top: 10px; left: 10px; }
-  .dashboard.layout-br { bottom: 100px; right: 10px; }
-  .dashboard.layout-bl { bottom: 100px; left: 10px; }
+  .dashboard.layout-br { bottom: 10px; right: 10px; }
+  .dashboard.layout-bl { bottom: 10px; left: 10px; }
   .dashboard.layout-tc { top: 10px; left: 50%; transform: translateX(-50%); }
-  .dashboard.layout-bc { bottom: 100px; left: 50%; transform: translateX(-50%); }
+  .dashboard.layout-bc { bottom: 10px; left: 50%; transform: translateX(-50%); }
 
   /* Flow RTL — logo on right edge, commentary extends left */
   .dashboard.flow-rtl { grid-template-columns: auto 1fr; }
@@ -982,6 +982,30 @@
     100% { box-shadow: inset 0 0 28px hsla(0, 80%, 40%, 1.0), 0 0 16px hsla(0, 80%, 40%, 0.54); }
   }
 
+  /* ── Meatball Flag — red circles on black, repair required ── */
+  .gaps-block.flag-meatball {
+    animation: flag-glow-meatball 2.5s ease-in-out infinite alternate;
+    border: 1px dashed;
+    border-image: repeating-linear-gradient(90deg, hsl(0, 85%, 50%) 0 8px, hsl(0, 0%, 8%) 8px 16px) 1;
+  }
+  .gaps-block.flag-meatball .flag-label { color: hsl(0, 90%, 62%); }
+  .gaps-block.flag-meatball .flag-context { color: hsl(0, 70%, 72%); }
+  @keyframes flag-glow-meatball {
+    0%   { box-shadow: inset 0 0 18px hsla(0, 90%, 45%, 0.50), 0 0 8px hsla(0, 90%, 45%, 0.28); }
+    100% { box-shadow: inset 0 0 30px hsla(0, 90%, 45%, 1.0), 0 0 18px hsla(0, 90%, 45%, 0.60); }
+  }
+
+  /* ── Orange Flag — lapped car ahead must yield ── */
+  .gaps-block.flag-orange {
+    animation: flag-glow-orange 3.5s ease-in-out infinite alternate;
+  }
+  .gaps-block.flag-orange .flag-label { color: hsl(30, 95%, 58%); }
+  .gaps-block.flag-orange .flag-context { color: hsl(30, 80%, 68%); }
+  @keyframes flag-glow-orange {
+    0%   { box-shadow: 0 0 0px hsla(30, 95%, 55%, 0); }
+    100% { box-shadow: 0 0 20px hsla(30, 95%, 55%, 0.45); }
+  }
+
   /* ═══════════════════════════════════════════════
      RACE TIMER MODULE
      ═══════════════════════════════════════════════ */
@@ -1095,6 +1119,7 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    position: relative;
   }
   .map-zoom-svg {
     width: 280px;
@@ -1227,6 +1252,12 @@
 
   /* Hidden controls (car doesn't have TC/ABS) */
   .ctrl-item.ctrl-hidden { display: none; }
+  .ctrl-value-fixed {
+    opacity: 0.5 !important;
+    font-size: 14px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
 
   /* "No Adjustments" fallback when all controls are hidden */
   .ctrl-no-adj {
@@ -1300,6 +1331,17 @@
   .pedal-hist-bar.brake { background: var(--red); opacity: 0.66; }
   .pedal-hist-bar.clutch { background: var(--blue); opacity: 0.54; }
   .pedal-hist-bar.live { opacity: 1; flex: 0 0 4px; border-radius: 2px; }
+
+  /* Pedal trace — smooth waveform overlay on histograms */
+  .pedal-trace-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 4;
+    pointer-events: none;
+    opacity: 0.85;
+  }
 
   /* ═══════════════════════════════════════════════
      FUEL + TYRES (separate stacked panels)
@@ -1673,6 +1715,15 @@
     transition: left 0.1s, width 0.1s;
   }
 
+  /* Yaw trail canvas — subtle waveform showing turn shape */
+  .ds-yaw-trail {
+    width: 100%;
+    height: 28px;
+    margin-top: 2px;
+    opacity: 0.7;
+    border-radius: 3px;
+  }
+
   /* Datastream value-change highlights */
   .ds-value.ds-flash {
     animation: ds-val-flash 1.2s ease forwards;
@@ -1950,6 +2001,20 @@
   .rc-banner.rc-flag-black .rc-inner  { border-color: hsla(0, 75%, 40%, 0.40); }
   .rc-banner.rc-flag-black .rc-inner::before { background: hsl(0, 75%, 45%); }
   .rc-banner.rc-flag-black .rc-detail { color: hsl(0, 60%, 60%); }
+
+  /* ── Meatball Flag — red circle accent ── */
+  .rc-banner.rc-flag-meatball .rc-inner  { border-color: hsla(0, 90%, 50%, 0.50); }
+  .rc-banner.rc-flag-meatball .rc-inner::before { background: radial-gradient(circle, hsl(0, 85%, 52%) 40%, hsl(0, 0%, 10%) 42%); }
+  .rc-banner.rc-flag-meatball .rc-detail { color: hsl(0, 80%, 65%); }
+  .rc-banner.rc-flag-meatball.rc-visible .rc-inner { animation-name: rc-glow-meatball; }
+  @keyframes rc-glow-meatball {
+    0%   { box-shadow: 0 4px 24px hsla(0, 0%, 0%, 0.6), 0 0 8px hsla(0, 90%, 50%, 0.35); }
+    100% { box-shadow: 0 4px 24px hsla(0, 0%, 0%, 0.6), 0 0 20px hsla(0, 90%, 50%, 0.70); }
+  }
+  .rc-banner.rc-flag-meatball .rc-inner::after {
+    background: repeating-linear-gradient(-45deg, hsla(0, 85%, 55%, 0.12) 0px, hsla(0, 85%, 55%, 0.12) 12px, transparent 12px, transparent 24px);
+    background-size: 34px 34px;
+  }
 
   /* ═══════════════════════════════════════════════
      PIT LIMITER INDICATOR
@@ -2308,7 +2373,7 @@
      ═══════════════════════════════════════════════ */
   .grid-module {
     position: fixed;
-    top: 50%;
+    top: 33%;
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 200;
@@ -2967,8 +3032,8 @@
     <!-- COL: Controls + Layered Pedals -->
     <div class="controls-pedals-block">
       <div class="panel car-controls">
-        <div class="ctrl-item" id="ctrlBB" style="--ctrl-pct:0%;"><div class="ctrl-label">BB</div><div class="ctrl-value">—</div></div>
-        <div class="ctrl-item" id="ctrlTC" style="--ctrl-pct:0%;"><div class="ctrl-label">TC</div><div class="ctrl-value">—</div></div>
+        <div class="ctrl-item" id="ctrlBB" style="--ctrl-pct:0%;"><div class="ctrl-label">BIAS</div><div class="ctrl-value">—</div></div>
+        <div class="ctrl-item" id="ctrlTC" style="--ctrl-pct:0%;"><div class="ctrl-label">TRACTION</div><div class="ctrl-value">—</div></div>
         <div class="ctrl-item" id="ctrlABS" style="--ctrl-pct:0%;"><div class="ctrl-label">ABS</div><div class="ctrl-value">—</div></div>
         <div class="ctrl-no-adj" id="ctrlNoAdj">NO ADJUSTMENTS</div>
       </div>
@@ -2976,15 +3041,15 @@
         <canvas class="gl-overlay" id="pedalsGlCanvas"></canvas>
         <div class="pedal-labels-row">
           <div class="pedal-label-group">
-            <div class="pedal-channel-label throttle">THR</div>
+            <div class="pedal-channel-label throttle">THROTTLE</div>
             <div class="pedal-pct" style="color:var(--green);">0%</div>
           </div>
           <div class="pedal-label-group">
-            <div class="pedal-channel-label brake">BRK</div>
+            <div class="pedal-channel-label brake">BRAKE</div>
             <div class="pedal-pct" style="color:var(--red);">0%</div>
           </div>
-          <div class="pedal-label-group">
-            <div class="pedal-channel-label clutch">CLT</div>
+          <div class="pedal-label-group" id="clutchLabelGroup">
+            <div class="pedal-channel-label clutch">CLUTCH</div>
             <div class="pedal-pct" style="color:var(--blue);">0%</div>
           </div>
         </div>
@@ -2992,6 +3057,7 @@
           <div class="pedal-viz-layer throttle-layer" id="throttleHist"></div>
           <div class="pedal-viz-layer brake-layer" id="brakeHist"></div>
           <div class="pedal-viz-layer clutch-layer" id="clutchHist"></div>
+          <canvas class="pedal-trace-canvas" id="pedalTraceCanvas" width="240" height="80"></canvas>
         </div>
       </div>
     </div>
@@ -3001,6 +3067,13 @@
       <div class="panel map-panel">
         <svg class="map-svg" id="fullMapSvg" viewBox="0 0 100 100">
           <path class="map-track" id="fullMapTrack" d="" />
+          <g id="fullMapSF" class="map-sf" style="display:none;">
+            <line x1="0" y1="-3.5" x2="0" y2="3.5" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/>
+            <rect x="-5" y="-2.5" width="5" height="2.5" fill="#fff" opacity="0.9"/>
+            <rect x="0" y="-2.5" width="5" height="2.5" fill="#111" stroke="#fff" stroke-width="0.3"/>
+            <rect x="-5" y="0" width="5" height="2.5" fill="#111" stroke="#fff" stroke-width="0.3"/>
+            <rect x="0" y="0" width="5" height="2.5" fill="#fff" opacity="0.9"/>
+          </g>
           <g id="fullMapOpponents"></g>
           <circle class="map-player" id="fullMapPlayer" cx="50" cy="50" r="4" />
         </svg>
@@ -3009,6 +3082,13 @@
       <div class="panel map-zoom-panel">
         <svg class="map-zoom-svg" id="zoomMapSvg" viewBox="0 0 100 100">
           <path class="map-track" id="zoomMapTrack" d="" style="stroke-width:1.5;" />
+          <g id="zoomMapSF" class="map-sf" style="display:none;">
+            <line x1="0" y1="-2" x2="0" y2="2" stroke="#fff" stroke-width="0.6" stroke-linecap="round"/>
+            <rect x="-2.5" y="-1.25" width="2.5" height="1.25" fill="#fff" opacity="0.9"/>
+            <rect x="0" y="-1.25" width="2.5" height="1.25" fill="#111" stroke="#fff" stroke-width="0.15"/>
+            <rect x="-2.5" y="0" width="2.5" height="1.25" fill="#111" stroke="#fff" stroke-width="0.15"/>
+            <rect x="0" y="0" width="2.5" height="1.25" fill="#fff" opacity="0.9"/>
+          </g>
           <g id="zoomMapOpponents"></g>
           <circle class="map-player" id="zoomMapPlayer" cx="50" cy="50" r="2" />
         </svg>
@@ -3229,6 +3309,7 @@
       <span class="ds-value" id="dsYawRate">0.00 r/s</span>
     </div>
     <div class="ds-yaw-bar"><div class="ds-yaw-fill" id="dsYawFill"></div></div>
+    <canvas class="ds-yaw-trail" id="dsYawTrail" width="200" height="28"></canvas>
 
     <!-- Steering torque -->
     <div class="ds-row">
@@ -3396,12 +3477,14 @@
       <div class="settings-row"><span class="settings-label">Controls (BB/TC/ABS)</span><div class="settings-toggle on" data-section="car-controls" data-key="showControls" onclick="toggleSetting(this)"></div></div>
       <div class="settings-row"><span class="settings-label">Pedals</span><div class="settings-toggle on" data-section="pedals-area" data-key="showPedals" onclick="toggleSetting(this)"></div></div>
       <div class="settings-row"><span class="settings-label">Track Maps</span><div class="settings-toggle on" data-section="maps-col" data-key="showMaps" onclick="toggleSetting(this)"></div></div>
+      <div class="settings-row"><span class="settings-label">Reset Map</span><div class="settings-action" onclick="resetTrackMap()" style="cursor:pointer;color:hsl(0,75%,65%);font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;padding:4px 12px;border:1px solid hsla(0,75%,65%,0.3);border-radius:6px;">RESET</div></div>
       <div class="settings-row"><span class="settings-label">Position &amp; Gaps</span><div class="settings-toggle on" data-section="pos-gaps-col" data-key="showPosition" onclick="toggleSetting(this)"></div></div>
       <div class="settings-row"><span class="settings-label">Tachometer</span><div class="settings-toggle on" data-section="tacho-block" data-key="showTacho" onclick="toggleSetting(this)"></div></div>
       <div class="settings-row"><span class="settings-label">Commentary</span><div class="settings-toggle on" data-section="commentary-col" data-key="showCommentary" onclick="toggleSetting(this)"></div></div>
       <div class="settings-row"><span class="settings-label">Leaderboard</span><div class="settings-toggle on" data-section="leaderboardPanel" data-key="showLeaderboard" onclick="toggleSetting(this)"></div></div>
       <div class="settings-row"><span class="settings-label">Datastream</span><div class="settings-toggle on" data-section="datastreamPanel" data-key="showDatastream" onclick="toggleSetting(this)"></div></div>
       <div class="settings-row"><span class="settings-label">Incidents</span><div class="settings-toggle on" data-section="incidentsPanel" data-key="showIncidents" onclick="toggleSetting(this)"></div></div>
+      <div class="settings-row"><span class="settings-label">Spotter</span><div class="settings-toggle on" data-section="spotterPanel" data-key="showSpotter" onclick="toggleSetting(this)"></div></div>
 
       <div class="settings-group-label">Effects</div>
       <div class="settings-row"><span class="settings-label">WebGL Effects</span><div class="settings-toggle on" data-key="showWebGL" onclick="toggleWebGL(this)"></div></div>
@@ -3520,6 +3603,15 @@
 </div>
 
 <script>
+  // ═══ GLOBAL KEYBOARD SHORTCUTS ═══
+  document.addEventListener('keydown', function(e) {
+    // Ctrl+Shift+M — reset track map
+    if (e.ctrlKey && e.shiftKey && e.key === 'M') {
+      e.preventDefault();
+      if (typeof resetTrackMap === 'function') resetTrackMap();
+    }
+  });
+
   // ═══ CAR MANUFACTURER LOGOS (loaded from images/logos/) ═══
   const CAR_LOGO_KEYS = ['bmw','mclaren','mazda','nissan','dallara','ferrari','porsche','audi',
     'mercedes','lamborghini','chevrolet','ford','toyota','hyundai','cadillac','astonmartin',
@@ -3701,6 +3793,80 @@
   renderHist('throttleHist', new Array(HIST_BARS).fill(0));
   renderHist('brakeHist', new Array(HIST_BARS).fill(0));
   renderHist('clutchHist', new Array(HIST_BARS).fill(0));
+
+  // ═══ PEDAL TRACE — smooth trailing waveforms ═══
+  const _pedalTraceLen = 120;
+  const _ptThr = new Float32Array(_pedalTraceLen);
+  const _ptBrk = new Float32Array(_pedalTraceLen);
+  const _ptClt = new Float32Array(_pedalTraceLen);
+  let _ptIdx = 0;
+  let _ptCount = 0;
+  const _ptCanvas = document.getElementById('pedalTraceCanvas');
+  const _ptCtx = _ptCanvas ? _ptCanvas.getContext('2d') : null;
+
+  function renderPedalTrace(thr, brk, clt) {
+    _ptThr[_ptIdx] = thr;
+    _ptBrk[_ptIdx] = brk;
+    _ptClt[_ptIdx] = clt;
+    _ptIdx = (_ptIdx + 1) % _pedalTraceLen;
+    _ptCount++;
+
+    if (!_ptCtx) return;
+    const c = _ptCanvas;
+    // Match canvas resolution to display size
+    const rect = c.getBoundingClientRect();
+    if (c.width !== Math.round(rect.width) || c.height !== Math.round(rect.height)) {
+      c.width = Math.round(rect.width);
+      c.height = Math.round(rect.height);
+    }
+    const w = c.width, h = c.height;
+    const ctx = _ptCtx;
+    ctx.clearRect(0, 0, w, h);
+
+    const count = Math.min(_ptCount, _pedalTraceLen);
+    if (count < 3) return;
+
+    // Draw each pedal trace as a smooth line with gradient fade
+    const traces = [
+      { buf: _ptThr, color: [76, 175, 80],  label: 'thr' },   // green
+      { buf: _ptBrk, color: [244, 67, 54],   label: 'brk' },   // red
+      { buf: _ptClt, color: [66, 165, 245],   label: 'clt' },   // blue
+    ];
+
+    for (const tr of traces) {
+      ctx.beginPath();
+      for (let i = 0; i < count; i++) {
+        const idx = (_ptIdx - count + i + _pedalTraceLen) % _pedalTraceLen;
+        const x = (i / (count - 1)) * w;
+        const y = h - tr.buf[idx] * (h - 2) - 1;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      // Gradient stroke: fades in from left (oldest) to right (newest)
+      const grad = ctx.createLinearGradient(0, 0, w, 0);
+      const [r, g, b] = tr.color;
+      grad.addColorStop(0, `rgba(${r},${g},${b},0.0)`);
+      grad.addColorStop(0.3, `rgba(${r},${g},${b},0.08)`);
+      grad.addColorStop(0.7, `rgba(${r},${g},${b},0.2)`);
+      grad.addColorStop(1, `rgba(${r},${g},${b},0.45)`);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1.5;
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+
+      // Subtle glow at the leading edge (newest sample)
+      const lastIdx = (_ptIdx - 1 + _pedalTraceLen) % _pedalTraceLen;
+      const lastVal = tr.buf[lastIdx];
+      if (lastVal > 0.02) {
+        const lx = w - 1;
+        const ly = h - lastVal * (h - 2) - 1;
+        ctx.beginPath();
+        ctx.arc(lx, ly, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${r},${g},${b},0.6)`;
+        ctx.fill();
+      }
+    }
+  }
 
   // ═══ COMMENTARY ═══
   const col = document.getElementById('commentaryCol');
@@ -4016,6 +4182,22 @@
   const _SVG_NS = 'http://www.w3.org/2000/svg';
   const _MAP_MAX_OPPONENTS = 63; // iRacing max field size
 
+  // Reset track map — clears recorded data and restarts capture
+  function resetTrackMap() {
+    fetch((window._simhubUrlOverride || SIMHUB_URL) + '?action=resetmap').catch(() => {});
+    _mapLastPath = '';
+    _mapHasInit = false;
+    const fullTrack = document.getElementById('fullMapTrack');
+    const zoomTrack = document.getElementById('zoomMapTrack');
+    if (fullTrack) fullTrack.setAttribute('d', '');
+    if (zoomTrack) zoomTrack.setAttribute('d', '');
+    // Clear opponent dots
+    const fg = document.getElementById('fullMapOpponents');
+    const zg = document.getElementById('zoomMapOpponents');
+    if (fg) fg.innerHTML = '';
+    if (zg) zg.innerHTML = '';
+  }
+
   function updateTrackMap(svgPath, playerX, playerY, opponentStr) {
     // Update track outline (only when path changes — new track or first load)
     if (svgPath && svgPath !== _mapLastPath) {
@@ -4025,6 +4207,22 @@
       const zoomTrack = document.getElementById('zoomMapTrack');
       if (fullTrack) fullTrack.setAttribute('d', svgPath);
       if (zoomTrack) zoomTrack.setAttribute('d', svgPath);
+
+      // Position start/finish marker at the first point of the path (LapDistPct=0)
+      const sfMatch = svgPath.match(/^M\s*([\d.]+)[,\s]+([\d.]+)/);
+      if (sfMatch) {
+        const sfX = +sfMatch[1], sfY = +sfMatch[2];
+        const fullSF = document.getElementById('fullMapSF');
+        const zoomSF = document.getElementById('zoomMapSF');
+        if (fullSF) {
+          fullSF.setAttribute('transform', 'translate(' + sfX.toFixed(1) + ',' + sfY.toFixed(1) + ')');
+          fullSF.style.display = '';
+        }
+        if (zoomSF) {
+          zoomSF.setAttribute('transform', 'translate(' + sfX.toFixed(1) + ',' + sfY.toFixed(1) + ')');
+          zoomSF.style.display = '';
+        }
+      }
     }
 
     // Sanity: clamp coordinates to 0–100 SVG range
@@ -4191,6 +4389,8 @@
     'IRacingExtraProperties.iRacing_Opponent_Behind_Name',
     'IRacingExtraProperties.iRacing_Opponent_Ahead_IRating',
     'IRacingExtraProperties.iRacing_Opponent_Behind_IRating',
+    'DataCorePlugin.GameRawData.Telemetry.FrameRate',
+    'DataCorePlugin.GameRawData.Telemetry.SteeringWheelAngle',
     'DataCorePlugin.GameData.SessionTimeSpan',
     'DataCorePlugin.GameData.CurrentLapTime',
     'DataCorePlugin.GameData.LastLapTime',
@@ -4329,6 +4529,7 @@
   let _lastPosition = 0;
   let _startPosition = 0;    // position at race start — for highlight color
   let _prevBB = -1, _prevTC = -1, _prevABS = -1;  // for ctrl bar flash detection
+  let _clutchSeenActive = false, _clutchHidden = false;  // auto-hide clutch for autoclutch/DCT cars
   let _lastFlagState = 'none';
   let _greenFlagTimeout = null;
   let _rcTimeout = null;           // race control banner auto-hide timer
@@ -4613,19 +4814,38 @@
     let clt = +d('DataCorePlugin.GameData.Clutch', 'Demo.Clutch') || 0;
     if (thr > 1) thr /= 100; if (brk > 1) brk /= 100; if (clt > 1) clt /= 100;
 
+    // Auto-hide clutch for cars with autoclutch/DCT/no manual clutch pedal
+    if (clt > 0.03) _clutchSeenActive = true;
+    if (!_clutchSeenActive && _pollFrame > 60 && speed > 10) {
+      if (!_clutchHidden) {
+        _clutchHidden = true;
+        const cltLabel = document.getElementById('clutchLabelGroup');
+        const cltLayer = document.querySelector('.clutch-layer');
+        if (cltLabel) cltLabel.style.display = 'none';
+        if (cltLayer) cltLayer.style.display = 'none';
+      }
+    } else if (_clutchSeenActive && _clutchHidden) {
+      _clutchHidden = false;
+      const cltLabel = document.getElementById('clutchLabelGroup');
+      const cltLayer = document.querySelector('.clutch-layer');
+      if (cltLabel) cltLabel.style.display = '';
+      if (cltLayer) cltLayer.style.display = '';
+    }
+
     if (_pollFrame % 2 === 0) {
       _thrHist.shift(); _thrHist.push(thr);
       _brkHist.shift(); _brkHist.push(brk);
       _cltHist.shift(); _cltHist.push(clt);
       renderHist('throttleHist', _thrHist);
       renderHist('brakeHist', _brkHist);
-      renderHist('clutchHist', _cltHist);
+      if (!_clutchHidden) renderHist('clutchHist', _cltHist);
+      renderPedalTrace(thr, brk, _clutchHidden ? 0 : clt);
     }
     const pcts = document.querySelectorAll('.pedal-pct');
     if (pcts.length >= 3) {
-      pcts[0].textContent = Math.round(thr * 100) + '%';
-      pcts[1].textContent = Math.round(brk * 100) + '%';
-      pcts[2].textContent = Math.round(clt * 100) + '%';
+      pcts[0].textContent = (Math.round(thr * 100) | 0) + '%';
+      pcts[1].textContent = (Math.round(brk * 100) | 0) + '%';
+      pcts[2].textContent = (Math.round(clt * 100) | 0) + '%';
     }
 
     // ─── WebGL FX update ───
@@ -4690,8 +4910,36 @@
 
     const bbEl = document.querySelector('#ctrlBB .ctrl-value');
     if (bbEl && bbOk) { bbEl.textContent = bb > 0 ? bb.toFixed(1) : '—'; document.getElementById('ctrlBB').style.setProperty('--ctrl-pct', (bb > 0 ? Math.min(100, ((bb-30)/40)*100) : 0) + '%'); }
-    if (tcOk) { const el = document.querySelector('#ctrlTC .ctrl-value'); if (el) { el.textContent = Math.round(+tc); document.getElementById('ctrlTC').style.setProperty('--ctrl-pct', Math.min(100, (+tc/12)*100) + '%'); } }
-    if (absOk) { const el = document.querySelector('#ctrlABS .ctrl-value'); if (el) { el.textContent = Math.round(+abs); document.getElementById('ctrlABS').style.setProperty('--ctrl-pct', Math.min(100, (+abs/12)*100) + '%'); } }
+    if (tcOk) {
+      const el = document.querySelector('#ctrlTC .ctrl-value');
+      const tcBox = document.getElementById('ctrlTC');
+      if (el) {
+        if (+tc === 0) {
+          el.textContent = 'fixed';
+          el.classList.add('ctrl-value-fixed');
+          tcBox.style.setProperty('--ctrl-pct', '0%');
+        } else {
+          el.textContent = Math.round(+tc);
+          el.classList.remove('ctrl-value-fixed');
+          tcBox.style.setProperty('--ctrl-pct', Math.min(100, (+tc/12)*100) + '%');
+        }
+      }
+    }
+    if (absOk) {
+      const el = document.querySelector('#ctrlABS .ctrl-value');
+      const absBox = document.getElementById('ctrlABS');
+      if (el) {
+        if (+abs === 0) {
+          el.textContent = 'fixed';
+          el.classList.add('ctrl-value-fixed');
+          absBox.style.setProperty('--ctrl-pct', '0%');
+        } else {
+          el.textContent = Math.round(+abs);
+          el.classList.remove('ctrl-value-fixed');
+          absBox.style.setProperty('--ctrl-pct', Math.min(100, (+abs/12)*100) + '%');
+        }
+      }
+    }
 
     // Flash control bars on value change
     if (_prevBB >= 0 && bb > 0 && Math.abs(bb - _prevBB) > 0.05) flashCtrlBar('ctrlBB');
@@ -4844,11 +5092,11 @@
     const flagState = (_forceFlagState && _demo) ? _forceFlagState : (vs('currentFlagState') || 'none');
     const gapsBlock = document.getElementById('gapsBlock');
     if (gapsBlock) {
-      const flagLabels = { yellow: 'CAUTION', red: 'RED FLAG', blue: 'BLUE FLAG', white: 'LAST LAP', debris: 'DEBRIS', checkered: 'FINISH', black: 'BLACK FLAG', green: 'GREEN' };
-      const flagContexts = { yellow: 'Full course caution — hold position', red: 'Session stopped — return to pits', blue: 'Faster car approaching — yield', white: 'Last lap — push to the line', debris: 'Debris on track — stay alert', checkered: 'Checkered flag — race complete', black: 'Penalty — report to pit lane', green: 'Green flag — racing resumes' };
+      const flagLabels = { yellow: 'CAUTION', red: 'RED FLAG', blue: 'BLUE FLAG', white: 'LAST LAP', debris: 'DEBRIS', checkered: 'FINISH', black: 'BLACK FLAG', green: 'GREEN', meatball: 'MEATBALL', orange: 'LAPPED CAR' };
+      const flagContexts = { yellow: 'Full course caution — hold position', red: 'Session stopped — return to pits', blue: 'Faster car approaching — yield', white: 'Last lap — push to the line', debris: 'Debris on track — stay alert', checkered: 'Checkered flag — race complete', black: 'Penalty — report to pit lane', green: 'Green flag — racing resumes', meatball: 'Repair required — pit immediately', orange: 'Car ahead must yield — make the pass' };
 
       // Minimum hold durations per flag type (ms) — prevents flicker from rapid state changes
-      const FLAG_HOLD_MS = { yellow: 8000, red: 10000, blue: 4000, white: 6000, debris: 5000, checkered: 10000, black: 8000, green: 5000 };
+      const FLAG_HOLD_MS = { yellow: 8000, red: 10000, blue: 4000, white: 6000, debris: 5000, checkered: 10000, black: 8000, green: 5000, meatball: 10000, orange: 4000 };
 
       let showFlag = flagState;
       const now = Date.now();
@@ -4900,7 +5148,7 @@
       // ── Race Control banner — only for critical events ──
       // Minor flags (blue, white, green, debris) are handled by the flag module on the gaps block.
       // Race Control only fires for session-altering events: red, black, yellow (full course), checkered.
-      const RC_FLAGS = { red: true, black: true, yellow: true, checkered: true };
+      const RC_FLAGS = { red: true, black: true, yellow: true, checkered: true, meatball: true };
       if (flagState !== _lastFlagState) {
         if (RC_FLAGS[flagState]) {
           showRaceControl(flagState);
@@ -4982,14 +5230,19 @@
     try { updateSpotter(p, _demo); } catch(e) { console.error('[K10] Spotter error:', e); }
 
     // ─── Race Timeline ───
-    try { updateRaceTimeline(pos, lap, flagState); } catch(e) { console.error('[K10] Timeline error:', e); }
+    try {
+      const rtIncidents = +(v('K10MediaBroadcaster.Plugin.DS.IncidentCount')) || 0;
+      const rtInPit = +(v('K10MediaBroadcaster.Plugin.DS.IsInPitLane')) > 0;
+      updateRaceTimeline(pos, lap, flagState, rtIncidents, rtInPit);
+    } catch(e) { console.error('[K10] Timeline error:', e); }
 
     // ─── Cycling timer ───
     // Suppress cycling while timer row is visible — keep position page showing
     const _timerShowing = timerRow && timerRow.classList.contains('timer-visible');
     if (_cycleFrameCount >= _cycleIntervalFrames) { _cycleFrameCount = 0; if (!_timerShowing) cycleRatingPos(); }
 
-    // ─── FPS counter ───
+    // ─── FPS counter (game API framerate, not browser) ───
+    setApiFps(+v('DataCorePlugin.GameRawData.Telemetry.FrameRate') || 0);
     updateFps();
 
     } catch (err) {
@@ -5021,6 +5274,7 @@
     red:       { title: 'RED FLAG',         detail: 'Session stopped — return to pits' },
     checkered: { title: 'CHECKERED FLAG',   detail: 'Race complete — cool down lap' },
     black:     { title: 'BLACK FLAG',       detail: 'Penalty — report to pit lane immediately' },
+    meatball:  { title: 'MEATBALL FLAG',    detail: 'Mechanical issue — pit for required repairs' },
   };
 
   // Duration each race control message stays visible (ms)
@@ -5068,8 +5322,9 @@
   //  RACE TIMELINE — position state color strip
   // ═══════════════════════════════════════════════════════════════
 
-  // History stores objects: { delta: N, p1: bool, checkered: bool }
+  // History stores objects: { delta: N, p1: bool, checkered: bool, event: string|null }
   // delta = positions gained/lost vs start (negative = gained, positive = lost from start)
+  // event: null, 'pit', 'offtrack', 'damage' — drawn as markers on the timeline
   const RT_MAX_SAMPLES = 310;
   const _rtHistory = [];
   let _rtStartPos = 0;
@@ -5077,6 +5332,8 @@
   let _rtLastPos = 0;
   let _rtLastDelta = null;
   let _rtFinished = false;
+  let _rtLastIncident = 0;
+  let _rtWasInPit = false;
 
   // Heat-mapped color: intensity scales with number of positions gained/lost
   // delta 0 = neutral blue, negative = green (gained), positive = red (lost)
@@ -5108,21 +5365,36 @@
     return 'hsla(0, ' + sat + '%, ' + lit + '%, ' + alpha.toFixed(2) + ')';
   }
 
-  function updateRaceTimeline(position, currentLap, flagState) {
+  function updateRaceTimeline(position, currentLap, flagState, incidentCount, isInPit) {
     if (!position || position <= 0) return;
     if (_rtStartPos <= 0 && position > 0) _rtStartPos = position;
 
     const delta = position - _rtStartPos;  // negative = gained positions, positive = lost positions
+
+    // Detect events
+    let event = null;
+    if (isInPit && !_rtWasInPit) {
+      event = 'pit';
+    } else if (incidentCount > _rtLastIncident && _rtLastIncident > 0) {
+      // Incident count jumped — either off-track or contact/damage
+      const inc = incidentCount - _rtLastIncident;
+      event = inc >= 4 ? 'damage' : 'offtrack';  // 4+ points typically = heavy contact/damage
+    }
+    _rtWasInPit = !!isInPit;
+    if (incidentCount > 0) _rtLastIncident = incidentCount;
+
     const sample = {
       delta: delta,
       p1: position === 1,
       checkered: flagState === 'checkered',
+      event: event,
     };
     if (sample.checkered) _rtFinished = true;
 
     const lapChanged = currentLap > 0 && currentLap !== _rtLastLap;
     const posChanged = position !== _rtLastPos && _rtLastPos > 0;
-    if (lapChanged || posChanged) {
+    const hasEvent = event !== null;
+    if (lapChanged || posChanged || hasEvent) {
       _rtHistory.push(sample);
       _rtLastLap = currentLap;
       _rtLastDelta = delta;
@@ -5135,6 +5407,13 @@
 
     renderTimeline();
   }
+
+  // Event marker colors
+  const RT_EVENT_COLORS = {
+    pit:     'hsla(210, 80%, 65%, 0.9)',   // blue — pit stop
+    offtrack: 'hsla(35, 90%, 55%, 0.9)',    // orange — off track / minor incident
+    damage:  'hsla(0, 85%, 55%, 0.9)',      // red — heavy contact / damage
+  };
 
   function renderTimeline() {
     const canvas = document.getElementById('rtCanvas');
@@ -5149,6 +5428,7 @@
 
     const sliceW = Math.max(1, w / len);
 
+    // First pass: draw position colors
     for (let i = 0; i < len; i++) {
       const sample = _rtHistory[i];
       const x = Math.floor(i * sliceW);
@@ -5169,6 +5449,31 @@
         ctx.fillStyle = rtColor(sample);
         ctx.fillRect(x, 0, sw, h);
       }
+    }
+
+    // Second pass: draw event markers (small triangles/diamonds on top)
+    for (let i = 0; i < len; i++) {
+      const sample = _rtHistory[i];
+      if (!sample.event) continue;
+      const x = Math.floor(i * sliceW + sliceW / 2);
+      const color = RT_EVENT_COLORS[sample.event] || 'hsla(0,0%,100%,0.5)';
+
+      // Draw a small downward-pointing triangle at top of timeline
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(x - 3, 0);
+      ctx.lineTo(x + 3, 0);
+      ctx.lineTo(x, 5);
+      ctx.closePath();
+      ctx.fill();
+
+      // Vertical tick line
+      ctx.strokeStyle = color.replace(/[\d.]+\)$/, '0.4)');
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, 5);
+      ctx.lineTo(x, h);
+      ctx.stroke();
     }
   }
 
@@ -5241,7 +5546,7 @@
       // Gap display
       let gapStr = '', gapClass = 'gap-player';
       if (isPlayer) {
-        gapStr = '—';
+        gapStr = '';
       } else if (gap < 0) {
         gapStr = '-' + Math.abs(gap).toFixed(1) + 's';
         gapClass = 'gap-ahead';
@@ -5340,7 +5645,7 @@
     showK10Logo: true, showCarLogo: true, simhubUrl: 'http://localhost:8889/k10mediabroadcaster/',
     layoutPosition: 'top-right', layoutFlow: 'ltr', verticalSwap: false,
     greenScreen: false, showWebGL: true,
-    zoom: 165, forceFlag: '', showLeaderboard: true, showDatastream: true, showIncidents: true,
+    zoom: 165, forceFlag: '', showLeaderboard: true, showDatastream: true, showIncidents: true, showSpotter: true,
     incPenalty: 17, incDQ: 25, secLayout: 'stack', secOffsetX: 0, secOffsetY: 0,
     secVOppose: true, secHOppose: true
   };
@@ -5806,6 +6111,84 @@
   let _dsTrailIdx = 0;
   let _dsTrailCount = 0;
   let _dsAbsFlash = 0;
+
+  // Yaw trail — ring buffer of recent yaw rate samples for waveform display
+  const _yawTrailLen = 80;
+  const _yawTrail = new Float32Array(_yawTrailLen);
+  let _yawTrailIdx = 0;
+  let _yawTrailCount = 0;
+  const _yawTrailCanvas = document.getElementById('dsYawTrail');
+  const _yawTrailCtx = _yawTrailCanvas ? _yawTrailCanvas.getContext('2d') : null;
+
+  function renderYawTrail(yawRate) {
+    // Store sample
+    _yawTrail[_yawTrailIdx] = yawRate;
+    _yawTrailIdx = (_yawTrailIdx + 1) % _yawTrailLen;
+    _yawTrailCount++;
+
+    if (!_yawTrailCtx) return;
+    const c = _yawTrailCanvas;
+    const w = c.width, h = c.height;
+    const ctx = _yawTrailCtx;
+    ctx.clearRect(0, 0, w, h);
+
+    const count = Math.min(_yawTrailCount, _yawTrailLen);
+    if (count < 2) return;
+
+    const maxYaw = 1.5; // max expected yaw rate
+    const mid = h / 2;
+
+    // Draw filled waveform — left=oldest, right=newest
+    ctx.beginPath();
+    ctx.moveTo(0, mid);
+    for (let i = 0; i < count; i++) {
+      const idx = (_yawTrailIdx - count + i + _yawTrailLen) % _yawTrailLen;
+      const x = (i / (count - 1)) * w;
+      const val = _yawTrail[idx];
+      const y = mid - (val / maxYaw) * (mid - 2);
+      if (i === 0) ctx.lineTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    // Close to baseline on right, sweep back along baseline
+    ctx.lineTo(w, mid);
+    ctx.closePath();
+
+    // Gradient fill: newest edge is bright, oldest fades out
+    const grad = ctx.createLinearGradient(0, 0, w, 0);
+    const absYaw = Math.abs(yawRate);
+    const hue = Math.max(0, 210 - absYaw * 120);
+    grad.addColorStop(0, `hsla(${hue}, 60%, 50%, 0.02)`);
+    grad.addColorStop(0.7, `hsla(${hue}, 65%, 50%, 0.15)`);
+    grad.addColorStop(1, `hsla(${hue}, 70%, 55%, 0.35)`);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Stroke the waveform line
+    ctx.beginPath();
+    for (let i = 0; i < count; i++) {
+      const idx = (_yawTrailIdx - count + i + _yawTrailLen) % _yawTrailLen;
+      const x = (i / (count - 1)) * w;
+      const val = _yawTrail[idx];
+      const y = mid - (val / maxYaw) * (mid - 2);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    const strokeGrad = ctx.createLinearGradient(0, 0, w, 0);
+    strokeGrad.addColorStop(0, `hsla(${hue}, 60%, 55%, 0.05)`);
+    strokeGrad.addColorStop(0.8, `hsla(${hue}, 70%, 55%, 0.3)`);
+    strokeGrad.addColorStop(1, `hsla(${hue}, 75%, 60%, 0.6)`);
+    ctx.strokeStyle = strokeGrad;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    // Center line (zero yaw reference)
+    ctx.beginPath();
+    ctx.moveTo(0, mid);
+    ctx.lineTo(w, mid);
+    ctx.strokeStyle = 'hsla(0, 0%, 100%, 0.06)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
   let _dsTcFlash = 0;
   let _dsPrevTrackTemp = 0;
   let _dsPrevIncidents = -1;
@@ -5953,6 +6336,9 @@
       const yawHue = Math.max(0, 210 - Math.abs(yawRate) * 120);
       yawFill.style.background = `hsla(${yawHue},70%,55%,0.7)`;
     }
+
+    // Yaw trail waveform
+    renderYawTrail(yawRate);
 
     // Steering torque
     const ffbEl = document.getElementById('dsSteerTorque');
@@ -6393,44 +6779,90 @@
   //  SPOTTER MESSAGES
   // ═══════════════════════════════════════════════════════════════
   let _spotterTimeout = null;
-  let _spotterLastGapA = 0;
-  let _spotterLastGapB = 0;
+  let _spotterLastGapA = 0;        // previous gap ahead (seconds)
+  let _spotterLastGapB = 0;        // previous gap behind (seconds)
   let _spotterLastMsg = '';
+  let _spotterLastPosA = 0;        // previous position of car ahead
+  let _spotterLastPosB = 0;        // previous position of car behind
 
   function updateSpotter(p, isDemo) {
     const inner = document.getElementById('spotterInner');
     const msgEl = document.getElementById('spotterMsg');
     if (!inner || !msgEl) return;
 
-    // Read gap data
+    // Read gap + driver data
     const gAhead  = isDemo ? (+p['K10MediaBroadcaster.Plugin.Demo.GapAhead'] || 0)  : (+p['IRacingExtraProperties.iRacing_Opponent_Ahead_Gap'] || 0);
     const gBehind = isDemo ? (+p['K10MediaBroadcaster.Plugin.Demo.GapBehind'] || 0) : (+p['IRacingExtraProperties.iRacing_Opponent_Behind_Gap'] || 0);
+    const dAhead  = isDemo ? (p['K10MediaBroadcaster.Plugin.Demo.DriverAhead'] || '')  : (p['IRacingExtraProperties.iRacing_Opponent_Ahead_Name'] || '');
+    const dBehind = isDemo ? (p['K10MediaBroadcaster.Plugin.Demo.DriverBehind'] || '') : (p['IRacingExtraProperties.iRacing_Opponent_Behind_Name'] || '');
+
+    // Shorten driver name: "John Smith" → "Smith", "J. Smith" → "Smith"
+    const shortName = (n) => {
+      if (!n) return '';
+      const parts = n.trim().split(/\s+/);
+      return parts.length > 1 ? parts[parts.length - 1] : parts[0];
+    };
+
+    // Compute gap deltas (negative = gap shrinking = closing)
+    const deltaA = _spotterLastGapA > 0 && gAhead > 0 ? gAhead - _spotterLastGapA : 0;
+    const deltaB = _spotterLastGapB > 0 && gBehind > 0 ? gBehind - _spotterLastGapB : 0;
 
     let msg = '';
     let severity = '';
 
-    // Car alongside / very close warnings
-    if (gBehind > 0 && gBehind < 0.5) {
-      msg = 'Car right — ' + gBehind.toFixed(1) + 's';
+    // ═ Threat behind — car closing on us ═
+    if (gBehind > 0 && gBehind < 0.8) {
+      // Alongside / very close
+      const who = shortName(dBehind);
+      msg = who ? who + ' alongside — ' + gBehind.toFixed(1) + 's' : 'Car alongside — ' + gBehind.toFixed(1) + 's';
       severity = 'sp-danger';
-    } else if (gAhead > 0 && gAhead < 0.5) {
-      msg = 'Car left — ' + gAhead.toFixed(1) + 's';
-      severity = 'sp-danger';
-    } else if (gBehind > 0 && gBehind < 1.5) {
-      msg = 'Closing — ' + gBehind.toFixed(1) + 's behind';
-      severity = 'sp-warn';
-    } else if (gAhead > 0 && gAhead < 1.5) {
-      msg = 'Pulling — ' + gAhead.toFixed(1) + 's ahead';
+    } else if (gBehind > 0 && gBehind < 2.0) {
+      // Close behind — is the gap shrinking?
+      const who = shortName(dBehind);
+      if (deltaB < -0.05) {
+        msg = (who || 'Car') + ' closing — ' + gBehind.toFixed(1) + 's';
+        severity = 'sp-warn';
+      } else {
+        msg = (who || 'Car') + ' behind — ' + gBehind.toFixed(1) + 's';
+        severity = 'sp-warn';
+      }
+    } else if (gBehind > 0 && gBehind < 3.5 && deltaB < -0.08) {
+      // Further back but closing fast
+      const who = shortName(dBehind);
+      msg = (who || 'Car') + ' reeling in — ' + gBehind.toFixed(1) + 's';
       severity = 'sp-warn';
     }
 
-    // Detect pass events
-    if (_spotterLastGapA > 0 && gAhead === 0 && gBehind > 0) {
-      msg = 'Clear — you passed';
+    // ═ Opportunity ahead — we're closing on the car ahead ═
+    if (gAhead > 0 && gAhead < 0.8) {
+      const who = shortName(dAhead);
+      msg = who ? who + ' right there — ' + gAhead.toFixed(1) + 's' : 'Car ahead — ' + gAhead.toFixed(1) + 's';
+      severity = 'sp-danger';
+    } else if (gAhead > 0 && gAhead < 2.0 && !msg) {
+      const who = shortName(dAhead);
+      if (deltaA < -0.05) {
+        msg = 'Closing on ' + (who || 'car ahead') + ' — ' + gAhead.toFixed(1) + 's';
+        severity = 'sp-clear';
+      } else if (deltaA > 0.05) {
+        msg = (who || 'Car ahead') + ' pulling away — ' + gAhead.toFixed(1) + 's';
+        severity = 'sp-warn';
+      }
+    } else if (gAhead > 0 && gAhead < 3.5 && deltaA < -0.08 && !msg) {
+      const who = shortName(dAhead);
+      msg = 'Gaining on ' + (who || 'car ahead') + ' — ' + gAhead.toFixed(1) + 's';
       severity = 'sp-clear';
-    } else if (_spotterLastGapB > 0 && gBehind === 0 && gAhead > 0) {
-      msg = 'Car passed you';
-      severity = 'sp-warn';
+    }
+
+    // ═ Pass events — position swaps ═
+    // Detect when the car that was ahead is now behind (we passed them)
+    if (_spotterLastGapA > 0 && _spotterLastGapA < 3.0 && gAhead > _spotterLastGapA + 2.0 && gBehind > 0 && gBehind < 3.0) {
+      msg = 'Clear — position gained';
+      severity = 'sp-clear';
+    }
+    // Detect when the car that was behind is now ahead (they passed us)
+    if (_spotterLastGapB > 0 && _spotterLastGapB < 3.0 && gBehind > _spotterLastGapB + 2.0 && gAhead > 0 && gAhead < 3.0) {
+      msg = 'Position lost';
+      severity = 'sp-danger';
     }
 
     _spotterLastGapA = gAhead;
@@ -6445,27 +6877,26 @@
         inner.classList.remove('sp-active');
         _spotterLastMsg = '';
         _spotterTimeout = null;
-      }, 4000);
+      }, 5000);  // 5s display for readability during racing
     }
   }
 
   // ═══════════════════════════════════════════════════════════════
-  //  FPS COUNTER
+  //  FPS COUNTER — uses game framerate from API, not browser render rate
   // ═══════════════════════════════════════════════════════════════
-  let _fpsFrames = 0;
-  let _fpsLastTime = performance.now();
+  let _apiFps = 0;
 
+  function setApiFps(val) {
+    _apiFps = val;
+  }
+
+  let _fpsLastUpdate = 0;
   function updateFps() {
-    _fpsFrames++;
     const now = performance.now();
-    const elapsed = now - _fpsLastTime;
-    if (elapsed >= 1000) {
-      const fps = Math.round(_fpsFrames * 1000 / elapsed);
-      const el = document.getElementById('dsFps');
-      if (el) el.textContent = fps;
-      _fpsFrames = 0;
-      _fpsLastTime = now;
-    }
+    if (now - _fpsLastUpdate < 1000) return; // update display once per second
+    _fpsLastUpdate = now;
+    const el = document.getElementById('dsFps');
+    if (el) el.textContent = _apiFps > 0 ? Math.round(_apiFps) : '—';
   }
   // ═══════════════════════════════════════════════════════════════
   //  WebGL FX ENGINE — Tachometer + Pedal Histograms
@@ -6720,19 +7151,19 @@
           float bottomEdge = exp(-uv.y * (14.0 / dpr2));
           float topEdge    = exp(-(1.0 - uv.y) * (20.0 / dpr2));
 
-          // Throttle — right + bottom edge glow (bars grow right)
+          // Throttle — right edge glow (primary) + subtle bottom accent
           if (uThr > 0.01) {
             float p = pulse(uTime, 4.0 + uThr * 2.0, 0.92);
-            float edge = max(rightEdge, bottomEdge * 0.4) + topEdge * 0.3;
+            float edge = rightEdge + bottomEdge * 0.2;
             float glow = edge * uThr * p;
             col += vec3(0.18, 0.82, 0.34) * glow * 0.20 * dpr2;
             alpha += glow * 0.07 * dpr2;
           }
 
-          // Brake — left + bottom edge glow (bars grow left, reversed)
+          // Brake — left edge glow (primary) + subtle bottom accent
           if (uBrk > 0.01) {
             float p = pulse(uTime, 3.5 + uBrk * 2.5, 0.92);
-            float edge = max(leftEdge, bottomEdge * 0.4) + topEdge * 0.3;
+            float edge = leftEdge + bottomEdge * 0.2;
             float glow = edge * uBrk * p;
             col += vec3(0.92, 0.22, 0.20) * glow * 0.20 * dpr2;
             alpha += glow * 0.07 * dpr2;
@@ -6823,7 +7254,7 @@
         uniform float uTime;
         uniform vec3  uColor1;
         uniform vec3  uColor2;
-        uniform float uPattern;  // 0=solid, 1=horiz stripes, 2=checkered, 3=diagonal
+        uniform float uPattern;  // 0=solid, 1=horiz stripes, 2=checkered, 3=diagonal, 4=circles
         uniform vec2  uRes;      // canvas pixel size for aspect correction
 
         void main() {
@@ -6864,10 +7295,19 @@
             float cx = step(0.5, fract(fx * cellsX + wave * 0.5));
             float cy = step(0.5, fract(fy2 * cellsY));
             col = mix(uColor1, uColor2, abs(cx - cy));
-          } else {
+          } else if (uPattern < 3.5) {
             // Diagonal stripes — doubled, with wave distortion
             float diag = step(0.5, fract((fx * aspect + fy2 * 3.0) * 1.6));
             col = mix(uColor1, uColor2, diag);
+          } else {
+            // Circles (meatball flag) — red circles on black background
+            float cellsX = max(6.0, floor(aspect * 3.0));
+            float cellsY = 3.0;
+            float cx = fract(fx * cellsX + wave * 0.3);
+            float cy = fract(fy2 * cellsY);
+            float d = length(vec2(cx - 0.5, cy - 0.5));
+            float circle = 1.0 - smoothstep(0.28, 0.34, d);
+            col = mix(uColor2, uColor1, circle);
           }
 
           col *= shade;
@@ -6933,7 +7373,9 @@
       white:     { c1: [0.95, 0.95, 0.95], c2: [0.72, 0.72, 0.72], pattern: 0.0 },
       debris:    { c1: [1.0, 0.85, 0.12], c2: [0.90, 0.18, 0.12], pattern: 3.0 },
       checkered: { c1: [0.95, 0.95, 0.95], c2: [0.06, 0.06, 0.06], pattern: 2.0 },
-      black:     { c1: [0.06, 0.06, 0.06], c2: [0.80, 0.12, 0.08], pattern: 1.0 }
+      black:     { c1: [0.06, 0.06, 0.06], c2: [0.80, 0.12, 0.08], pattern: 1.0 },
+      meatball:  { c1: [0.85, 0.12, 0.10], c2: [0.06, 0.06, 0.06], pattern: 4.0 }, // red circles on black
+      orange:    { c1: [1.0, 0.60, 0.08], c2: [0.90, 0.35, 0.05], pattern: 0.0 }   // solid orange
     };
 
     window.setFlagGLColors = function(flagType) {

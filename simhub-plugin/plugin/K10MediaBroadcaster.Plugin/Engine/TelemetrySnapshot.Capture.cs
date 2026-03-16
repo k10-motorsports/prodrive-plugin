@@ -76,7 +76,22 @@ namespace K10MediaBroadcaster.Plugin.Engine
             s.LapDeltaToBest    = Coalesce(GetRaw<float>(pm, "LapDeltaToBestLap"),  GetNorm<float>(d, "DeltaToSessionBestLap"));
             s.SessionTimeRemain = Coalesce(GetRaw<double>(pm, "SessionTimeRemain"), GetNorm<double>(d, "SessionTimeLeft"));
 
+            // ── Player name (needed before opponents loop for IsPlayer matching) ──
+            try
+            {
+                var nameProp = d.GetType().GetProperty("PlayerName",
+                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+                s.PlayerName = nameProp?.GetValue(d) as string ?? "";
+            }
+            catch { }
+
             // ── Nearest opponents (by race position) ─────────────────────────
+            // Also extract: player's own iRating/SR, and gap data for ahead/behind
+            // as fallback when IRacingExtraProperties plugin is unavailable.
+            double _fallbackGapAhead  = 0;
+            double _fallbackGapBehind = 0;
+            int    _fallbackIRating   = 0;
+            double _fallbackSR        = 0;
             try
             {
                 var oppsProp = d.GetType().GetProperty("Opponents",
@@ -93,8 +108,68 @@ namespace K10MediaBroadcaster.Plugin.Engine
                         var irProp = t.GetProperty("IRating") ?? t.GetProperty("Irating");
                         if (irProp != null) { var v = irProp.GetValue(opp); if (v != null) irating = Convert.ToInt32(v); }
 
-                        if (pos == s.Position - 1) { s.NearestAheadName = name;  s.NearestAheadRating  = irating; }
-                        if (pos == s.Position + 1) { s.NearestBehindName = name; s.NearestBehindRating = irating; }
+                        // Try to read gap-to-player from the opponent object
+                        double gapToPlayer = 0;
+                        try
+                        {
+                            // SimHub exposes several gap properties — try the most common ones
+                            var gapProp = t.GetProperty("RelativeGapToPlayer")
+                                       ?? t.GetProperty("GapToPlayer")
+                                       ?? t.GetProperty("Gap");
+                            if (gapProp != null)
+                            {
+                                var gv = gapProp.GetValue(opp);
+                                if (gv != null)
+                                {
+                                    if (gv is TimeSpan gts) gapToPlayer = Math.Abs(gts.TotalSeconds);
+                                    else if (gv is IConvertible) gapToPlayer = Math.Abs(Convert.ToDouble(gv));
+                                }
+                            }
+                        }
+                        catch { }
+
+                        if (pos == s.Position - 1)
+                        {
+                            s.NearestAheadName = name;
+                            s.NearestAheadRating = irating;
+                            _fallbackGapAhead = gapToPlayer;
+                        }
+                        if (pos == s.Position + 1)
+                        {
+                            s.NearestBehindName = name;
+                            s.NearestBehindRating = irating;
+                            _fallbackGapBehind = gapToPlayer;
+                        }
+
+                        // Detect if this opponent is the player — extract their iRating/SR
+                        bool isPlayer = false;
+                        try
+                        {
+                            var isPlayerProp = t.GetProperty("IsPlayer");
+                            if (isPlayerProp != null)
+                                isPlayer = Convert.ToBoolean(isPlayerProp.GetValue(opp) ?? false);
+                            else if (!string.IsNullOrEmpty(s.PlayerName) && !string.IsNullOrEmpty(name))
+                                isPlayer = name.Equals(s.PlayerName, StringComparison.OrdinalIgnoreCase);
+                        }
+                        catch { }
+
+                        if (isPlayer && irating > 0)
+                        {
+                            _fallbackIRating = irating;
+                            // Try to read LicenseLevel / SafetyRating from opponent
+                            try
+                            {
+                                var srProp = t.GetProperty("LicenseSafetyRating")
+                                          ?? t.GetProperty("SafetyRating");
+                                if (srProp != null)
+                                {
+                                    var sv = srProp.GetValue(opp);
+                                    if (sv != null && sv is IConvertible)
+                                        _fallbackSR = Convert.ToDouble(sv);
+                                }
+                            }
+                            catch { }
+                        }
                     }
                 }
             }
@@ -107,6 +182,8 @@ namespace K10MediaBroadcaster.Plugin.Engine
 
             // ── iRacing-only ─────────────────────────────────────────────────
             s.SteeringWheelTorque = GetRaw<float>(pm, "SteeringWheelTorque");
+            s.SteeringWheelAngle  = GetRaw<float>(pm, "SteeringWheelAngle");
+            s.FrameRate           = GetRaw<float>(pm, "FrameRate");
             s.SessionFlags        = GetRaw<int>(pm, "SessionFlags");
             s.IncidentCount       = GetRaw<int>(pm, "PlayerCarMyIncidentCount");
             s.DrsStatus           = GetRaw<int>(pm, "DrsStatus");
@@ -129,27 +206,40 @@ namespace K10MediaBroadcaster.Plugin.Engine
             s.PlayerCarIdx        = GetRaw<int>(pm, "PlayerCarIdx");
             s.CarIdxLapDistPct    = GetRawArray<float>(pm, "CarIdxLapDistPct");
             s.CarIdxOnPitRoad     = GetRawArray<bool>(pm, "CarIdxOnPitRoad");
+            s.CarIdxLapCompleted  = GetRawArray<int>(pm, "CarIdxLapCompleted");
 
-            // ── iRating / Safety Rating (from IRacingExtraProperties plugin) ────
-            s.IRating      = GetPluginProp<int>(pm, "IRacingExtraProperties.iRacing_DriverInfo_IRating");
+            // ── iRating / Safety Rating ─────────────────────────────────────
+            // Primary: IRacingExtraProperties plugin properties
+            // Fallback 1: iRacing raw session data (DriverInfo YAML parsed by SimHub)
+            // Fallback 2: Player's own entry in the Opponents collection
+            s.IRating = GetPluginProp<int>(pm, "IRacingExtraProperties.iRacing_DriverInfo_IRating");
+            if (s.IRating == 0)
+                s.IRating = GetPluginProp<int>(pm, "DataCorePlugin.GameData.IRating");
+            if (s.IRating == 0)
+                s.IRating = GetRaw<int>(pm, "PlayerCarDriverIRating");
+            if (s.IRating == 0)
+                s.IRating = _fallbackIRating;
+
             s.SafetyRating = GetPluginProp<double>(pm, "IRacingExtraProperties.iRacing_DriverInfo_SafetyRating");
+            if (s.SafetyRating == 0)
+                s.SafetyRating = GetPluginProp<double>(pm, "DataCorePlugin.GameData.SafetyRating");
+            if (s.SafetyRating == 0)
+                s.SafetyRating = _fallbackSR;
 
-            // ── Gap times (from IRacingExtraProperties plugin) ──────────────
-            s.GapAhead  = GetPluginProp<double>(pm, "IRacingExtraProperties.iRacing_Opponent_Ahead_Gap");
+            // ── Gap times ───────────────────────────────────────────────────
+            // Primary: IRacingExtraProperties plugin
+            // Fallback: gap-to-player from the Opponents collection
+            s.GapAhead = GetPluginProp<double>(pm, "IRacingExtraProperties.iRacing_Opponent_Ahead_Gap");
+            if (s.GapAhead == 0 && _fallbackGapAhead > 0)
+                s.GapAhead = _fallbackGapAhead;
+
             s.GapBehind = GetPluginProp<double>(pm, "IRacingExtraProperties.iRacing_Opponent_Behind_Gap");
+            if (s.GapBehind == 0 && _fallbackGapBehind > 0)
+                s.GapBehind = _fallbackGapBehind;
 
             // ── Fuel computation (from SimHub computed properties) ───────────
             s.FuelPerLap    = GetPluginProp<double>(pm, "DataCorePlugin.Computed.Fuel_LitersPerLap");
             s.RemainingLaps = GetPluginProp<double>(pm, "DataCorePlugin.GameData.RemainingLaps");
-
-            // ── Player name ─────────────────────────────────────────────────
-            try
-            {
-                var nameProp = d.GetType().GetProperty("PlayerName",
-                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
-                s.PlayerName = nameProp?.GetValue(d) as string ?? "";
-            }
-            catch { }
 
             // ── Grid / Formation state ────────────────────────────────────
             s.SessionState = GetRaw<int>(pm, "SessionState");
