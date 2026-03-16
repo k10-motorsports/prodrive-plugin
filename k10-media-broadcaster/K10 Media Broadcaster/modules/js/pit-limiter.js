@@ -24,15 +24,15 @@
       banner.classList.add('pit-visible');
       document.body.classList.add('pit-mode');
 
-      // Show speed
+      // Show speed — prefer server-computed DS.SpeedMph
       if (speedEl) {
-        const mph = Math.round(speedKmh * 0.621371);
+        const mph = Math.round(+(p[pre + 'SpeedMph']) || speedKmh * 0.621371);
         speedEl.textContent = mph > 0 ? mph + ' mph' : '';
       }
-      // Show pit speed limit
+      // Show pit speed limit — prefer server-computed DS.PitSpeedLimitMph
       if (limitEl) {
         if (pitLimitKmh > 0) {
-          const limitMph = Math.round(pitLimitKmh * 0.621371);
+          const limitMph = Math.round(+(p[pre + 'PitSpeedLimitMph']) || pitLimitKmh * 0.621371);
           limitEl.textContent = '/ ' + limitMph + ' limit';
         } else {
           limitEl.textContent = '';
@@ -40,15 +40,18 @@
       }
 
       // ── State priority: BONKERS > WARNING > NORMAL ──
-      const isSpeeding = pitLimitKmh > 0 && speedKmh > pitLimitKmh;
+      // Prefer server-computed DS.IsPitSpeeding, fallback to client check
+      const isSpeeding = +(p[pre + 'IsPitSpeeding']) > 0 || (pitLimitKmh > 0 && speedKmh > pitLimitKmh);
 
       if (isSpeeding) {
         // BONKERS — actually over the speed limit (regardless of limiter state)
         banner.classList.add('pit-bonkers');
         banner.classList.remove('pit-warning');
         if (labelEl) labelEl.textContent = 'SPEEDING';
-        if (!_bonkersActive) _startBonkersSparks(banner);
-        if (window.setBonkersGL) window.setBonkersGL(true);
+        if (_settings.showBonkers !== false) {
+          if (!_bonkersActive) _startBonkersSparks(banner);
+          if (window.setBonkersGL) window.setBonkersGL(true);
+        }
       } else if (!pitLimiterOn) {
         // WARNING — limiter off but not yet over limit
         banner.classList.add('pit-warning');

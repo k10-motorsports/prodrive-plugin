@@ -225,6 +225,15 @@
     saveSettings();
   }
 
+  function toggleBonkers(el) {
+    const isOn = el.classList.contains('on');
+    const newVal = !isOn;
+    el.classList.toggle('on', newVal);
+    _settings.showBonkers = newVal;
+    document.body.classList.toggle('bonkers-off', !newVal);
+    saveSettings();
+  }
+
   function updateSimhubUrl(url) {
     _settings.simhubUrl = url;
     // Update the polling constant (for standalone mode)
@@ -457,17 +466,19 @@
   }
 
   function previewZoom(val) {
-    // Only update the label while dragging — don't apply zoom to avoid jarring the settings panel
-    document.getElementById('zoomVal').textContent = Math.max(100, Math.min(200, +val)) + '%';
+    // Live preview: apply zoom to all modules while dragging, but NOT the settings panel
+    val = Math.max(100, Math.min(200, +val));
+    document.getElementById('zoomVal').textContent = val + '%';
+    applyZoom(val, true);  // skipSettings = true
   }
   function updateZoom(val) {
     val = Math.max(100, Math.min(200, +val));
     _settings.zoom = val;
     document.getElementById('zoomVal').textContent = val + '%';
-    applyZoom(val);
+    applyZoom(val, false);  // apply to everything including settings
     saveSettings();
   }
-  function applyZoom(val) {
+  function applyZoom(val, skipSettings) {
     const scale = (val || 100) / 100;
     document.documentElement.style.setProperty('--dash-zoom', scale);
     document.getElementById('dashboard').style.zoom = scale;
@@ -481,6 +492,11 @@
     if (rc) rc.style.zoom = scale;
     const sp = document.getElementById('spotterPanel');
     if (sp) sp.style.zoom = scale;
+    // Scale the settings panel itself on release (not during drag)
+    if (!skipSettings) {
+      const settingsOverlay = document.getElementById('settingsOverlay');
+      if (settingsOverlay) settingsOverlay.style.zoom = scale;
+    }
   }
 
   function updateForceFlag(val) {

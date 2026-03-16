@@ -58,6 +58,7 @@
     // ─── Idle State Detection ───
     const gameRunning = +v('DataCorePlugin.GameRunning') || 0;
     const sessionPre = _demo ? 'K10MediaBroadcaster.Plugin.Demo.Grid.' : 'K10MediaBroadcaster.Plugin.Grid.';
+    const dsPre = _demo ? 'K10MediaBroadcaster.Plugin.Demo.DS.' : 'K10MediaBroadcaster.Plugin.DS.';
     const sessNum = parseInt(vs(sessionPre + 'SessionState')) || 0;
 
     // Detect game and apply feature gating
@@ -103,7 +104,8 @@
     if (gearEl) gearEl.textContent = gear;
     if (rpmEl) rpmEl.textContent = rpm > 0 ? Math.round(rpm) : '0';
     if (speedEl) speedEl.textContent = speed > 0 ? Math.round(speed) : '0';
-    const rpmRatio = maxRpm > 0 ? Math.min(1, rpm / maxRpm) : 0;
+    // RPM ratio — server-computed (DS.RpmRatio), fallback to client math
+    const rpmRatio = +(p[dsPre + 'RpmRatio']) || (maxRpm > 0 ? Math.min(1, rpm / maxRpm) : 0);
     updateTacho(rpmRatio);
     // Redline flash on entire tacho block
     const tachoBlock = document.querySelector('.tacho-block');
@@ -112,17 +114,26 @@
       else tachoBlock.classList.remove('tacho-redline');
     }
 
-    // ─── Pedals ───
-    let thr = +d('DataCorePlugin.GameData.Throttle', 'Demo.Throttle') || 0;
-    let brk = +d('DataCorePlugin.GameData.Brake', 'Demo.Brake') || 0;
-    let clt = +d('DataCorePlugin.GameData.Clutch', 'Demo.Clutch') || 0;
-    // Normalize to 0-1: some games send 0-100, iRacing can send 0-10000+
-    while (thr > 1.01) thr /= 100;
-    while (brk > 1.01) brk /= 100;
-    while (clt > 1.01) clt /= 100;
-    thr = Math.min(1, Math.max(0, thr));
-    brk = Math.min(1, Math.max(0, brk));
-    clt = Math.min(1, Math.max(0, clt));
+    // ─── Pedals — server-normalized (DS.ThrottleNorm etc.), fallback to client math ───
+    let thr = +(p[dsPre + 'ThrottleNorm']);
+    let brk = +(p[dsPre + 'BrakeNorm']);
+    let clt = +(p[dsPre + 'ClutchNorm']);
+    // Fallback: normalize client-side if server values not available
+    if (!(thr >= 0)) {
+      thr = +d('DataCorePlugin.GameData.Throttle', 'Demo.Throttle') || 0;
+      while (thr > 1.01) thr /= 100;
+      thr = Math.min(1, Math.max(0, thr));
+    }
+    if (!(brk >= 0)) {
+      brk = +d('DataCorePlugin.GameData.Brake', 'Demo.Brake') || 0;
+      while (brk > 1.01) brk /= 100;
+      brk = Math.min(1, Math.max(0, brk));
+    }
+    if (!(clt >= 0)) {
+      clt = +d('DataCorePlugin.GameData.Clutch', 'Demo.Clutch') || 0;
+      while (clt > 1.01) clt /= 100;
+      clt = Math.min(1, Math.max(0, clt));
+    }
 
     // Auto-hide clutch for cars with autoclutch/DCT/no manual clutch pedal
     if (clt > 0.03) _clutchSeenActive = true;
@@ -161,16 +172,15 @@
     // ─── WebGL FX update ───
     if (window.updateGLFX) window.updateGLFX(rpmRatio, thr, brk, clt);
 
-    // ─── Fuel ───
+    // ─── Fuel — server-computed (DS.FuelPct, DS.FuelLapsRemaining) ───
     const fuel = +d('DataCorePlugin.GameData.Fuel', 'Demo.Fuel') || 0;
-    const maxFuel = +d('DataCorePlugin.GameData.MaxFuel', 'Demo.MaxFuel') || 1;
-    const fuelPct = maxFuel > 0 ? (fuel / maxFuel) * 100 : 0;
+    const fuelPct = +(p[dsPre + 'FuelPct']) || 0;
     const fuelRem = document.querySelector('.fuel-remaining');
     if (fuelRem) fuelRem.innerHTML = fuel > 0 ? fuel.toFixed(1) + ' <span class="unit">L</span>' : '— <span class="unit">L</span>';
     updateFuelBar(fuelPct, 0);
 
     const fuelPerLap = _demo ? (+v('K10MediaBroadcaster.Plugin.Demo.FuelPerLap') || 0) : (+v('DataCorePlugin.Computed.Fuel_LitersPerLap') || 0);
-    const fuelLapsEst = fuelPerLap > 0 ? fuel / fuelPerLap : 0;
+    const fuelLapsEst = +(p[dsPre + 'FuelLapsRemaining']) || (fuelPerLap > 0 ? fuel / fuelPerLap : 0);
     const fuelVals = document.querySelectorAll('.fuel-stats .val');
     if (fuelVals.length >= 2) {
       fuelVals[0].textContent = fuelPerLap > 0 ? fuelPerLap.toFixed(2) : '—';
@@ -293,26 +303,23 @@
         }
       }
     }
-    // Capture starting position on first valid reading
-    if (_startPosition === 0 && pos > 0) _startPosition = pos;
+    // Start position — prefer server-computed, fallback to client-side
+    const serverStartPos = +(p[dsPre + 'StartPosition']) || 0;
+    if (serverStartPos > 0) _startPosition = serverStartPos;
+    else if (_startPosition === 0 && pos > 0) _startPosition = pos;
     _lastPosition = pos;
-    // Position delta indicator
+    // Position delta indicator — prefer server-computed DS.PositionDelta
     document.querySelectorAll('.pos-delta').forEach(el => {
-      if (_startPosition > 0 && pos > 0) {
-        const delta = _startPosition - pos; // positive = gained
-        if (delta > 0) {
-          el.textContent = '▲ ' + delta;
-          el.className = 'pos-delta visible delta-up';
-        } else if (delta < 0) {
-          el.textContent = '▼ ' + Math.abs(delta);
-          el.className = 'pos-delta visible delta-down';
-        } else {
-          el.textContent = '';
-          el.className = 'pos-delta delta-same';
-        }
+      const delta = +(p[dsPre + 'PositionDelta']) || (_startPosition > 0 && pos > 0 ? _startPosition - pos : 0);
+      if (delta > 0) {
+        el.textContent = '▲ ' + delta;
+        el.className = 'pos-delta visible delta-up';
+      } else if (delta < 0) {
+        el.textContent = '▼ ' + Math.abs(delta);
+        el.className = 'pos-delta visible delta-down';
       } else {
         el.textContent = '';
-        el.className = 'pos-delta';
+        el.className = 'pos-delta delta-same';
       }
     });
     // Update player highlight: 0=blue(same), 1=green(ahead), 2=red(behind), 3=gold(P1)
@@ -337,15 +344,20 @@
     const timerEl = document.getElementById('raceTimerValue');
     const timerRow = document.querySelector('.timer-row');
     if (timerEl) {
-      // Show remaining time counting down
-      const displayTime = remTime > 0 ? remTime : sessionTime;
-      if (displayTime > 0) {
-        const h = Math.floor(displayTime / 3600);
-        const m = Math.floor((displayTime % 3600) / 60);
-        const s = Math.floor(displayTime % 60);
-        timerEl.textContent = h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+      // Prefer server-formatted remaining time, fallback to client math
+      const serverFmt = p[dsPre + 'RemainingTimeFormatted'] || '';
+      if (serverFmt) {
+        timerEl.textContent = serverFmt;
       } else {
-        timerEl.textContent = '0:00:00';
+        const displayTime = remTime > 0 ? remTime : sessionTime;
+        if (displayTime > 0) {
+          const h = Math.floor(displayTime / 3600);
+          const m = Math.floor((displayTime % 3600) / 60);
+          const s = Math.floor(displayTime % 60);
+          timerEl.textContent = h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+        } else {
+          timerEl.textContent = '0:00:00';
+        }
       }
     }
     const lastLapEl = document.getElementById('lastLapTimeValue');
@@ -367,10 +379,11 @@
     _prevLap = lap;
 
     // End-of-race: pin timer visible for final 3 laps or final 5 minutes
-    const isTimedRace = totalLaps <= 0 || totalLaps > 9999;
-    const isEndOfRace = isTimedRace
+    const isTimedRace = +(p[dsPre + 'IsTimedRace']) > 0 || totalLaps <= 0 || totalLaps > 9999;
+    const serverEndOfRace = +(p[dsPre + 'IsEndOfRace']) > 0;  // checkered flag
+    const isEndOfRace = serverEndOfRace || (isTimedRace
       ? (remTime > 0 && remTime <= 300)   // final 5 minutes for timed races
-      : (remLaps > 0 && remLaps <= 3);    // final 3 laps for lap races
+      : (remLaps > 0 && remLaps <= 3));   // final 3 laps for lap races
     if (isEndOfRace && timerRow) {
       _timerPinned = true;
       showPositionPage();
@@ -390,10 +403,10 @@
     updateSRPie(sr);
 
     // ─── Gaps / Lap Timing ───
-    const sessionType = _demo
-      ? (p['K10MediaBroadcaster.Plugin.Demo.SessionTypeName'] || '')
-      : (p['K10MediaBroadcaster.Plugin.SessionTypeName'] || '');
-    const nonRace = _isNonRaceSession(sessionType);
+    // Prefer server-computed DS.IsNonRaceSession, fallback to client-side string check
+    const nonRace = +(p[dsPre + 'IsNonRaceSession']) > 0 || _isNonRaceSession(
+      _demo ? (p['K10MediaBroadcaster.Plugin.Demo.SessionTypeName'] || '')
+            : (p['K10MediaBroadcaster.Plugin.SessionTypeName'] || ''));
 
     const gapLabels = document.querySelectorAll('.panel-label');
     const gapTimes = document.querySelectorAll('.gap-time');
@@ -562,7 +575,6 @@
 
     // ─── Commentary visualization data feed ───
     if (cmVis && window.updateCommentaryVizData) {
-      const dsPre = _demo ? 'K10MediaBroadcaster.Plugin.Demo.DS.' : 'K10MediaBroadcaster.Plugin.DS.';
       window.updateCommentaryVizData({
         brake: brk,
         throttle: thr,

@@ -402,6 +402,7 @@
 
 <!-- COMPONENT: Incidents Panel (incident counter) -->
 <div class="incidents-panel inc-bottom inc-right" id="incidentsPanel">
+  <canvas class="inc-gl-canvas" id="incGlCanvas"></canvas>
   <div class="inc-inner">
     <div class="inc-label">Incidents</div>
     <div class="inc-value-row">
@@ -486,24 +487,15 @@
   </div>
 </div>
 
-<!-- COMPONENT: Spotter Panel (voice messages) -->
+<!-- COMPONENT: Spotter Panel (stacking voice messages) -->
 <div class="spotter-panel sp-bottom sp-left" id="spotterPanel">
   <canvas class="sp-gl-canvas" id="spotterGlCanvas"></canvas>
-  <div class="sp-inner" id="spotterInner">
-    <svg class="sp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-      <circle cx="12" cy="12" r="3"/>
-    </svg>
-    <div class="sp-content">
-      <div class="sp-header">Spotter</div>
-      <div class="sp-message" id="spotterMsg"></div>
-    </div>
-  </div>
+  <div class="sp-stack" id="spotterStack"></div>
 </div>
 
 <!-- COMPONENT: Grid Module (formation lap / pre-race info) -->
 <div class="grid-module" id="gridModule">
-  <canvas class="grid-gl-canvas" id="gridGlCanvas"></canvas>
+  <canvas class="grid-flag-gl" id="gridFlagGlCanvas"></canvas>
   <!-- Countdown badge sits above the info card -->
   <div class="grid-countdown" id="gridCountdown">—</div>
   <!-- Pre-race info (visible during formation) -->
@@ -514,6 +506,7 @@
       <div class="grid-flag-stripe" id="flagStripe2"></div>
       <div class="grid-flag-stripe" id="flagStripe3"></div>
     </div>
+    <div class="grid-bg" id="gridBg"></div>
     <div class="grid-title">Formation Lap</div>
     <div class="grid-cars"><span id="gridCarsGridded">0</span> <span class="grid-cars-total">/ <span id="gridCarsTotal">0</span> gridded</span></div>
     <div class="grid-strip" id="gridStrip"></div>
@@ -548,6 +541,7 @@
       <div class="settings-tab active" data-tab="sections" onclick="switchSettingsTab(this)">Sections</div>
       <div class="settings-tab" data-tab="layout" onclick="switchSettingsTab(this)">Layout</div>
       <div class="settings-tab" data-tab="connections" onclick="switchSettingsTab(this)">Connections</div>
+      <div class="settings-tab" data-tab="keys" onclick="switchSettingsTab(this)">Keys</div>
       <div class="settings-tab" data-tab="system" onclick="switchSettingsTab(this)">System</div>
     </div>
 
@@ -570,6 +564,7 @@
 
       <div class="settings-group-label">Effects</div>
       <div class="settings-row"><span class="settings-label">WebGL Effects</span><div class="settings-toggle on" data-key="showWebGL" onclick="toggleWebGL(this)"></div></div>
+      <div class="settings-row"><span class="settings-label">Pit Limiter Animation</span><div class="settings-toggle on" data-key="showBonkers" id="bonkersToggle" onclick="toggleBonkers(this)"></div></div>
 
       <div class="settings-group-label">Logos</div>
       <div class="settings-row"><span class="settings-label">K10 Logo</span><div class="settings-toggle on" data-section="k10LogoSquare" data-key="showK10Logo" onclick="toggleSetting(this)"></div></div>
@@ -737,6 +732,20 @@
 
     </div>
 
+    <!-- ── Tab: Key Commands ── -->
+    <div class="settings-tab-content" id="settingsTabKeys">
+      <div class="settings-group-label">Window</div>
+      <div class="settings-key-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd><span>Open / Close Settings</span></div>
+      <div class="settings-key-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd><span>Show / Hide Overlay</span></div>
+      <div class="settings-key-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd><span>Reset Window Position</span></div>
+      <div class="settings-key-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd><span>Toggle Green Screen</span></div>
+      <div class="settings-key-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Q</kbd><span>Quit Application</span></div>
+
+      <div class="settings-group-label">Dashboard</div>
+      <div class="settings-key-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd><span>Reset Track Map</span></div>
+      <div class="settings-key-row"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd><span>Restart Demo</span></div>
+    </div>
+
     <!-- ── Tab: System ── -->
     <div class="settings-tab-content" id="settingsTabSystem">
       <div class="settings-group-label">Debug</div>
@@ -766,12 +775,6 @@
 
     <button class="settings-close" onclick="toggleSettings()">Close Settings</button>
 
-    <div class="settings-hotkeys">
-      <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> Settings &nbsp;
-      <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> Green screen &nbsp;
-      <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> Show/Hide &nbsp;
-      <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Q</kbd> Quit
-    </div>
   </div>
 </div>
 

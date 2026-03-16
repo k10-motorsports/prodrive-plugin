@@ -12,9 +12,11 @@ namespace K10MediaBroadcaster.Plugin.Engine
         public string GameName          { get; set; }
         public double SpeedKmh          { get; set; }
         public double Rpms              { get; set; }
+        public double MaxRpm            { get; set; }
         public string Gear              { get; set; }
         public double Throttle          { get; set; }
         public double Brake             { get; set; }
+        public double Clutch            { get; set; }
         public double FuelLevel         { get; set; }
         public double FuelPercent       { get; set; }
         public int    CurrentLap        { get; set; }
@@ -140,8 +142,150 @@ namespace K10MediaBroadcaster.Plugin.Engine
         public const int FLAG_BLACK     = 0x00010000;
         public const int FLAG_REPAIR    = 0x100000;   // meatball flag — mechanical issue, pit for repairs
 
+        // ── Start position (captured once at race start for delta) ──────────
+        public int    StartPosition     { get; set; }
+
         // ── Derived flags ────────────────────────────────────────────────────
         public bool IsDebrisFlag  => (SessionFlags & FLAG_DEBRIS) != 0;
         public bool IsRepairFlag  => (SessionFlags & FLAG_REPAIR) != 0;
+
+        // ═══════════════════════════════════════════════════════════════════════
+        //  COMPUTED DS.* PROPERTIES — server-side calculations
+        //  These replace client-side JS math, reducing per-frame overhead.
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>Throttle normalized 0–1 (SimHub reports 0–100).</summary>
+        public double ThrottleNorm => Throttle / 100.0;
+
+        /// <summary>Brake normalized 0–1 (SimHub reports 0–100).</summary>
+        public double BrakeNorm => Brake / 100.0;
+
+        /// <summary>Clutch normalized 0–1 (SimHub reports 0–100).</summary>
+        public double ClutchNorm => Clutch / 100.0;
+
+        /// <summary>RPM ratio 0–1 (clamped).</summary>
+        public double RpmRatio => MaxRpm > 0 ? System.Math.Min(1.0, Rpms / MaxRpm) : 0;
+
+        /// <summary>Fuel percentage 0–100.</summary>
+        public double FuelPct => FuelPercent;
+
+        /// <summary>Estimated laps of fuel remaining.</summary>
+        public double FuelLapsRemaining => FuelPerLap > 0.01 ? FuelLevel / FuelPerLap : 99;
+
+        /// <summary>Speed in miles per hour.</summary>
+        public double SpeedMph => SpeedKmh * 0.621371;
+
+        /// <summary>Pit speed limit in mph.</summary>
+        public double PitSpeedLimitMph => PitSpeedLimitKmh * 0.621371;
+
+        /// <summary>True when in pit lane and exceeding the speed limit.</summary>
+        public bool IsPitSpeeding => IsInPitLane && PitSpeedLimitKmh > 0 && SpeedKmh > PitSpeedLimitKmh;
+
+        /// <summary>True for practice, qualifying, test, or warmup sessions.</summary>
+        public bool IsNonRaceSession
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(SessionTypeName)) return false;
+                var s = SessionTypeName.ToLowerInvariant();
+                return s.Contains("practice") || s.Contains("qualify") || s.Contains("test")
+                    || s.Contains("warmup") || s.Contains("warm up");
+            }
+        }
+
+        /// <summary>True when SessionTimeRemain is actively counting down (timed race).</summary>
+        public bool IsTimedRace => SessionTimeRemain > 0;
+
+        /// <summary>True when checkered flag is out.</summary>
+        public bool IsEndOfRace => (SessionFlags & FLAG_CHECKERED) != 0;
+
+        /// <summary>Positions gained since start (positive = gained, negative = lost).</summary>
+        public int PositionDelta => StartPosition > 0 && Position > 0 ? StartPosition - Position : 0;
+
+        /// <summary>Session remaining time formatted as H:MM:SS or M:SS.</summary>
+        public string RemainingTimeFormatted
+        {
+            get
+            {
+                if (SessionTimeRemain <= 0) return "";
+                int totalSec = (int)SessionTimeRemain;
+                int h = totalSec / 3600;
+                int m = (totalSec % 3600) / 60;
+                int s = totalSec % 60;
+                return h > 0
+                    ? string.Format("{0}:{1:D2}:{2:D2}", h, m, s)
+                    : string.Format("{0}:{1:D2}", m, s);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        //  DISPLAY-READY STRINGS — avoid client-side Math.round / toFixed
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>Speed rounded to integer string, or "0".</summary>
+        public string SpeedDisplay => SpeedKmh > 0 ? ((int)System.Math.Round(SpeedKmh)).ToString() : "0";
+
+        /// <summary>RPM rounded to integer string, or "0".</summary>
+        public string RpmDisplay => Rpms > 0 ? ((int)System.Math.Round(Rpms)).ToString() : "0";
+
+        /// <summary>Fuel level formatted to 1 decimal, or "—".</summary>
+        public string FuelFormatted => FuelLevel > 0 ? FuelLevel.ToString("F1") : "\u2014";
+
+        /// <summary>Fuel per lap formatted to 2 decimals, or "—".</summary>
+        public string FuelPerLapFormatted => FuelPerLap > 0 ? FuelPerLap.ToString("F2") : "\u2014";
+
+        /// <summary>Pit fuel suggestion like "PIT in ~5 laps", or empty if not applicable.</summary>
+        public string PitSuggestion
+        {
+            get
+            {
+                double lapsEst = FuelLapsRemaining;
+                if (lapsEst <= 0 || lapsEst >= 99 || RemainingLaps <= 0) return "";
+                if (lapsEst < RemainingLaps)
+                    return "PIT in ~" + ((int)System.Math.Ceiling(lapsEst)).ToString() + " laps";
+                return "";
+            }
+        }
+
+        /// <summary>Brake bias normalized 0–1 (maps 30–70% to 0–1).</summary>
+        public double BBNorm => System.Math.Min(1.0, System.Math.Max(0.0, (BrakeBias - 30.0) / 40.0));
+
+        /// <summary>Traction control setting normalized 0–1 (0–12 scale).</summary>
+        public double TCNorm => System.Math.Min(1.0, TractionControlSetting / 12.0);
+
+        /// <summary>ABS setting normalized 0–1 (0–12 scale).</summary>
+        public double ABSNorm => System.Math.Min(1.0, AbsSetting / 12.0);
+
+        /// <summary>Position delta as display string: "▲ 2", "▼ 1", or empty.</summary>
+        public string PositionDeltaDisplay
+        {
+            get
+            {
+                int d = PositionDelta;
+                if (d > 0) return "\u25B2 " + d.ToString();
+                if (d < 0) return "\u25BC " + System.Math.Abs(d).ToString();
+                return "";
+            }
+        }
+
+        /// <summary>Lap delta to best as "+0.123" / "-0.456", or empty.</summary>
+        public string LapDeltaDisplay
+        {
+            get
+            {
+                if (LapLastTime <= 0 || LapBestTime <= 0) return "";
+                double delta = LapLastTime - LapBestTime;
+                return (delta >= 0 ? "+" : "") + delta.ToString("F3");
+            }
+        }
+
+        /// <summary>Safety rating formatted to 2 decimals, or "—".</summary>
+        public string SafetyRatingDisplay => SafetyRating > 0 ? SafetyRating.ToString("F2") : "\u2014";
+
+        /// <summary>Gap to car ahead, formatted with sign: "-1.23", or "—".</summary>
+        public string GapAheadFormatted => GapAhead > 0 ? "-" + GapAhead.ToString("F2") : "\u2014";
+
+        /// <summary>Gap to car behind, formatted with sign: "+1.23", or "—".</summary>
+        public string GapBehindFormatted => GapBehind > 0 ? "+" + GapBehind.ToString("F2") : "\u2014";
     }
 }

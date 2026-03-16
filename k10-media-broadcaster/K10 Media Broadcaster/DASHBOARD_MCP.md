@@ -227,12 +227,13 @@ All WebGL2 shader programs in a single IIFE. Each shader section follows the pat
    - Colors: warn=amber, danger=red, clear=green
 8. **bonkersFX** -- pit limiter fire effect (canvas: `bonkersGlCanvas`)
 9. **commTrailFX** -- commentary trailing glow
-10. **gridFX** -- grid module border glow (canvas: `gridGlCanvas`)
-    - Blue-cyan scanning beam, corner accents, noise shimmer
+10. **gridFlagFX** -- grid module flag-colored energy tendrils (canvas: `gridFlagGlCanvas`)
+    - Aurora wisps with fbm noise, flag-colored, escape card bounds
+    - Activated during formation lap / pre-race grid
 
 **Master FX loop** (requestAnimationFrame):
 ```javascript
-tachoFX -> pedalsFX -> flagFX -> lbFX -> lbEvtFX -> k10LogoFX -> spotterFX -> bonkersFX -> commTrailFX -> gridFX
+tachoFX -> pedalsFX -> flagFX -> lbFX -> lbEvtFX -> k10LogoFX -> spotterFX -> bonkersFX -> commTrailFX -> gridFlagFX
 ```
 
 ### incidents.js (~73 lines)
@@ -268,9 +269,36 @@ Central configuration file. Defines:
 - `IRacingExtraProperties.iRacing_*` -- iRacing-specific
 - `K10MediaBroadcaster.Plugin.*` -- custom plugin properties
 - `K10MediaBroadcaster.Plugin.Demo.*` -- demo mode equivalents
-- `K10MediaBroadcaster.Plugin.DS.*` -- derived/computed values (speed, pit limiter, etc.)
+- `K10MediaBroadcaster.Plugin.DS.*` -- derived/computed values (speed, pit limiter, physics, etc.)
 - `K10MediaBroadcaster.Plugin.Demo.DS.*` -- demo derived values
 - `K10MediaBroadcaster.Plugin.SessionTypeName` -- session type (Race/Practice/Qualifying/Test)
+
+### Server-Computed DS.* Properties (added to reduce client-side JS overhead)
+- `DS.ThrottleNorm` / `DS.BrakeNorm` / `DS.ClutchNorm` -- pedals normalized 0–1
+- `DS.RpmRatio` -- RPM/MaxRPM clamped 0–1
+- `DS.FuelPct` -- fuel percentage 0–100
+- `DS.FuelLapsRemaining` -- estimated laps of fuel left
+- `DS.SpeedMph` / `DS.PitSpeedLimitMph` -- km/h to mph conversions
+- `DS.IsPitSpeeding` -- bool: in pit lane and over speed limit
+- `DS.IsNonRaceSession` -- bool: practice/qualify/test/warmup
+- `DS.IsTimedRace` -- bool: session has time remaining counting down
+- `DS.IsEndOfRace` -- bool: checkered flag is out
+- `DS.PositionDelta` -- positions gained since start (positive = gained)
+- `DS.StartPosition` -- grid position captured at race start
+- `DS.RemainingTimeFormatted` -- "H:MM:SS" or "M:SS" string
+- `DS.SpeedDisplay` -- speed rounded to int string (e.g. "142")
+- `DS.RpmDisplay` -- RPM rounded to int string (e.g. "7200")
+- `DS.FuelFormatted` -- fuel level to 1dp (e.g. "23.4") or "—"
+- `DS.FuelPerLapFormatted` -- fuel/lap to 2dp (e.g. "2.85") or "—"
+- `DS.PitSuggestion` -- "PIT in ~5 laps" or empty string
+- `DS.BBNorm` -- brake bias 0–1 (maps 30–70% to 0–1)
+- `DS.TCNorm` -- traction control 0–1 (0–12 scale)
+- `DS.ABSNorm` -- ABS setting 0–1 (0–12 scale)
+- `DS.PositionDeltaDisplay` -- "▲ 2" / "▼ 1" / "" display string
+- `DS.LapDeltaDisplay` -- "+0.123" / "-0.456" or empty
+- `DS.SafetyRatingDisplay` -- "3.24" or "—"
+- `DS.GapAheadFormatted` -- "-1.23" or "—"
+- `DS.GapBehindFormatted` -- "+1.23" or "—"
 
 ---
 
@@ -298,13 +326,13 @@ Central configuration file. Defines:
     <div class="flag-overlay" id="flagOverlay">...</div>
   </div>
 
-  <!-- Spotter Panel -->
-  <div class="spotter-panel" id="spotterPanel">
+  <!-- Spotter Panel (stacking messages — new msgs push old ones up/down) -->
+  <div class="spotter-panel sp-bottom sp-left" id="spotterPanel">
     <canvas class="sp-gl-canvas" id="spotterGlCanvas"></canvas>
-    <div class="sp-inner" id="spotterInner">
-      <svg class="sp-icon">...</svg>
-      <div class="sp-header">Spotter</div>          <!-- changes to "Adjustment" for BB/TC/ABS -->
-      <div class="sp-message" id="spotterMsg"></div>
+    <div class="sp-stack" id="spotterStack">
+      <!-- Cards created dynamically by spotter.js _pushSpotterMsg() -->
+      <!-- Each card: .sp-inner > .sp-icon + .sp-content > .sp-header + .sp-message -->
+      <!-- Max 3 stacked; oldest fades out when 4th arrives -->
     </div>
   </div>
 
@@ -319,7 +347,6 @@ Central configuration file. Defines:
 
   <!-- Grid Module (formation lap / pre-race) -->
   <div class="grid-module" id="gridModule">
-    <canvas class="grid-gl-canvas" id="gridGlCanvas"></canvas>
     <div class="grid-flag" id="gridFlag">...</div>   <!-- Country flag at top of screen -->
     <div class="grid-countdown" id="gridCountdown">-</div>
     <div class="grid-info" id="gridInfo">

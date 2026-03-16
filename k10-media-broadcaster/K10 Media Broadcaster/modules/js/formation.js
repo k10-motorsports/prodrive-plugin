@@ -39,7 +39,7 @@
       mod.classList.add('grid-fadeout');
       document.body.classList.remove('grid-active');
       _gridActive = false;
-      if (window.setGridGL) window.setGridGL(false);
+      if (window.setGridFlagGL) window.setGridFlagGL(false);
       clearTimeout(_gridFadeTimer);
       _gridFadeTimer = setTimeout(() => {
         mod.classList.remove('grid-fadeout');
@@ -60,7 +60,7 @@
       mod.classList.add('grid-visible');
       document.body.classList.add('grid-active');
       _gridActive = true;
-      if (window.setGridGL) window.setGridGL(true);
+      if (window.setGridFlagGL) window.setGridFlagGL(true);
     }
 
     // Toggle between info card and lights
@@ -90,7 +90,7 @@
       stEl.textContent = startType === 'standing' ? 'Standing Start' : 'Rolling Start';
       stEl.className = 'grid-start-type ' + startType;
 
-      // Country flag background
+      // Country flag background + WebGL glow colors
       const countryCode = (p[pre + 'TrackCountry'] || '').toUpperCase();
       const flagEl = document.getElementById('gridFlag');
       const flagColors = _countryFlags[countryCode];
@@ -99,6 +99,9 @@
         document.getElementById('flagStripe2').style.background = flagColors[1];
         document.getElementById('flagStripe3').style.background = flagColors[2];
         flagEl.classList.add('flag-active');
+        if (window.setGridFlagColors) {
+          window.setGridFlagColors(flagColors[0], flagColors[1], flagColors[2]);
+        }
       } else if (flagEl) {
         flagEl.classList.remove('flag-active');
       }

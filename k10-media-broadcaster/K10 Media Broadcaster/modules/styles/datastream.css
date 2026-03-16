@@ -156,7 +156,22 @@
   .incidents-panel.inc-center-right { right: 378px; }
   .incidents-panel.inc-center-left { left: 378px; }
 
+  .inc-gl-canvas {
+    position: absolute;
+    inset: -8px;
+    width: calc(100% + 16px);
+    height: calc(100% + 16px);
+    pointer-events: none;
+    z-index: 0;
+    border-radius: 12px;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+  .incidents-panel.inc-bonkers .inc-gl-canvas { opacity: 1; }
+
   .inc-inner {
+    position: relative;
+    z-index: 1;
     background: hsla(0, 0%, 5%, 0.90);
     border: 1px solid hsla(0, 0%, 100%, 0.14);
     border-radius: 8px;

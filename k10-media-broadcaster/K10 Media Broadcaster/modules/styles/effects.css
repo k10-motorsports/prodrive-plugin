@@ -445,6 +445,30 @@
     100% { box-shadow: 0 0 60px 12px hsla(10, 100%, 50%, 0.18), 0 0 120px 24px hsla(40, 100%, 50%, 0.10); }
   }
 
+  /* ── Bonkers-off: keep colors, kill all motion + WebGL ── */
+  body.bonkers-off .pit-banner.pit-bonkers .pit-inner {
+    animation: none;
+  }
+  body.bonkers-off .pit-banner.pit-bonkers .pit-icon {
+    animation: none;
+  }
+  body.bonkers-off .pit-banner.pit-bonkers .pit-label {
+    animation: none;
+  }
+  body.bonkers-off .pit-banner.pit-bonkers .pit-speed {
+    animation: none;
+  }
+  body.bonkers-off .pit-banner.pit-bonkers .pit-inner::before {
+    animation: none;
+  }
+  body.bonkers-off .pit-banner.pit-bonkers .pit-inner::after {
+    animation: none;
+    box-shadow: none;
+  }
+  body.bonkers-off .pit-banner.pit-bonkers .pit-gl-canvas {
+    display: none;
+  }
+
   /* ═══════════════════════════════════════════════
      RACE END SCREEN — within HUD bounds
      ═══════════════════════════════════════════════ */
@@ -625,13 +649,22 @@
 
   .sp-gl-canvas {
     position: absolute;
-    inset: -6px;
-    width: calc(100% + 12px);
-    height: calc(100% + 12px);
+    inset: -4px;
+    width: calc(100% + 8px);
+    height: calc(100% + 8px);
     pointer-events: none;
     border-radius: 12px;
     z-index: -1;
+    transition: height 0.5s ease, opacity 0.4s ease;
   }
+
+  .sp-stack {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 6px;
+  }
+  /* When panel is at top of screen, stack downward instead */
+  .spotter-panel.sp-top .sp-stack { flex-direction: column; }
 
   .sp-inner {
     position: relative;
@@ -646,10 +679,22 @@
     align-items: center;
     gap: 10px;
   }
+  .spotter-panel.sp-top .sp-inner { transform: translateY(-6px); }
   .sp-inner.sp-active {
     opacity: 1;
     transform: translateY(0);
   }
+  /* Fade out older messages in the stack — collapse height to avoid growing the glow canvas */
+  .sp-inner.sp-fading {
+    opacity: 0;
+    transform: translateY(6px);
+    max-height: 0;
+    padding: 0 12px;
+    margin-top: -6px;
+    overflow: hidden;
+    transition: opacity 0.35s ease, transform 0.35s ease, max-height 0.4s ease 0.1s, padding 0.4s ease 0.1s, margin-top 0.4s ease 0.1s;
+  }
+  .spotter-panel.sp-top .sp-inner.sp-fading { transform: translateY(-6px); }
   .sp-icon {
     flex-shrink: 0;
     width: 18px;
@@ -706,20 +751,21 @@
     transition: opacity 3s ease;
   }
 
-  .grid-gl-canvas {
+  /* Flag WebGL — escapes card bounds with flag-colored energy */
+  .grid-flag-gl {
     position: absolute;
-    top: -16px;
-    left: -20px;
-    right: -20px;
-    bottom: -16px;
-    width: calc(100% + 40px);
-    height: calc(100% + 32px);
+    top: -60px;
+    left: -80px;
+    right: -80px;
+    bottom: -60px;
+    width: calc(100% + 160px);
+    height: calc(100% + 120px);
     pointer-events: none;
     z-index: 0;
     opacity: 0;
-    transition: opacity 0.6s ease;
+    transition: opacity 1.0s ease;
   }
-  .grid-module.grid-visible .grid-gl-canvas {
+  .grid-module.grid-visible .grid-flag-gl {
     opacity: 1;
   }
 
@@ -738,8 +784,8 @@
   .grid-info:has(.grid-flag.flag-active) {
     background: transparent;
   }
-  /* All direct text children sit above the flag + its darkening overlay */
-  .grid-info > *:not(.grid-flag) {
+  /* All direct text children sit above the flag + dark bg panel */
+  .grid-info > *:not(.grid-flag):not(.grid-bg) {
     position: relative;
     z-index: 2;
   }
@@ -961,15 +1007,19 @@
     75%  { transform: skewY(-1.5deg) scaleX(1.02); }
     100% { transform: skewY(0deg) scaleX(1); }
   }
-  /* Overlay darkening so text stays readable over bright flag colors */
-  .grid-flag::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: hsla(0, 0%, 0%, 0.55);
-    z-index: 1;
-  }
+  /* Remove the old full-coverage darkener — replaced by inset .grid-bg */
+  .grid-flag::after { display: none; }
 
+  /* ── Dark panel: sits above the flag, below text ──
+     Inset so flag colors bleed around all edges */
+  .grid-bg {
+    position: absolute;
+    top: 6px; left: 6px; right: 6px; bottom: 6px;
+    z-index: 1;
+    background: hsla(0, 0%, 0%, 0.80);
+    border-radius: 10px;
+    pointer-events: none;
+  }
 
   /* Dim other modules during grid/lights */
   body.grid-active .panel,

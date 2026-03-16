@@ -27,6 +27,11 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <!-- Plugin sidebar icon — embedded in the assembly -->
+  <ItemGroup>
+    <Resource Include="icon.png" />
+  </ItemGroup>
+
   <!-- SimHub plugin DLLs — must NOT be copied to output (Private=False) -->
   <ItemGroup>
     <Reference Include="GameReaderCommon">
@@ -65,21 +70,6 @@
   </Target>
 
   <!--
-    Post-build: copy the dashboard template so SimHub can open it directly.
-    DashTemplates/ in the repo maps to DashTemplates/ in the SimHub install folder.
-    If you clone this repo into the SimHub directory, no build step is needed for
-    the dashboard — it is already in the right place.
-  -->
-  <Target Name="CopyDashboard" AfterTargets="Build">
-    <ItemGroup>
-      <DashFiles Include="..\..\DashTemplates\**\*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(DashFiles)"
-          DestinationFolder="$(SimHubPath)DashTemplates\%(RecursiveDir)"
-          SkipUnchangedFiles="true" />
-  </Target>
-
-  <!--
     Post-build: export built artifacts and dashboard back into the repo
     so simhub-plugin/ always contains the latest files for commit.
     RepoPluginDir = simhub-plugin/ (two levels up from this .csproj).
@@ -97,14 +87,6 @@
     <Copy SourceFiles="$(SimHubPath)K10MediaBroadcaster.Plugin.pdb"
           DestinationFolder="$(RepoPluginDir)"
           Condition="Exists('$(SimHubPath)K10MediaBroadcaster.Plugin.pdb')"
-          SkipUnchangedFiles="true" />
-    <!-- Dashboard template (excluding _Backups) -->
-    <ItemGroup>
-      <SimHubDashFiles Include="$(SimHubPath)DashTemplates\media broadcaster\**\*"
-                       Exclude="$(SimHubPath)DashTemplates\media broadcaster\_Backups\**" />
-    </ItemGroup>
-    <Copy SourceFiles="@(SimHubDashFiles)"
-          DestinationFolder="$(RepoPluginDir)DashTemplates\media broadcaster\%(RecursiveDir)"
           SkipUnchangedFiles="true" />
     <Message Importance="high"
              Text="Exported DLL+PDB+Dashboard to $(RepoPluginDir)" />

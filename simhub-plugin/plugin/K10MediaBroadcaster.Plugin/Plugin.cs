@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using GameReaderCommon;
 using K10MediaBroadcaster.Plugin.Engine;
 using SimHub.Plugins;
@@ -20,7 +21,8 @@ namespace K10MediaBroadcaster.Plugin
         public Settings Settings { get; private set; }
         public PluginManager PluginManager { get; set; }
 
-        public ImageSource PictureIcon => null;
+        public ImageSource PictureIcon => new BitmapImage(new Uri(
+            "pack://application:,,,/K10MediaBroadcaster.Plugin;component/icon.png"));
         public string LeftMenuTitle => "K10 Media Broadcaster";
 
 #if CROSS_PLATFORM
@@ -50,6 +52,10 @@ namespace K10MediaBroadcaster.Plugin
         // HTTP state server — exposes plugin state on port 8889 for Homebridge
         private HttpListener _httpListener;
         private Thread _httpThread;
+
+        // Start position tracking — captured once when race goes green
+        private int _startPosition = 0;
+        private bool _startPositionCaptured = false;
 
         // Start lights state machine — synthesized from PaceMode/SessionState
         private int _lightsPhase = 0;         // 0=off, 1-5=building reds, 6=all red, 7=green, 8=done
@@ -350,6 +356,21 @@ namespace K10MediaBroadcaster.Plugin
             // Capture current telemetry every frame (cheap snapshot)
             _previous = _current;
             _current  = TelemetrySnapshot.Capture(pluginManager, ref data);
+
+            // ── Start position tracking ──
+            // Capture the grid position once when the session goes to Racing (state 4)
+            // Reset when session state drops back (new race / reconnect).
+            if (_current.SessionState == 4 && !_startPositionCaptured && _current.Position > 0)
+            {
+                _startPosition = _current.Position;
+                _startPositionCaptured = true;
+            }
+            else if (_current.SessionState < 4)
+            {
+                _startPositionCaptured = false;
+                _startPosition = 0;
+            }
+            _current.StartPosition = _startPosition;
 
             // Detect track changes — reload map when track ID changes
             if (_current.GameRunning)
@@ -741,6 +762,18 @@ namespace K10MediaBroadcaster.Plugin
                         continue;
                     }
 
+                    if (rawUrl.Contains("action=restartdemo"))
+                    {
+                        _engine.DemoTelemetry.Reset();
+                        byte[] okBytes = System.Text.Encoding.UTF8.GetBytes("{\"ok\":true}");
+                        ctx.Response.ContentType = "application/json";
+                        ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                        ctx.Response.StatusCode = 200;
+                        ctx.Response.OutputStream.Write(okBytes, 0, okBytes.Length);
+                        ctx.Response.OutputStream.Close();
+                        continue;
+                    }
+
                     // ── Build complete state snapshot ────────────────────────
                     var s = _current; // snapshot reference (safe — replaced atomically in DataUpdate)
                     var dt = _engine.DemoTelemetry;
@@ -856,6 +889,37 @@ namespace K10MediaBroadcaster.Plugin
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.SpeedKmh", s.SpeedKmh, ic);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.PitLimiterOn", s.PitLimiterOn ? 1 : 0);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.PitSpeedLimitKmh", s.PitSpeedLimitKmh, ic);
+
+                    // ── Computed DS.* — server-side calculations ──
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.ThrottleNorm", s.ThrottleNorm, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.BrakeNorm", s.BrakeNorm, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.ClutchNorm", s.ClutchNorm, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.RpmRatio", s.RpmRatio, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.FuelPct", s.FuelPct, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.FuelLapsRemaining", s.FuelLapsRemaining, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.SpeedMph", s.SpeedMph, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.PitSpeedLimitMph", s.PitSpeedLimitMph, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.IsPitSpeeding", s.IsPitSpeeding ? 1 : 0);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.IsNonRaceSession", s.IsNonRaceSession ? 1 : 0);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.IsTimedRace", s.IsTimedRace ? 1 : 0);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.IsEndOfRace", s.IsEndOfRace ? 1 : 0);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.PositionDelta", s.PositionDelta);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.StartPosition", s.StartPosition);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.RemainingTimeFormatted", Escape(s.RemainingTimeFormatted ?? ""));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.SpeedDisplay", Escape(s.SpeedDisplay));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.RpmDisplay", Escape(s.RpmDisplay));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.FuelFormatted", Escape(s.FuelFormatted));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.FuelPerLapFormatted", Escape(s.FuelPerLapFormatted));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.PitSuggestion", Escape(s.PitSuggestion ?? ""));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.BBNorm", s.BBNorm, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.TCNorm", s.TCNorm, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.ABSNorm", s.ABSNorm, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.PositionDeltaDisplay", Escape(s.PositionDeltaDisplay ?? ""));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.LapDeltaDisplay", Escape(s.LapDeltaDisplay ?? ""));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.SafetyRatingDisplay", Escape(s.SafetyRatingDisplay));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.GapAheadFormatted", Escape(s.GapAheadFormatted));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.GapBehindFormatted", Escape(s.GapBehindFormatted));
+
                     Jp(sb, "DataCorePlugin.GameRawData.Telemetry.FrameRate", s.FrameRate, ic);
                     Jp(sb, "DataCorePlugin.GameRawData.Telemetry.SteeringWheelAngle", s.SteeringWheelAngle, ic);
 
@@ -924,6 +988,36 @@ namespace K10MediaBroadcaster.Plugin
                     Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.SpeedKmh", dt.SpeedKmh, ic);
                     Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.PitLimiterOn", dt.IsInPitLane ? 1 : 0);
                     Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.PitSpeedLimitKmh", 72.0, ic);
+
+                    // ── Demo Computed DS.* ──
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.ThrottleNorm", dt.ThrottleNorm, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.BrakeNorm", dt.BrakeNorm, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.ClutchNorm", dt.ClutchNorm, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.RpmRatio", dt.RpmRatio, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.FuelPct", dt.FuelPct, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.FuelLapsRemaining", dt.FuelLapsRemaining, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.SpeedMph", dt.SpeedMph, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.PitSpeedLimitMph", dt.PitSpeedLimitMph, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.IsPitSpeeding", dt.IsPitSpeeding ? 1 : 0);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.IsNonRaceSession", dt.IsNonRaceSession ? 1 : 0);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.IsTimedRace", dt.IsTimedRace ? 1 : 0);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.IsEndOfRace", dt.IsEndOfRace ? 1 : 0);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.PositionDelta", dt.PositionDelta);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.StartPosition", dt.StartPosition);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.RemainingTimeFormatted", Escape(dt.RemainingTimeFormatted ?? ""));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.SpeedDisplay", Escape(dt.SpeedDisplay));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.RpmDisplay", Escape(dt.RpmDisplay));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.FuelFormatted", Escape(dt.FuelFormatted));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.FuelPerLapFormatted", Escape(dt.FuelPerLapFormatted));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.PitSuggestion", Escape(dt.PitSuggestion ?? ""));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.BBNorm", dt.BBNorm, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.TCNorm", dt.TCNorm, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.ABSNorm", dt.ABSNorm, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.PositionDeltaDisplay", Escape(dt.PositionDeltaDisplay ?? ""));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.LapDeltaDisplay", Escape(dt.LapDeltaDisplay ?? ""));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.SafetyRatingDisplay", Escape(dt.SafetyRatingDisplay));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.GapAheadFormatted", Escape(dt.GapAheadFormatted));
+                    Jp(sb, "K10MediaBroadcaster.Plugin.Demo.DS.GapBehindFormatted", Escape(dt.GapBehindFormatted));
 
                     // ── Grid / Formation state ──
                     Jp(sb, "K10MediaBroadcaster.Plugin.Grid.SessionState", s.SessionState);

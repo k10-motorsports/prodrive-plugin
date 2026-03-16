@@ -1211,7 +1211,9 @@
             return;
           }
 
-          resizeCanvas(sC, sGL);
+          // Only resize canvas when glow is ramping up — prevents jarring
+          // shrink when fading cards are removed from the DOM
+          if (target > 0.5) resizeCanvas(sC, sGL);
           _spotTime += dt;
 
           sGL.clearColor(0, 0, 0, 0);
@@ -1557,17 +1559,20 @@
     };
 
     /* ════════════════════════════════════════════
-       GRID MODULE FX — scanning energy border + pulse
-       Activates during formation lap / pre-race grid
+       INCIDENTS MODULE FX — penalty / DQ fire glow
+       Reuses the bonkers fire pattern with two modes:
+         'penalty' → yellower, subtler, lower intensity
+         'dq'      → full red bonkers fire
        ════════════════════════════════════════════ */
-    const gridGLCtx = initGL('gridGlCanvas');
-    let _gridGLActive = false;
-    let _gridGLTime = 0;
+    const incGLCtx = initGL('incGlCanvas');
+    let _incGLMode = '';   // '', 'penalty', 'dq'
+    let _incGLTime = 0;
+    let _incGLInten = 0;
 
-    if (gridGLCtx) {
-      const { canvas: gC, gl: gGL } = gridGLCtx;
+    if (incGLCtx) {
+      const { canvas: iC, gl: iGL } = incGLCtx;
 
-      const gridVS = `#version 300 es
+      const incVS = `#version 300 es
         in vec2 aPos;
         out vec2 vUV;
         void main() {
@@ -1575,7 +1580,7 @@
           gl_Position = vec4(aPos, 0.0, 1.0);
         }`;
 
-      const gridFS = `#version 300 es
+      const incFS = `#version 300 es
         precision highp float;
         in vec2 vUV;
         out vec4 fragColor;
@@ -1583,6 +1588,7 @@
         uniform float uTime;
         uniform vec2  uRes;
         uniform float uIntensity;
+        uniform float uHueShift;   // 0.0 = red/orange (DQ), 1.0 = yellow/amber (penalty)
 
         float hash(vec2 p) {
           return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -1592,6 +1598,161 @@
           f = f * f * (3.0 - 2.0 * f);
           return mix(mix(hash(i), hash(i+vec2(1,0)), f.x),
                      mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y);
+        }
+        float fbm(vec2 p) {
+          float v = 0.0, a = 0.5;
+          for (int i = 0; i < 4; i++) { v += a * noise(p); p *= 2.1; a *= 0.5; }
+          return v;
+        }
+
+        void main() {
+          vec2 uv = vUV;
+          float t = uTime;
+          float inten = uIntensity;
+          float dx = abs(uv.x - 0.5) * 2.0;
+          float dy = abs(uv.y - 0.5) * 2.0;
+          float edgeDist = max(dx, dy);
+          float border = smoothstep(0.65, 1.0, edgeDist);
+
+          // Fire
+          vec2 fireUV = uv * vec2(4.0, 3.0);
+          fireUV.y -= t * 2.0;
+          float fire = fbm(fireUV + t * 0.6);
+          fire = smoothstep(0.35, 0.7, fire) * border * inten;
+
+          // Color shift: DQ (hueShift=0) = red→orange, penalty (hueShift=1) = amber→yellow
+          vec3 coreCol  = mix(vec3(0.9, 0.1, 0.0), vec3(0.85, 0.65, 0.0), uHueShift);
+          vec3 tipCol   = mix(vec3(1.0, 0.7, 0.0), vec3(1.0, 0.95, 0.3), uHueShift);
+          vec3 brightCol = mix(vec3(1.0, 1.0, 0.3), vec3(1.0, 1.0, 0.6), uHueShift);
+          vec3 fireCol = mix(coreCol, tipCol, fire);
+          fireCol = mix(fireCol, brightCol, fire * fire);
+
+          // Energy arcs — subtler for penalty
+          float angle = atan(uv.y - 0.5, uv.x - 0.5);
+          float arcSpeed = mix(10.0, 6.0, uHueShift);
+          float arc1 = sin(angle * 6.0 + t * arcSpeed) * 0.5 + 0.5;
+          float arcMask = smoothstep(0.80, 0.95, edgeDist);
+          float arcs = pow(arc1, 8.0) * arcMask * inten * mix(0.8, 0.4, uHueShift);
+          vec3 arcCol = mix(tipCol, brightCol, arc1);
+
+          // Compose
+          vec3 col = fireCol * fire * 0.85 + arcCol * arcs * 0.7;
+          float alpha = fire * 0.6 + arcs * 0.5;
+          alpha = clamp(alpha * inten, 0.0, mix(0.80, 0.50, uHueShift));
+
+          fragColor = vec4(col * alpha, alpha);
+        }`;
+
+      const ivs = createShader(iGL, iGL.VERTEX_SHADER, incVS);
+      const ifs = createShader(iGL, iGL.FRAGMENT_SHADER, incFS);
+      const incProg = (ivs && ifs) ? createProgram(iGL, ivs, ifs) : null;
+
+      if (incProg) {
+        const incPosLoc = iGL.getAttribLocation(incProg, 'aPos');
+        const incUTime  = iGL.getUniformLocation(incProg, 'uTime');
+        const incURes   = iGL.getUniformLocation(incProg, 'uRes');
+        const incUInten = iGL.getUniformLocation(incProg, 'uIntensity');
+        const incUHue   = iGL.getUniformLocation(incProg, 'uHueShift');
+
+        const incBuf = iGL.createBuffer();
+        iGL.bindBuffer(iGL.ARRAY_BUFFER, incBuf);
+        iGL.bufferData(iGL.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), iGL.STATIC_DRAW);
+
+        window._incidentsFXFrame = function(dt) {
+          const active = _incGLMode !== '';
+          if (active) {
+            _incGLInten = Math.min(1, _incGLInten + dt * 2.0);
+            _incGLTime += dt;
+          } else {
+            _incGLInten = Math.max(0, _incGLInten - dt * 3.0);
+            if (_incGLInten <= 0) return;
+          }
+
+          resizeCanvas(iC, iGL);
+          iGL.enable(iGL.BLEND);
+          iGL.blendFunc(iGL.SRC_ALPHA, iGL.ONE);
+          iGL.clearColor(0, 0, 0, 0);
+          iGL.clear(iGL.COLOR_BUFFER_BIT);
+
+          iGL.useProgram(incProg);
+          iGL.uniform1f(incUTime, _incGLTime);
+          iGL.uniform2f(incURes, iC.width, iC.height);
+          iGL.uniform1f(incUInten, _incGLInten);
+          iGL.uniform1f(incUHue, _incGLMode === 'penalty' ? 1.0 : 0.0);
+
+          iGL.bindBuffer(iGL.ARRAY_BUFFER, incBuf);
+          iGL.enableVertexAttribArray(incPosLoc);
+          iGL.vertexAttribPointer(incPosLoc, 2, iGL.FLOAT, false, 0, 0);
+          iGL.drawArrays(iGL.TRIANGLE_STRIP, 0, 4);
+        };
+      }
+    }
+
+    // Public API: set incidents fire mode ('', 'penalty', 'dq')
+    window.setIncidentsGL = function(mode) {
+      const prev = _incGLMode;
+      _incGLMode = mode || '';
+      if (_incGLMode && !prev) _incGLTime = 0;
+      // Toggle CSS class for canvas opacity
+      const panel = document.getElementById('incidentsPanel');
+      if (panel) panel.classList.toggle('inc-bonkers', _incGLMode !== '');
+    };
+
+    /* ════════════════════════════════════════════
+       GRID FLAG FX — flag-colored energy tendrils
+       that radiate outward beyond the card edges.
+       Three flag colors drift as aurora-like wisps,
+       with particle sparks at the periphery.
+       ════════════════════════════════════════════ */
+    const flagGLCtx = initGL('gridFlagGlCanvas');
+    let _flagGLActive = false;
+    let _flagGLTime = 0;
+    // Flag colors (linear RGB) — updated via setGridFlagColors
+    let _gridFlagCol1 = [0.35, 0.55, 0.85];
+    let _gridFlagCol2 = [0.6, 0.65, 0.8];
+    let _gridFlagCol3 = [0.5, 0.7, 0.95];
+
+    if (flagGLCtx) {
+      const { canvas: fC, gl: fGL } = flagGLCtx;
+
+      const flagVS = `#version 300 es
+        in vec2 aPos;
+        out vec2 vUV;
+        void main() {
+          vUV = aPos * 0.5 + 0.5;
+          gl_Position = vec4(aPos, 0.0, 1.0);
+        }`;
+
+      const flagFS = `#version 300 es
+        precision highp float;
+        in vec2 vUV;
+        out vec4 fragColor;
+
+        uniform float uTime;
+        uniform float uIntensity;
+        uniform vec2  uRes;
+        uniform vec3  uCol1;
+        uniform vec3  uCol2;
+        uniform vec3  uCol3;
+
+        // Noise helpers
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+        }
+        float noise(vec2 p) {
+          vec2 i = floor(p), f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(hash(i), hash(i+vec2(1,0)), f.x),
+                     mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y);
+        }
+        float fbm(vec2 p) {
+          float v = 0.0, a = 0.5;
+          for (int i = 0; i < 4; i++) {
+            v += a * noise(p);
+            p = p * 2.1 + 0.3;
+            a *= 0.5;
+          }
+          return v;
         }
 
         // Rounded-rect SDF
@@ -1605,104 +1766,131 @@
           float aspect = uRes.x / uRes.y;
           vec2 p = (uv - 0.5) * vec2(aspect, 1.0);
           float t = uTime;
-          float inten = uIntensity;
 
-          // Rounded rect border matching the info card
-          vec2 boxSize = vec2(aspect * 0.48, 0.44);
-          float r = 0.04;
+          // Card shape — the inner card occupies ~60% of canvas
+          // (canvas extends 80px beyond card on each side)
+          vec2 boxSize = vec2(aspect * 0.30, 0.34);
+          float r = 0.035;
           float d = roundedBox(p, boxSize, r);
 
-          // ── Scanning beam: travels along the border perimeter ──
+          // Only draw outside the card
+          if (d < -0.005) { fragColor = vec4(0.0); return; }
+
+          // ── Aurora wisps: fbm-driven flowing tendrils ──
           float angle = atan(p.y, p.x);
-          float scan1 = sin(angle * 1.0 - t * 2.8) * 0.5 + 0.5;
-          float scan2 = sin(angle * 1.0 + t * 2.0 + 3.14) * 0.5 + 0.5;
-          float scanBeam = pow(scan1, 12.0) + pow(scan2, 10.0) * 0.6;
+          float edgeDist = max(0.0, d);
 
-          // ── Border glow: concentrated on the card edge ──
-          float borderGlow = smoothstep(0.04, 0.0, abs(d)) * 0.6;
-          float outerBloom = smoothstep(0.08, 0.0, d) * smoothstep(-0.02, 0.01, d) * 0.3;
+          // Three color channels at different speeds/offsets
+          float n1 = fbm(vec2(angle * 1.2 - t * 0.4, edgeDist * 3.0 + t * 0.2));
+          float n2 = fbm(vec2(angle * 1.2 + t * 0.5 + 2.094, edgeDist * 3.0 - t * 0.15));
+          float n3 = fbm(vec2(angle * 1.2 - t * 0.35 + 4.189, edgeDist * 3.0 + t * 0.25));
 
-          // ── Corner accents: brighter at the 4 corners ──
-          float cx = abs(p.x) - boxSize.x + r;
-          float cy = abs(p.y) - boxSize.y + r;
-          float cornerDist = length(max(vec2(cx, cy), 0.0));
-          float corner = smoothstep(0.06, 0.0, cornerDist) * 0.5;
+          // Shape each wisp: strong near edge, fading outward
+          float falloff = exp(-edgeDist * 4.5);
+          float w1 = pow(n1, 2.5) * falloff;
+          float w2 = pow(n2, 2.5) * falloff;
+          float w3 = pow(n3, 2.5) * falloff;
 
-          // ── Shimmer noise along border ──
-          float shimmer = noise(vec2(angle * 3.0, t * 4.0)) * 0.3;
-          shimmer *= smoothstep(0.03, 0.0, abs(d));
+          // Boost flag colors for vibrancy
+          vec3 c1 = uCol1 * 0.8 + 0.2;
+          vec3 c2 = uCol2 * 0.8 + 0.2;
+          vec3 c3 = uCol3 * 0.8 + 0.2;
 
-          // ── Pulse: subtle breathe ──
-          float pulse = (sin(t * 3.0) * 0.5 + 0.5) * 0.15 * smoothstep(0.02, 0.0, abs(d));
+          vec3 col = c1 * w1 + c2 * w2 + c3 * w3;
 
-          // ── Color: cool blue-cyan racing energy ──
-          vec3 baseCol = vec3(0.15, 0.45, 0.9);   // blue
-          vec3 accentCol = vec3(0.2, 0.7, 1.0);    // cyan
-          vec3 scanCol = mix(baseCol, accentCol, scan1);
+          // ── Edge glow: soft light hugging the card border ──
+          float edgeGlow = exp(-edgeDist * 12.0) * 0.35;
+          float wTotal = w1 + w2 + w3 + 0.001;
+          vec3 edgeCol = (c1 * w1 + c2 * w2 + c3 * w3) / wTotal;
+          col += edgeCol * edgeGlow;
 
-          // Compose
-          float alpha = (borderGlow + outerBloom + corner) * inten
-                      + scanBeam * smoothstep(0.04, 0.0, abs(d)) * inten * 0.7
-                      + shimmer * inten
-                      + pulse * inten;
-          alpha = clamp(alpha, 0.0, 0.8);
+          // ── Spark particles: bright dots at the periphery ──
+          float sparkNoise = noise(uv * 40.0 + t * vec2(1.3, 0.7));
+          float sparkMask = smoothstep(0.92, 0.96, sparkNoise) * falloff * 1.5;
+          col += edgeCol * sparkMask;
 
-          vec3 col = scanCol * (borderGlow + scanBeam * 0.5)
-                   + accentCol * (corner + outerBloom)
-                   + vec3(0.3, 0.6, 1.0) * shimmer
-                   + baseCol * pulse;
+          // ── Breathing pulse ──
+          float pulse = 0.85 + 0.15 * sin(t * 1.5);
+
+          float alpha = (w1 + w2 + w3 + edgeGlow + sparkMask * 0.5) * uIntensity * pulse;
+          alpha = clamp(alpha, 0.0, 0.7);
+
+          // Soft fade at canvas edges to avoid hard cutoff
+          float canvasEdge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
+          alpha *= smoothstep(0.0, 0.08, canvasEdge);
 
           fragColor = vec4(col * alpha, alpha);
         }`;
 
-      const gvs = createShader(gGL, gGL.VERTEX_SHADER, gridVS);
-      const gfs = createShader(gGL, gGL.FRAGMENT_SHADER, gridFS);
-      const gridProg = (gvs && gfs) ? createProgram(gGL, gvs, gfs) : null;
+      const fvs = createShader(fGL, fGL.VERTEX_SHADER, flagVS);
+      const ffs = createShader(fGL, fGL.FRAGMENT_SHADER, flagFS);
+      const flagProg = (fvs && ffs) ? createProgram(fGL, fvs, ffs) : null;
 
-      if (gridProg) {
-        const gridPosLoc = gGL.getAttribLocation(gridProg, 'aPos');
-        const gridUTime = gGL.getUniformLocation(gridProg, 'uTime');
-        const gridURes = gGL.getUniformLocation(gridProg, 'uRes');
-        const gridUInten = gGL.getUniformLocation(gridProg, 'uIntensity');
+      if (flagProg) {
+        const flagPosLoc = fGL.getAttribLocation(flagProg, 'aPos');
+        const flagUTime  = fGL.getUniformLocation(flagProg, 'uTime');
+        const flagUInten = fGL.getUniformLocation(flagProg, 'uIntensity');
+        const flagURes   = fGL.getUniformLocation(flagProg, 'uRes');
+        const flagUCol1  = fGL.getUniformLocation(flagProg, 'uCol1');
+        const flagUCol2  = fGL.getUniformLocation(flagProg, 'uCol2');
+        const flagUCol3  = fGL.getUniformLocation(flagProg, 'uCol3');
 
-        const gridBuf = gGL.createBuffer();
-        gGL.bindBuffer(gGL.ARRAY_BUFFER, gridBuf);
-        gGL.bufferData(gGL.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gGL.STATIC_DRAW);
+        const flagBuf = fGL.createBuffer();
+        fGL.bindBuffer(fGL.ARRAY_BUFFER, flagBuf);
+        fGL.bufferData(fGL.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), fGL.STATIC_DRAW);
 
-        let _gridInten = 0;
+        let _flagInten = 0;
 
-        window._gridFXFrame = function(dt) {
-          if (_gridGLActive) {
-            _gridInten = Math.min(1, _gridInten + dt * 2.0);
-            _gridGLTime += dt;
+        window._gridFlagFXFrame = function(dt) {
+          if (_flagGLActive) {
+            _flagInten = Math.min(1, _flagInten + dt * 1.5);
+            _flagGLTime += dt;
           } else {
-            _gridInten = Math.max(0, _gridInten - dt * 3.0);
-            if (_gridInten <= 0) return;
+            _flagInten = Math.max(0, _flagInten - dt * 2.0);
+            if (_flagInten <= 0) return;
           }
 
-          resizeCanvas(gC, gGL);
-          gGL.enable(gGL.BLEND);
-          gGL.blendFunc(gGL.SRC_ALPHA, gGL.ONE);
-          gGL.clearColor(0, 0, 0, 0);
-          gGL.clear(gGL.COLOR_BUFFER_BIT);
+          resizeCanvas(fC, fGL);
+          fGL.enable(fGL.BLEND);
+          fGL.blendFunc(fGL.SRC_ALPHA, fGL.ONE);
+          fGL.clearColor(0, 0, 0, 0);
+          fGL.clear(fGL.COLOR_BUFFER_BIT);
 
-          gGL.useProgram(gridProg);
-          gGL.uniform1f(gridUTime, _gridGLTime);
-          gGL.uniform2f(gridURes, gC.width, gC.height);
-          gGL.uniform1f(gridUInten, _gridInten);
+          fGL.useProgram(flagProg);
+          fGL.uniform1f(flagUTime, _flagGLTime);
+          fGL.uniform1f(flagUInten, _flagInten);
+          fGL.uniform2f(flagURes, fC.width, fC.height);
+          fGL.uniform3fv(flagUCol1, _gridFlagCol1);
+          fGL.uniform3fv(flagUCol2, _gridFlagCol2);
+          fGL.uniform3fv(flagUCol3, _gridFlagCol3);
 
-          gGL.bindBuffer(gGL.ARRAY_BUFFER, gridBuf);
-          gGL.enableVertexAttribArray(gridPosLoc);
-          gGL.vertexAttribPointer(gridPosLoc, 2, gGL.FLOAT, false, 0, 0);
-          gGL.drawArrays(gGL.TRIANGLE_STRIP, 0, 4);
+          fGL.bindBuffer(fGL.ARRAY_BUFFER, flagBuf);
+          fGL.enableVertexAttribArray(flagPosLoc);
+          fGL.vertexAttribPointer(flagPosLoc, 2, fGL.FLOAT, false, 0, 0);
+          fGL.drawArrays(fGL.TRIANGLE_STRIP, 0, 4);
         };
       }
     }
 
-    // Public API: toggle grid module WebGL
-    window.setGridGL = function(active) {
-      _gridGLActive = active;
-      if (active) _gridGLTime = 0;
+    // Public API: toggle grid flag WebGL
+    window.setGridFlagGL = function(active) {
+      _flagGLActive = active;
+      if (active) _flagGLTime = 0;
+    };
+
+    // Public API: set flag colors for the grid flag glow (hex → linear RGB)
+    window.setGridFlagColors = function(hex1, hex2, hex3) {
+      function hexToGL(hex) {
+        hex = hex.replace('#', '');
+        return [
+          parseInt(hex.substring(0, 2), 16) / 255,
+          parseInt(hex.substring(2, 4), 16) / 255,
+          parseInt(hex.substring(4, 6), 16) / 255
+        ];
+      }
+      _gridFlagCol1 = hexToGL(hex1);
+      _gridFlagCol2 = hexToGL(hex2);
+      _gridFlagCol3 = hexToGL(hex3);
     };
 
     /* ── Master FX animation loop ── */
@@ -1723,8 +1911,9 @@
       if (window._k10LogoFXFrame) window._k10LogoFXFrame(dt);
       if (window._spotterFXFrame) window._spotterFXFrame(dt);
       if (window._bonkersFXFrame) window._bonkersFXFrame(dt);
+      if (window._incidentsFXFrame) window._incidentsFXFrame(dt);
       if (window._commTrailFXFrame) window._commTrailFXFrame(dt);
-      if (window._gridFXFrame) window._gridFXFrame(dt);
+      if (window._gridFlagFXFrame) window._gridFlagFXFrame(dt);
       requestAnimationFrame(fxLoop);
     }
     requestAnimationFrame((now) => { _lastFXTime = now; requestAnimationFrame(fxLoop); });

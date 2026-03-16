@@ -318,8 +318,8 @@
     // Activate WebGL trail effect on commentary border
     if (window.setCommentaryTrailGL) window.setCommentaryTrailGL(true, hue);
 
-    // After layout settles, check if text overflows and set up slow scroll
-    requestAnimationFrame(() => { requestAnimationFrame(() => {
+    // After width transition settles (~600ms), measure overflow for slow scroll
+    setTimeout(() => {
       const scrollH = scrollEl.clientHeight;
       const textH = textEl.scrollHeight;
       if (textH > scrollH + 4) {
@@ -332,7 +332,7 @@
       } else {
         scrollEl.classList.add('no-overflow');
       }
-    }); });
+    }, 620);  // wait for commentary-col width transition (0.55s) to finish
   }
   function hideCommentary() {
     col.classList.remove('visible');

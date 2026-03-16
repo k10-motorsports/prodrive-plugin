@@ -19,6 +19,13 @@ contextBridge.exposeInMainWorld('k10', {
   restartApp: () => ipcRenderer.invoke('restart-app'),
   // Open URL in user's default browser
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  // Global hotkey listeners (forwarded from main process)
+  onRestartDemo: (callback) => {
+    ipcRenderer.on('restart-demo', () => callback());
+  },
+  onResetTrackmap: (callback) => {
+    ipcRenderer.on('reset-trackmap', () => callback());
+  },
   // Discord OAuth2
   discordConnect: () => ipcRenderer.invoke('discord-connect'),
   discordDisconnect: () => ipcRenderer.invoke('discord-disconnect'),

@@ -56,6 +56,36 @@
     border-bottom-left-radius: 0; border-top-left-radius: 0;
   }
 
+  /* ── Commentary border-radius: rounded on outward edge, squared on component edge ──
+     LTR flow: commentary is on the RIGHT → square left corners (faces components)
+     RTL flow: commentary is on the LEFT  → square right corners (faces components)
+     Top layout: top faces components → square top
+     Bottom layout: bottom faces components → square bottom */
+
+  /* Horizontal: square the side that abuts the main group */
+  .dashboard.flow-ltr .commentary-inner {
+    border-top-left-radius: 0; border-bottom-left-radius: 0;
+    border-top-right-radius: var(--corner-r); border-bottom-right-radius: var(--corner-r);
+  }
+  .dashboard.flow-rtl .commentary-inner {
+    border-top-right-radius: 0; border-bottom-right-radius: 0;
+    border-top-left-radius: var(--corner-r); border-bottom-left-radius: var(--corner-r);
+  }
+
+  /* Top layouts: square the top (grows downward from component row) */
+  .dashboard.layout-tr .commentary-inner,
+  .dashboard.layout-tl .commentary-inner,
+  .dashboard.layout-tc .commentary-inner {
+    border-top-left-radius: 0; border-top-right-radius: 0;
+  }
+
+  /* Bottom layouts: square the bottom (grows upward from component row) */
+  .dashboard.layout-br .commentary-inner,
+  .dashboard.layout-bl .commentary-inner,
+  .dashboard.layout-bc .commentary-inner {
+    border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+  }
+
   /* ── Bottom layout: commentary grows upward ── */
   .dashboard.layout-br .commentary-col,
   .dashboard.layout-bl .commentary-col,
@@ -145,6 +175,7 @@
     justify-content: flex-start;
     transition: background 0.8s ease, border-color 0.8s ease;
     overflow: visible;
+    min-height: 0;
   }
   .commentary-gl-canvas {
     position: absolute;

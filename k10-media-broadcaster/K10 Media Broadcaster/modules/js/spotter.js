@@ -1,14 +1,17 @@
-// Spotter messages
+// Spotter messages — stacking system
 
   // ═══════════════════════════════════════════════════════════════
-  //  SPOTTER MESSAGES
+  //  SPOTTER MESSAGES (stacking: new messages push old ones)
   // ═══════════════════════════════════════════════════════════════
-  let _spotterTimeout = null;
   let _spotterLastGapA = 0;        // previous gap ahead (seconds)
   let _spotterLastGapB = 0;        // previous gap behind (seconds)
-  let _spotterLastMsg = '';
+  let _spotterLastMsg = '';         // legacy — kept for announceAdjustment bypass
   let _spotterLastPosA = 0;        // previous position of car ahead
   let _spotterLastPosB = 0;        // previous position of car behind
+
+  // Stack management — max 3 messages visible at once
+  const _spotterMaxStack = 3;
+  const _spotterMsgDuration = 5000;  // ms per message
 
   // SVG icons per severity (viewBox 0 0 24 24, stroke-based)
   const _spotterIcons = {
@@ -16,60 +19,127 @@
     'sp-warn': '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><circle cx="12" cy="16" r="1" fill="currentColor" stroke="none"/>',
     'sp-danger': '<circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><circle cx="12" cy="16" r="1" fill="currentColor" stroke="none"/>',
     'sp-clear': '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>',
-    // In-car adjustment icons
     'sp-bb':  '<circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><path d="M8 8h8"/><path d="M6 12h12"/>',
     'sp-tc':  '<path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10"/><path d="M12 8v8"/><path d="M8 12h8"/>',
     'sp-abs': '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 8v8"/><path d="M8 12h8"/>',
-    // Lap timing icon (stopwatch)
     'sp-lap': '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M10 2h4"/><path d="M12 2v3"/>'
   };
 
-  function _setSpotterIcon(severity) {
-    const iconEl = document.querySelector('#spotterInner .sp-icon');
-    if (!iconEl) return;
-    const path = _spotterIcons[severity] || _spotterIcons.default;
-    iconEl.innerHTML = path;
+  function _createSpotterCard(msg, severity, headerText, iconOverride) {
+    const card = document.createElement('div');
+    card.className = 'sp-inner ' + severity;
+
+    const iconPath = _spotterIcons[iconOverride || severity] || _spotterIcons.default;
+    card.innerHTML =
+      '<svg class="sp-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        iconPath +
+      '</svg>' +
+      '<div class="sp-content">' +
+        '<div class="sp-header">' + (headerText || 'Spotter') + '</div>' +
+        '<div class="sp-message">' + msg + '</div>' +
+      '</div>';
+
+    return card;
   }
 
-  function _setSpotterHeader(text) {
-    const hdr = document.querySelector('#spotterInner .sp-header');
-    if (hdr) hdr.textContent = text;
-  }
+  function _pushSpotterMsg(msg, severity, headerOverride, iconOverride) {
+    const stack = document.getElementById('spotterStack');
+    if (!stack || !msg) return;
 
-  function _showSpotterMsg(msg, severity, headerOverride) {
-    const inner = document.getElementById('spotterInner');
-    const msgEl = document.getElementById('spotterMsg');
-    if (!inner || !msgEl || !msg || msg === _spotterLastMsg) return;
-    _spotterLastMsg = msg;
-    msgEl.textContent = msg;
-    inner.className = 'sp-inner sp-active ' + severity;
-    _setSpotterIcon(severity);
-    if (headerOverride) _setSpotterHeader(headerOverride);
-    else _setSpotterHeader('Spotter');
+    // Create and insert the new card
+    const card = _createSpotterCard(msg, severity, headerOverride, iconOverride);
+    stack.prepend(card);
+
+    // Trigger WebGL glow for the newest message
     if (window.setSpotterGlow) {
       const glowMap = { 'sp-warn': 'warn', 'sp-danger': 'danger', 'sp-clear': 'clear' };
       window.setSpotterGlow(glowMap[severity] || 'warn');
     }
-    if (_spotterTimeout) clearTimeout(_spotterTimeout);
-    _spotterTimeout = setTimeout(() => {
-      inner.classList.remove('sp-active');
-      _setSpotterIcon('default');
-      _setSpotterHeader('Spotter');
-      if (window.setSpotterGlow) window.setSpotterGlow('off');
-      _spotterLastMsg = '';
-      _spotterTimeout = null;
-    }, 5000);
+
+    // Animate in on next frame
+    requestAnimationFrame(() => {
+      card.classList.add('sp-active');
+    });
+
+    // Enforce max stack size — fade out oldest if over limit
+    const cards = stack.querySelectorAll('.sp-inner:not(.sp-fading)');
+    if (cards.length > _spotterMaxStack) {
+      const oldest = cards[cards.length - 1];
+      _fadeOutCard(oldest);
+    }
+
+    // Auto-remove after duration
+    const timer = setTimeout(() => {
+      _fadeOutCard(card);
+    }, _spotterMsgDuration);
+
+    // Store timer on element for cleanup
+    card._spotterTimer = timer;
+  }
+
+  function _fadeOutCard(card) {
+    if (!card || card.classList.contains('sp-fading')) return;
+    card.classList.remove('sp-active');
+    card.classList.add('sp-fading');
+    setTimeout(() => {
+      card.remove();
+      // Turn off glow if stack is now empty
+      const stack = document.getElementById('spotterStack');
+      if (stack && stack.children.length === 0 && window.setSpotterGlow) {
+        window.setSpotterGlow('off');
+      }
+    }, 500); // matches CSS transition duration
+    if (card._spotterTimer) {
+      clearTimeout(card._spotterTimer);
+      card._spotterTimer = null;
+    }
+  }
+
+  // Extract the message "shape" — strip trailing numeric gap so
+  // "Car behind — 2.1s" and "Car behind — 2.0s" both become "Car behind —"
+  function _spotterMsgPattern(msg) {
+    return msg.replace(/[\d.]+s$/, '').trim();
+  }
+
+  // Recent-message memo: pattern → expiry timestamp
+  // Prevents any message of the same pattern from repeating within the cooldown
+  const _spotterMemo = new Map();
+  const _spotterMemoCooldown = 8000;  // ms — suppress same pattern for 8s
+
+  function _showSpotterMsg(msg, severity, headerOverride) {
+    if (!msg) return;
+    const pattern = _spotterMsgPattern(msg);
+    const now = Date.now();
+
+    // Check memo — suppress if same pattern fired recently
+    const expiry = _spotterMemo.get(pattern);
+    if (expiry && now < expiry) return;
+
+    // Also suppress exact duplicate text within a shorter window
+    const exactExpiry = _spotterMemo.get(msg);
+    if (exactExpiry && now < exactExpiry) return;
+
+    // Record both pattern and exact text
+    _spotterMemo.set(pattern, now + _spotterMemoCooldown);
+    _spotterMemo.set(msg, now + _spotterMemoCooldown);
+
+    // Prune old entries periodically (keep map from growing)
+    if (_spotterMemo.size > 30) {
+      for (const [k, v] of _spotterMemo) {
+        if (now >= v) _spotterMemo.delete(k);
+      }
+    }
+
+    _pushSpotterMsg(msg, severity, headerOverride);
   }
 
   function updateSpotter(p, isDemo) {
-    const inner = document.getElementById('spotterInner');
-    const msgEl = document.getElementById('spotterMsg');
-    if (!inner || !msgEl) return;
+    const stack = document.getElementById('spotterStack');
+    if (!stack) return;
 
     // ═══════════════════════════════════════════════════════════
     //  RACE SESSIONS: gap-based proximity spotter
     // ═══════════════════════════════════════════════════════════
-    // Read gap data
     const gAhead  = isDemo ? (+p['K10MediaBroadcaster.Plugin.Demo.GapAhead'] || 0)  : (+p['IRacingExtraProperties.iRacing_Opponent_Ahead_Gap'] || 0);
     const gBehind = isDemo ? (+p['K10MediaBroadcaster.Plugin.Demo.GapBehind'] || 0) : (+p['IRacingExtraProperties.iRacing_Opponent_Behind_Gap'] || 0);
 
@@ -139,9 +209,8 @@
   //  Shows a brief spotter-style callout with the new value.
   // ═══════════════════════════════════════════════════════════════
   window.announceAdjustment = function(type, value, direction) {
-    const inner = document.getElementById('spotterInner');
-    const msgEl = document.getElementById('spotterMsg');
-    if (!inner || !msgEl) return;
+    const stack = document.getElementById('spotterStack');
+    if (!stack) return;
 
     const arrow = direction > 0 ? '\u25B2' : direction < 0 ? '\u25BC' : '';
     let label, icon;
@@ -163,11 +232,10 @@
         icon = 'default';
     }
 
-    // Force-show even if same text (adjustments should always confirm)
+    // Force-push even if same text (adjustments should always confirm)
     _spotterLastMsg = '';
-    _showSpotterMsg(label, 'sp-clear', 'Adjustment');
-    // Override icon to adjustment-specific one
-    _setSpotterIcon(icon);
+    _spotterMemo.clear();
+    _pushSpotterMsg(label, 'sp-clear', 'Adjustment', icon);
   };
 
   // ═══════════════════════════════════════════════════════════════

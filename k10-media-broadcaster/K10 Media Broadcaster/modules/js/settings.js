@@ -43,6 +43,9 @@
       c.style.display = webglOn ? '' : 'none';
     });
 
+    // Bonkers pit limiter toggle
+    document.body.classList.toggle('bonkers-off', _settings.showBonkers === false);
+
     // Layout
     applyLayout();
 

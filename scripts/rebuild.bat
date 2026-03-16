@@ -11,27 +11,37 @@ setlocal enabledelayedexpansion
 ::
 ::  Requires: dotnet SDK on PATH
 ::            SimHub at default path or SIMHUB_PATH env var set
+::
+::  Notes:  Uses PowerShell Stop-Process as primary kill method
+::          (works in Parallels/VMs where taskkill may lack perms)
 :: ════════════════════════════════════════════════════════════════
 
 set CONFIG=%~1
 if "%CONFIG%"=="" set CONFIG=Release
 
-:: ── Resolve SimHub path ──────────────────────────────────────
+:: ── Resolve SimHub path (same probe order as install.bat) ────
+set "SH="
+if exist "C:\Program Files (x86)\SimHub\SimHubWPF.exe" set "SH=C:\Program Files (x86)\SimHub"
+if exist "C:\Program Files\SimHub\SimHubWPF.exe"       set "SH=C:\Program Files\SimHub"
+:: Env var override wins
 if defined SIMHUB_PATH (
-    set "SH=!SIMHUB_PATH!"
-) else (
-    set "SH=C:\Program Files (x86)\SimHub"
+    if exist "!SIMHUB_PATH!\SimHubWPF.exe" set "SH=!SIMHUB_PATH!"
 )
-
-:: Strip trailing backslash for consistency
+if "!SH!"=="" (
+    echo.
+    echo  ERROR: SimHub not found. Set SIMHUB_PATH or install to a default location.
+    pause
+    exit /b 1
+)
 if "!SH:~-1!"=="\" set "SH=!SH:~0,-1!"
 
 set "SH_EXE=!SH!\SimHubWPF.exe"
-set "PROJ=%~dp0plugin\K10MediaBroadcaster.Plugin\K10MediaBroadcaster.Plugin.csproj"
+:: Project path is relative to repo root (this script lives in scripts/)
+set "PROJ=%~dp0..\simhub-plugin\plugin\K10MediaBroadcaster.Plugin\K10MediaBroadcaster.Plugin.csproj"
 
 echo.
 echo  ╔══════════════════════════════════════════════╗
-echo  ║   K10 Media Broadcaster — Rebuild ^& Restart       ║
+echo  ║   K10 Media Broadcaster — Rebuild ^& Restart  ║
 echo  ╚══════════════════════════════════════════════╝
 echo.
 echo  Config:     %CONFIG%
@@ -42,36 +52,52 @@ echo.
 :: ── 1. Close SimHub ──────────────────────────────────────────
 echo  [1/3] Closing SimHub...
 
-:: Kill all SimHub-related processes (main app + child services)
+:: Try PowerShell Stop-Process first — works across privilege
+:: boundaries in Parallels and other VMs where taskkill fails
 set "KILLED=0"
+for %%P in (SimHubWPF SimHub SimHubElectron) do (
+    powershell -NoProfile -Command "if (Get-Process -Name '%%P' -ErrorAction SilentlyContinue) { Stop-Process -Name '%%P' -Force -ErrorAction SilentlyContinue; Write-Host '       Stopping %%P...' }" 2>NUL
+    if !ERRORLEVEL! == 0 set "KILLED=1"
+)
+
+:: Fallback: taskkill for anything PowerShell missed
 for %%P in (SimHubWPF.exe SimHub.exe SimHubElectron.exe) do (
     tasklist /FI "IMAGENAME eq %%P" 2>NUL | find /I "%%P" >NUL 2>&1
     if !ERRORLEVEL! == 0 (
-        echo        Killing %%P...
+        echo        Killing %%P via taskkill...
         taskkill /F /IM %%P >NUL 2>&1
+        set "KILLED=1"
+    )
+)
+
+:: Fallback 2: wmic (covers edge cases on older Windows/Parallels)
+for %%P in (SimHubWPF.exe SimHub.exe SimHubElectron.exe) do (
+    wmic process where "name='%%P'" get ProcessId 2>NUL | findstr /R "[0-9]" >NUL 2>&1
+    if !ERRORLEVEL! == 0 (
+        echo        Killing %%P via wmic...
+        wmic process where "name='%%P'" call terminate >NUL 2>&1
         set "KILLED=1"
     )
 )
 
 if "!KILLED!"=="1" (
     echo        Waiting for processes to exit...
-    :: Poll until SimHubWPF.exe is gone, up to 15 seconds
     for /L %%I in (1,1,15) do (
-        tasklist /FI "IMAGENAME eq SimHubWPF.exe" 2>NUL | find /I "SimHubWPF.exe" >NUL 2>&1
-        if !ERRORLEVEL! NEQ 0 goto :simhub_stopped
+        powershell -NoProfile -Command "if (-not (Get-Process -Name 'SimHubWPF' -ErrorAction SilentlyContinue)) { exit 0 } else { exit 1 }" 2>NUL
+        if !ERRORLEVEL! == 0 goto :simhub_stopped
         timeout /t 1 /nobreak >NUL
     )
-    :: If we get here, it's still running after 15s
     echo        WARNING: SimHub may still be running after 15s wait.
-    echo        Attempting force kill on all matching processes...
+    echo        Final force-kill attempt...
+    powershell -NoProfile -Command "Get-Process -Name 'SimHubWPF','SimHub','SimHubElectron' -ErrorAction SilentlyContinue | Stop-Process -Force" 2>NUL
     taskkill /F /IM SimHubWPF.exe /T >NUL 2>&1
     timeout /t 3 /nobreak >NUL
 )
 
 :simhub_stopped
 :: Final verification
-tasklist /FI "IMAGENAME eq SimHubWPF.exe" 2>NUL | find /I "SimHubWPF.exe" >NUL 2>&1
-if !ERRORLEVEL! == 0 (
+powershell -NoProfile -Command "if (Get-Process -Name 'SimHubWPF' -ErrorAction SilentlyContinue) { exit 1 } else { exit 0 }" 2>NUL
+if !ERRORLEVEL! NEQ 0 (
     echo.
     echo  ══════════════════════════════════════════════
     echo   ERROR: Could not stop SimHub. Build aborted.
@@ -108,9 +134,17 @@ echo.
 
 :: ── 3. Launch SimHub ─────────────────────────────────────────
 echo  [3/3] Starting SimHub...
+echo        Path: !SH_EXE!
+
+:: Reset ERRORLEVEL so it doesn't poison the if-exist check
+cmd /c "exit /b 0"
 
 if exist "!SH_EXE!" (
     start "" "!SH_EXE!"
+    if !ERRORLEVEL! NEQ 0 (
+        echo        WARNING: start returned error !ERRORLEVEL!, trying alternate launch...
+        "!SH_EXE!"
+    )
     echo        SimHub launched.
 ) else (
     echo        ERROR: SimHubWPF.exe not found at:

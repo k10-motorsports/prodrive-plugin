@@ -47,6 +47,82 @@ namespace K10MediaBroadcaster.Plugin.Engine
         public double FuelPerLap   { get; private set; } = 2.85;
         public int    RemainingLaps { get; private set; } = 12;
 
+        // ── Computed DS.* equivalents (mirror TelemetrySnapshot computed props) ──
+        public double ThrottleNorm      => Throttle;              // already 0–1
+        public double BrakeNorm         => Brake;                 // already 0–1
+        public double ClutchNorm        => Clutch;                // already 0–1
+        public double RpmRatio          => MaxRpm > 0 ? Math.Min(1.0, Rpm / MaxRpm) : 0;
+        public double FuelPct           => MaxFuel > 0 ? (Fuel / MaxFuel) * 100.0 : 0;
+        public double FuelLapsRemaining => FuelPerLap > 0.01 ? Fuel / FuelPerLap : 99;
+        public double SpeedMphComputed  => SpeedKmh * 0.621371;   // alias (SpeedMph is already set in Tick)
+        public double PitSpeedLimitMph  => 72.0 * 0.621371;       // demo pit limit = 72 km/h
+        public bool   IsPitSpeeding     => IsInPitLane && SpeedKmh > 72.0;
+        public bool   IsNonRaceSession  => false;                  // demo is always Race
+        public bool   IsTimedRace       => RemainingTime > 0;
+        public bool   IsEndOfRace       => false;                  // demo never ends
+        public int    StartPosition     { get; private set; } = 4;
+        public int    PositionDelta     => StartPosition > 0 ? StartPosition - Position : 0;
+        public string RemainingTimeFormatted
+        {
+            get
+            {
+                if (RemainingTime <= 0) return "";
+                int totalSec = (int)RemainingTime;
+                int h = totalSec / 3600;
+                int m = (totalSec % 3600) / 60;
+                int s = totalSec % 60;
+                return h > 0
+                    ? string.Format("{0}:{1:D2}:{2:D2}", h, m, s)
+                    : string.Format("{0}:{1:D2}", m, s);
+            }
+        }
+
+        // ── Display-ready strings (mirror TelemetrySnapshot) ──────────────
+        public string SpeedDisplay => SpeedKmh > 0 ? ((int)Math.Round(SpeedKmh)).ToString() : "0";
+        public string RpmDisplay => Rpm > 0 ? ((int)Math.Round(Rpm)).ToString() : "0";
+        public string FuelFormatted => Fuel > 0 ? Fuel.ToString("F1") : "\u2014";
+        public string FuelPerLapFormatted => FuelPerLap > 0 ? FuelPerLap.ToString("F2") : "\u2014";
+        public string PitSuggestion
+        {
+            get
+            {
+                double lapsEst = FuelLapsRemaining;
+                if (lapsEst <= 0 || lapsEst >= 99 || RemainingLaps <= 0) return "";
+                if (lapsEst < RemainingLaps)
+                    return "PIT in ~" + ((int)Math.Ceiling(lapsEst)).ToString() + " laps";
+                return "";
+            }
+        }
+        public double BBNorm => Math.Min(1.0, Math.Max(0.0, (BrakeBias - 30.0) / 40.0));
+        public double TCNorm => Math.Min(1.0, TractionControlSetting / 12.0);
+        public double ABSNorm => Math.Min(1.0, AbsSettingVal / 12.0);
+        public string PositionDeltaDisplay
+        {
+            get
+            {
+                int d = PositionDelta;
+                if (d > 0) return "\u25B2 " + d.ToString();
+                if (d < 0) return "\u25BC " + Math.Abs(d).ToString();
+                return "";
+            }
+        }
+        public string LapDeltaDisplay
+        {
+            get
+            {
+                if (LastLapTime <= 0 || BestLapTime <= 0) return "";
+                double delta = LastLapTime - BestLapTime;
+                return (delta >= 0 ? "+" : "") + delta.ToString("F3");
+            }
+        }
+        public string SafetyRatingDisplay => SafetyRating > 0 ? SafetyRating.ToString("F2") : "\u2014";
+        public string GapAheadFormatted => GapAhead > 0 ? "-" + GapAhead.ToString("F2") : "\u2014";
+        public string GapBehindFormatted => GapBehind > 0 ? "+" + GapBehind.ToString("F2") : "\u2014";
+
+        // ── Driver aids (not simulated in detail, but exposed for DS.*) ────
+        public double TractionControlSetting { get; private set; } = 4;
+        public double AbsSettingVal          { get; private set; } = 3;
+
         public double TyreTempFL { get; private set; } = 196;
         public double TyreTempFR { get; private set; } = 199;
         public double TyreTempRL { get; private set; } = 190;
@@ -86,8 +162,8 @@ namespace K10MediaBroadcaster.Plugin.Engine
         public int    IRating        { get; private set; } = 2673;
         public double SafetyRating   { get; private set; } = 3.24;
 
-        public double GapAhead       { get; private set; } = 1.8;
-        public double GapBehind      { get; private set; } = 2.1;
+        public double GapAhead       { get; private set; } = 5.4;
+        public double GapBehind      { get; private set; } = 6.2;
         public string DriverAhead    { get; private set; } = "A. Martinez";
         public string DriverBehind   { get; private set; } = "J. Williams";
         public int    IRAhead        { get; private set; } = 2847;
@@ -286,11 +362,19 @@ namespace K10MediaBroadcaster.Plugin.Engine
             if (_rng.NextDouble() < 0.0002)
                 IncidentCount = Math.Min(17, IncidentCount + 1);
 
-            // Gaps drift slightly
-            if (_rng.NextDouble() < 0.05)
+            // Gaps drift with mean-reversion toward ~5s, occasional close battles
+            if (_rng.NextDouble() < 0.08)
             {
-                GapAhead  = Math.Max(0.2, GapAhead  + (_rng.NextDouble() - 0.48) * 0.3);
-                GapBehind = Math.Max(0.2, GapBehind + (_rng.NextDouble() - 0.48) * 0.3);
+                double driftA = (_rng.NextDouble() - 0.50) * 0.6;
+                double driftB = (_rng.NextDouble() - 0.50) * 0.6;
+                // Gentle pull back toward cruising gap (~5s)
+                driftA += (5.0 - GapAhead)  * 0.04;
+                driftB += (5.0 - GapBehind) * 0.04;
+                // Rare close encounter: ~2% chance to slam gap down
+                if (_rng.NextDouble() < 0.02) driftA = -(GapAhead * 0.6);
+                if (_rng.NextDouble() < 0.02) driftB = -(GapBehind * 0.6);
+                GapAhead  = Math.Max(0.3, Math.Min(12.0, GapAhead  + driftA));
+                GapBehind = Math.Max(0.3, Math.Min(12.0, GapBehind + driftB));
             }
 
             // ── Formation / pre-race demo sequence ──
@@ -452,8 +536,8 @@ namespace K10MediaBroadcaster.Plugin.Engine
             TyreWearFR = 0.79;
             TyreWearRL = 0.86;
             TyreWearRR = 0.85;
-            GapAhead   = 1.8;
-            GapBehind  = 2.1;
+            GapAhead   = 5.4;
+            GapBehind  = 6.2;
             DriverAhead  = "A. Martinez";
             DriverBehind = "J. Williams";
             IRAhead  = 2847;

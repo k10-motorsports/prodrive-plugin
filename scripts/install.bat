@@ -121,23 +121,6 @@ if exist "%PLUGIN_DIR%\dataset" (
     goto :error
 )
 
-:: -------------------------------------------------------------------
-:: 6. Copy dashboard templates
-:: -------------------------------------------------------------------
-
-echo  [3/3] Installing dashboard templates...
-
-if exist "%PLUGIN_DIR%\DashTemplates" (
-    xcopy /E /Y /I /Q "%PLUGIN_DIR%\DashTemplates" "%SIMHUB_DIR%\DashTemplates" >NUL
-    if !ERRORLEVEL! NEQ 0 (
-        echo        FAILED - could not copy dashboard templates.
-        goto :error
-    )
-    echo        OK - DashTemplates\k10 media broadcaster\
-    echo        OK - DashTemplates\k10 media broadcaster\
-) else (
-    echo        SKIPPED - DashTemplates folder not found.
-)
 
 :: -------------------------------------------------------------------
 :: 7. Done

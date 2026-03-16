@@ -253,6 +253,14 @@ app.whenReady().then(() => {
   globalShortcut.register('CommandOrControl+Shift+Q', () => {
     app.quit();
   });
+
+  globalShortcut.register('CommandOrControl+Shift+D', () => {
+    if (overlayWindow) overlayWindow.webContents.send('restart-demo');
+  });
+
+  globalShortcut.register('CommandOrControl+Shift+M', () => {
+    if (overlayWindow) overlayWindow.webContents.send('reset-trackmap');
+  });
 });
 
 app.on('will-quit', () => {

@@ -48,9 +48,11 @@ namespace K10MediaBroadcaster.Plugin.Engine
             // ── Normalized fields (all games) ────────────────────────────────
             s.SpeedKmh         = d.SpeedKmh;
             s.Rpms             = d.Rpms;
+            s.MaxRpm           = d.MaxRpm;
             s.Gear             = d.Gear ?? "N";
             s.Throttle         = d.Throttle;
             s.Brake            = d.Brake;
+            s.Clutch           = d.Clutch;
             s.FuelLevel        = d.Fuel;
             s.FuelPercent      = d.FuelPercent;
             s.CurrentLap       = d.CurrentLap;

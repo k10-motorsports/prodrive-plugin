@@ -385,20 +385,32 @@
   .settings-tab-content { display: none; }
   .settings-tab-content.active { display: block; }
 
-  .settings-hotkeys {
-    margin-top: 12px;
-    font-size: 9px;
-    color: hsla(0,0%,100%,0.3);
-    line-height: 1.6;
-    text-align: center;
+  /* ── Key Commands tab ── */
+  .settings-key-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid hsla(0,0%,100%,0.06);
+    font-size: 12px;
+    color: hsla(0,0%,100%,0.55);
   }
-  .settings-hotkeys kbd {
+  .settings-key-row:last-child { border-bottom: none; }
+  .settings-key-row kbd {
     background: hsla(0,0%,100%,0.08);
-    border: 1px solid hsla(0,0%,100%,0.15);
+    border: 1px solid hsla(0,0%,100%,0.18);
     border-radius: 3px;
-    padding: 1px 4px;
-    font-family: var(--ff);
-    font-size: 9px;
+    padding: 2px 5px;
+    font-family: var(--ff-mono, var(--ff));
+    font-size: 10px;
+    color: hsla(0,0%,100%,0.7);
+    line-height: 1.4;
+  }
+  .settings-key-row span {
+    margin-left: auto;
+    padding-left: 12px;
+    color: hsla(0,0%,100%,0.4);
+    font-size: 11px;
   }
 
   /* Hidden sections */

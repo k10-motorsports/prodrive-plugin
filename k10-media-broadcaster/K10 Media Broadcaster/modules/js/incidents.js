@@ -68,6 +68,17 @@
       // Hide penalty marker if already past it
       markerPen.style.opacity = incidentCount >= penLimit ? '0.3' : '0.7';
     }
+
+    // ── WebGL fire effect at thresholds ──
+    if (window.setIncidentsGL) {
+      if (toDQ === 0) {
+        window.setIncidentsGL('dq');
+      } else if (toPen === 0) {
+        window.setIncidentsGL('penalty');
+      } else {
+        window.setIncidentsGL('');
+      }
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════
