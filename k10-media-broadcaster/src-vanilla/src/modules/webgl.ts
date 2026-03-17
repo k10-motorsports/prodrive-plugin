@@ -17,14 +17,14 @@
 import { state } from '../state'
 
 // Make state.settings available as the legacy _settings global that webgl.js reads
-;(window as any)._settings = state.settings
+;(window as any)._settings = state.settings;
 
 // WebGL FX ENGINE
 
   // ═══════════════════════════════════════════════════════════════
   //  WebGL FX ENGINE — Tachometer + Pedal Histograms
   // ═══════════════════════════════════════════════════════════════
-  (function initWebGLFX() {
+  ;(function initWebGLFX() {
     'use strict';
 
     /* ── GL helpers ── */

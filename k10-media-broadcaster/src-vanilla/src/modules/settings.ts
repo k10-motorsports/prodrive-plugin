@@ -10,6 +10,7 @@ import { isRallyGame, applyGameMode } from './game-detect'
 // ─── Section element finder ───
 
 export function findSectionEls(sectionKey: string): HTMLElement[] {
+  if (!sectionKey) return []
   let el = document.getElementById(sectionKey)
   if (el) return [el]
   return Array.from(document.querySelectorAll('.' + sectionKey)) as HTMLElement[]

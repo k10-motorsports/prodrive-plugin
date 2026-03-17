@@ -6,11 +6,20 @@
  */
 
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const APP_DIR = path.resolve(__dirname, '..');
 
-export const DASHBOARD_PATH = `file://${path.resolve(__dirname, '..', 'dashboard.html')}`;
+export const DASHBOARD_PATHS = {
+  original: `file://${path.resolve(APP_DIR, 'dashboard.html')}`,
+  build: `file://${path.resolve(APP_DIR, 'dashboard-build.html')}`,
+  react: `file://${path.resolve(APP_DIR, 'dashboard-react.html')}`,
+};
+
+/** @deprecated Use DASHBOARD_PATHS.original */
+export const DASHBOARD_PATH = DASHBOARD_PATHS.original;
 
 /** Realistic mid-race telemetry snapshot */
 export const MOCK_TELEMETRY = {
@@ -61,6 +70,8 @@ export const MOCK_TELEMETRY = {
   'K10MediaBroadcaster.Plugin.Grid.SessionState': 4,
   'K10MediaBroadcaster.Plugin.GameId': 'iracing',
   'K10MediaBroadcaster.Plugin.SessionTypeName': 'Race',
+  'K10MediaBroadcaster.Plugin.DS.FuelPct': 47.3,
+  'K10MediaBroadcaster.Plugin.DS.FuelLapsRemaining': 9.1,
 };
 
 /** Demo mode telemetry — uses Demo.* keys instead */
@@ -111,10 +122,13 @@ export const MOCK_DEMO = {
  *
  * @param {import('@playwright/test').Page} page
  * @param {object} [data] - Override mock telemetry data (merged with MOCK_TELEMETRY)
+ * @param {object} [opts] - Options
+ * @param {string} [opts.dashboardPath] - Override the dashboard path (default: DASHBOARD_PATH)
  * @returns {Promise<void>}
  */
-export async function loadDashboard(page, data) {
+export async function loadDashboard(page, data, opts = {}) {
   const mockData = data ? { ...MOCK_TELEMETRY, ...data } : MOCK_TELEMETRY;
+  const dashPath = opts.dashboardPath || DASHBOARD_PATH;
 
   // Intercept all fetch requests to the plugin server and serve mock data
   await page.route(/k10mediabroadcaster/, async (route) => {
@@ -125,7 +139,29 @@ export async function loadDashboard(page, data) {
     });
   });
 
-  await page.goto(DASHBOARD_PATH, { waitUntil: 'load' });
+  await page.goto(dashPath, { waitUntil: 'load' });
+
+  // Inject car logo SVGs — Chromium blocks fetch() on file:// protocol,
+  // so loadCarLogos() silently fails. Load them from disk and inject directly.
+  // Must happen before polls so setCarLogo() finds the SVG content.
+  const logosDir = path.resolve(APP_DIR, 'images', 'logos');
+  try {
+    const logoFiles = fs.readdirSync(logosDir).filter(f => f.endsWith('.svg'));
+    const logoMap = {};
+    for (const f of logoFiles) {
+      logoMap[f.replace('.svg', '')] = fs.readFileSync(path.resolve(logosDir, f), 'utf-8');
+    }
+    await page.evaluate((logos) => {
+      if (typeof carLogos !== 'undefined') {
+        Object.assign(carLogos, logos);
+        // Reset last-car tracking so the next poll cycle re-applies the logo
+        if (typeof _lastCarModel !== 'undefined') _lastCarModel = null;
+        if (typeof _currentCarLogo !== 'undefined') _currentCarLogo = '';
+      }
+    }, logoMap);
+  } catch {
+    // logos dir may not exist for all dashboard variants — that's fine
+  }
 
   // Wait for at least 2 poll cycles to populate data
   await page.waitForTimeout(200);

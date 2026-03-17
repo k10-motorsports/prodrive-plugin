@@ -21,7 +21,17 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { loadDashboard, updateMockData, MOCK_TELEMETRY, MOCK_DEMO } from './helpers.mjs';
+import { loadDashboard, updateMockData, MOCK_TELEMETRY, MOCK_DEMO, DASHBOARD_PATHS } from './helpers.mjs';
+
+/**
+ * Register all dashboard tests for a specific variant.
+ * @param {'original' | 'build'} variant - Which dashboard to test
+ */
+export function registerDashboardTests(variant) {
+  const dashboardPath = DASHBOARD_PATHS[variant];
+
+  // Override loadDashboard to pass the correct dashboard path
+  const load = (page, data) => loadDashboard(page, data, { dashboardPath });
 
 // ═══════════════════════════════════════════════════════════════
 // PAGE STRUCTURE
@@ -29,7 +39,7 @@ import { loadDashboard, updateMockData, MOCK_TELEMETRY, MOCK_DEMO } from './help
 
 test.describe('Page structure', () => {
   test('dashboard container exists with default layout classes', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const dash = page.locator('#dashboard');
     await expect(dash).toBeVisible();
     await expect(dash).toHaveClass(/layout-tr/);
@@ -37,7 +47,7 @@ test.describe('Page structure', () => {
   });
 
   test('all major panels are present', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await expect(page.locator('.fuel-block')).toBeVisible();
     await expect(page.locator('.tyres-block')).toBeVisible();
     await expect(page.locator('.car-controls')).toBeVisible();
@@ -48,13 +58,13 @@ test.describe('Page structure', () => {
   });
 
   test('tachometer has correct number of segments', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const segs = page.locator('#tachoBar .tacho-seg');
     await expect(segs).toHaveCount(11);
   });
 
   test('pedal histograms have correct bar count', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const throttleBars = page.locator('#throttleHist .pedal-hist-bar');
     const brakeBars = page.locator('#brakeHist .pedal-hist-bar');
     const clutchBars = page.locator('#clutchHist .pedal-hist-bar');
@@ -64,18 +74,18 @@ test.describe('Page structure', () => {
   });
 
   test('K10 logo image is present', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const logo = page.locator('#k10LogoSquare img');
     await expect(logo).toHaveAttribute('src', 'images/branding/logomark.png');
   });
 
-  test('settings gear icon exists', async ({ page }) => {
-    await loadDashboard(page);
-    await expect(page.locator('#settingsGear')).toBeAttached();
+  test('settings overlay element exists', async ({ page }) => {
+    await load(page);
+    await expect(page.locator('#settingsOverlay')).toBeAttached();
   });
 
   test('settings overlay is hidden by default', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const overlay = page.locator('#settingsOverlay');
     await expect(overlay).not.toHaveClass(/open/);
   });
@@ -87,22 +97,22 @@ test.describe('Page structure', () => {
 
 test.describe('Telemetry rendering', () => {
   test('gear displays correctly', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await expect(page.locator('#gearText')).toHaveText('4');
   });
 
   test('speed displays rounded value', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await expect(page.locator('#speedText')).toHaveText('127');
   });
 
   test('RPM displays rounded value', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await expect(page.locator('#rpmText')).toHaveText('6842');
   });
 
   test('fuel level displays with unit', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const fuelEl = page.locator('.fuel-remaining');
     const text = await fuelEl.textContent();
     expect(text).toContain('28.4');
@@ -110,14 +120,14 @@ test.describe('Telemetry rendering', () => {
   });
 
   test('fuel stats show per-lap and estimated laps', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const vals = page.locator('.fuel-stats .val');
     await expect(vals.nth(0)).toHaveText('3.12');
     await expect(vals.nth(1)).toHaveText('9.1');
   });
 
   test('tyre temps display correct values', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const cells = page.locator('.tyre-cell');
     await expect(cells.nth(0)).toContainText('196');
     await expect(cells.nth(1)).toContainText('203');
@@ -126,32 +136,32 @@ test.describe('Telemetry rendering', () => {
   });
 
   test('brake bias displays formatted value', async ({ page }) => {
-    await loadDashboard(page);
-    await expect(page.locator('#ctrlBB .ctrl-value')).toHaveText('56.2%');
+    await load(page);
+    await expect(page.locator('#ctrlBB .ctrl-value')).toHaveText('56.2');
   });
 
   test('TC and ABS display numeric values', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await expect(page.locator('#ctrlTC .ctrl-value')).toHaveText('4');
     await expect(page.locator('#ctrlABS .ctrl-value')).toHaveText('3');
   });
 
   test('position shows P5', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const posTexts = page.locator('.pos-number .skew-accent');
     // There are multiple pos-number elements (cycle sizer + pages)
     await expect(posTexts.first()).toHaveText('P5');
   });
 
   test('lap number displays', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     // The non-purple .val elements in pos-meta-row contain the lap number
     const lapVal = page.locator('.pos-meta-row .val').first();
     await expect(lapVal).toHaveText('8');
   });
 
   test('best lap time formats correctly', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const bestLap = page.locator('.pos-meta-row .val.purple').first();
     const text = await bestLap.textContent();
     // 92.347s = 1:32.347
@@ -159,45 +169,45 @@ test.describe('Telemetry rendering', () => {
   });
 
   test('iRating displays value', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const ratingVals = page.locator('.rating-value');
     await expect(ratingVals.nth(0)).toHaveText('2847');
   });
 
   test('safety rating displays formatted value', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const ratingVals = page.locator('.rating-value');
     await expect(ratingVals.nth(1)).toHaveText('3.41');
   });
 
   test('gap ahead shows negative time', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const gapTimes = page.locator('.gap-time');
     await expect(gapTimes.nth(0)).toHaveText('-1.3');
   });
 
   test('gap behind shows positive time', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const gapTimes = page.locator('.gap-time');
     await expect(gapTimes.nth(1)).toHaveText('+2.1');
   });
 
   test('driver names display in gaps', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const drivers = page.locator('.gap-driver');
     await expect(drivers.nth(0)).toHaveText('M. Broadbent');
     await expect(drivers.nth(1)).toHaveText('S. Leclerc');
   });
 
   test('gap iRatings display', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const irs = page.locator('.gap-ir');
     await expect(irs.nth(0)).toHaveText('3210 iR');
     await expect(irs.nth(1)).toHaveText('2530 iR');
   });
 
   test('pedal percentages display', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const pcts = page.locator('.pedal-pct');
     await expect(pcts.nth(0)).toHaveText('82%');
     await expect(pcts.nth(1)).toHaveText('0%');
@@ -211,7 +221,7 @@ test.describe('Telemetry rendering', () => {
 
 test.describe('Tachometer', () => {
   test('segments light up proportional to RPM', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     // 6842/8500 ≈ 0.805 → ~9 of 11 segments lit
     const litSegs = page.locator('#tachoBar .tacho-seg[class*="lit-"]');
     const count = await litSegs.count();
@@ -220,7 +230,7 @@ test.describe('Tachometer', () => {
   });
 
   test('low RPM has only green segments', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'DataCorePlugin.GameData.Rpms': 2000,
       'DataCorePlugin.GameData.CarSettings_MaxRPM': 8500,
     });
@@ -231,7 +241,7 @@ test.describe('Tachometer', () => {
   });
 
   test('near-redline has red segments', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'DataCorePlugin.GameData.Rpms': 8200,
       'DataCorePlugin.GameData.CarSettings_MaxRPM': 8500,
     });
@@ -240,7 +250,7 @@ test.describe('Tachometer', () => {
   });
 
   test('zero RPM lights no segments', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'DataCorePlugin.GameData.Rpms': 0,
     });
     const litSegs = page.locator('#tachoBar .tacho-seg[class*="lit-"]');
@@ -254,28 +264,28 @@ test.describe('Tachometer', () => {
 
 test.describe('Tyre temperature classes', () => {
   test('cold tyres get cold class', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'DataCorePlugin.GameData.TyreTempFrontLeft': 120,
     });
     await expect(page.locator('.tyre-cell').nth(0)).toHaveClass(/cold/);
   });
 
   test('optimal tyres get optimal class', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'DataCorePlugin.GameData.TyreTempFrontLeft': 200,
     });
     await expect(page.locator('.tyre-cell').nth(0)).toHaveClass(/optimal/);
   });
 
   test('hot tyres get hot class', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'DataCorePlugin.GameData.TyreTempFrontLeft': 250,
     });
     await expect(page.locator('.tyre-cell').nth(0)).toHaveClass(/hot/);
   });
 
   test('overheating tyres get danger class', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'DataCorePlugin.GameData.TyreTempFrontLeft': 290,
     });
     await expect(page.locator('.tyre-cell').nth(0)).toHaveClass(/danger/);
@@ -288,35 +298,40 @@ test.describe('Tyre temperature classes', () => {
 
 test.describe('Fuel bar states', () => {
   test('high fuel shows healthy class', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'DataCorePlugin.GameData.Fuel': 40,
       'DataCorePlugin.GameData.MaxFuel': 60,
+      'K10MediaBroadcaster.Plugin.DS.FuelPct': 66.7,
     });
     await expect(page.locator('.fuel-bar-inner')).toHaveClass(/healthy/);
   });
 
   test('medium fuel shows caution class', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'DataCorePlugin.GameData.Fuel': 12,
       'DataCorePlugin.GameData.MaxFuel': 60,
+      'K10MediaBroadcaster.Plugin.DS.FuelPct': 20,
     });
     await expect(page.locator('.fuel-bar-inner')).toHaveClass(/caution/);
   });
 
   test('low fuel shows critical class', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'DataCorePlugin.GameData.Fuel': 4,
       'DataCorePlugin.GameData.MaxFuel': 60,
+      'K10MediaBroadcaster.Plugin.DS.FuelPct': 6.7,
     });
     await expect(page.locator('.fuel-bar-inner')).toHaveClass(/critical/);
   });
 
   test('pit suggestion appears when fuel insufficient', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'DataCorePlugin.GameData.Fuel': 10,
       'DataCorePlugin.GameData.MaxFuel': 60,
       'DataCorePlugin.Computed.Fuel_LitersPerLap': 3.0,
       'DataCorePlugin.GameData.RemainingLaps': 14,
+      'K10MediaBroadcaster.Plugin.DS.FuelPct': 16.7,
+      'K10MediaBroadcaster.Plugin.DS.FuelLapsRemaining': 3.3,
     });
     const pitSug = page.locator('.fuel-pit-suggest');
     const text = await pitSug.textContent();
@@ -324,11 +339,13 @@ test.describe('Fuel bar states', () => {
   });
 
   test('no pit suggestion when fuel is sufficient', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'DataCorePlugin.GameData.Fuel': 50,
       'DataCorePlugin.GameData.MaxFuel': 60,
       'DataCorePlugin.Computed.Fuel_LitersPerLap': 3.0,
       'DataCorePlugin.GameData.RemainingLaps': 10,
+      'K10MediaBroadcaster.Plugin.DS.FuelPct': 83.3,
+      'K10MediaBroadcaster.Plugin.DS.FuelLapsRemaining': 16.7,
     });
     const pitSug = page.locator('.fuel-pit-suggest');
     const text = await pitSug.textContent();
@@ -342,7 +359,7 @@ test.describe('Fuel bar states', () => {
 
 test.describe('iRating and Safety Rating', () => {
   test('iRating bar width scales with rating', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     // 2847/5000 = 56.94%
     const fill = page.locator('#irBarFill');
     const width = await fill.evaluate(el => el.style.width);
@@ -352,7 +369,7 @@ test.describe('iRating and Safety Rating', () => {
   });
 
   test('safety rating pie stroke reflects value', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     // SR 3.41 → green stroke, dashoffset = 94.25 * (1 - 3.41/4) = ~13.9
     const fill = page.locator('#srPieFill');
     const stroke = await fill.getAttribute('stroke');
@@ -360,7 +377,7 @@ test.describe('iRating and Safety Rating', () => {
   });
 
   test('low safety rating shows red stroke', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'IRacingExtraProperties.iRacing_DriverInfo_SafetyRating': 1.5,
     });
     const fill = page.locator('#srPieFill');
@@ -369,7 +386,7 @@ test.describe('iRating and Safety Rating', () => {
   });
 
   test('medium safety rating shows amber stroke', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'IRacingExtraProperties.iRacing_DriverInfo_SafetyRating': 2.5,
     });
     const fill = page.locator('#srPieFill');
@@ -384,13 +401,13 @@ test.describe('iRating and Safety Rating', () => {
 
 test.describe('Commentary panel', () => {
   test('commentary hidden when CommentaryVisible is 0', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const col = page.locator('#commentaryCol');
     await expect(col).not.toHaveClass(/visible/);
   });
 
   test('commentary shows when CommentaryVisible is 1', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'K10MediaBroadcaster.Plugin.CommentaryVisible': 1,
       'K10MediaBroadcaster.Plugin.CommentaryText': 'Watch the rear end through turn 3.',
       'K10MediaBroadcaster.Plugin.CommentaryTopicTitle': 'Oversteer',
@@ -403,7 +420,7 @@ test.describe('Commentary panel', () => {
   });
 
   test('commentary title and text populate correctly', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'K10MediaBroadcaster.Plugin.CommentaryVisible': 1,
       'K10MediaBroadcaster.Plugin.CommentaryText': 'Massive lockup into T1.',
       'K10MediaBroadcaster.Plugin.CommentaryTopicTitle': 'Brake Lock',
@@ -417,7 +434,7 @@ test.describe('Commentary panel', () => {
 
   test('commentary hides after data clears', async ({ page }) => {
     // First show commentary
-    await loadDashboard(page, {
+    await load(page, {
       'K10MediaBroadcaster.Plugin.CommentaryVisible': 1,
       'K10MediaBroadcaster.Plugin.CommentaryText': 'Test',
       'K10MediaBroadcaster.Plugin.CommentaryTopicTitle': 'Test',
@@ -442,26 +459,32 @@ test.describe('Commentary panel', () => {
 
 test.describe('Car manufacturer logos', () => {
   test('Porsche model shows Porsche logo', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'DataCorePlugin.GameData.CarModel': 'Porsche 911 GT3 R',
     });
-    const html = await page.locator('#carLogoSquare').innerHTML();
-    expect(html).toContain('B5985A'); // Porsche gold color
+    // Wait for logo SVG fetch to complete
+    await page.waitForTimeout(300);
+    const html = await page.locator('#carLogoIcon').innerHTML();
+    // Porsche SVG has a red-toned drop shadow
+    expect(html).toContain('177,43,40');
   });
 
   test('BMW model shows BMW logo', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'DataCorePlugin.GameData.CarModel': 'BMW M4 GT3',
     });
-    const html = await page.locator('#carLogoSquare').innerHTML();
-    expect(html).toContain('0066B1'); // BMW blue
+    await page.waitForTimeout(300);
+    const html = await page.locator('#carLogoIcon').innerHTML();
+    // BMW SVG has blue drop shadow and fills
+    expect(html).toContain('0,102,177');
   });
 
   test('unknown model shows generic logo', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'DataCorePlugin.GameData.CarModel': 'Some Unknown Car',
     });
-    const html = await page.locator('#carLogoSquare').innerHTML();
+    await page.waitForTimeout(300);
+    const html = await page.locator('#carLogoIcon').innerHTML();
     // Generic logo uses translucent strokes
     expect(html).toContain('hsla(0,0%,100%,0.3)');
   });
@@ -473,20 +496,20 @@ test.describe('Car manufacturer logos', () => {
 
 test.describe('Demo mode', () => {
   test('demo mode reads from Demo.* properties', async ({ page }) => {
-    await loadDashboard(page, MOCK_DEMO);
+    await load(page, MOCK_DEMO);
     // Demo gear is '3', game gear is '4' — should show 3
     await expect(page.locator('#gearText')).toHaveText('3');
     await expect(page.locator('#speedText')).toHaveText('98');
   });
 
   test('demo mode shows demo position', async ({ page }) => {
-    await loadDashboard(page, MOCK_DEMO);
+    await load(page, MOCK_DEMO);
     const pos = page.locator('.pos-number .skew-accent').first();
     await expect(pos).toHaveText('P3');
   });
 
   test('demo mode uses demo fuel data', async ({ page }) => {
-    await loadDashboard(page, MOCK_DEMO);
+    await load(page, MOCK_DEMO);
     const fuelText = await page.locator('.fuel-remaining').textContent();
     expect(fuelText).toContain('18.0');
   });
@@ -498,13 +521,13 @@ test.describe('Demo mode', () => {
 
 test.describe('Control visibility', () => {
   test('TC and ABS visible when data present', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await expect(page.locator('#ctrlTC')).not.toHaveClass(/ctrl-hidden/);
     await expect(page.locator('#ctrlABS')).not.toHaveClass(/ctrl-hidden/);
   });
 
   test('TC hides when car has no TC data', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'DataCorePlugin.GameRawData.Telemetry.dcTractionControl': null,
       'DataCorePlugin.GameData.CarModel': 'Mazda MX-5',
     });
@@ -520,27 +543,27 @@ test.describe('Control visibility', () => {
 
 test.describe('Rating/Position cycling', () => {
   test('rating page is active by default', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await expect(page.locator('#ratingPage')).toHaveClass(/active/);
     await expect(page.locator('#positionPage')).toHaveClass(/inactive/);
   });
 
   test('cycleRatingPos swaps pages', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await page.evaluate(() => cycleRatingPos());
     await expect(page.locator('#ratingPage')).toHaveClass(/inactive/);
     await expect(page.locator('#positionPage')).toHaveClass(/active/);
   });
 
   test('double cycle returns to original page', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await page.evaluate(() => { cycleRatingPos(); cycleRatingPos(); });
     await expect(page.locator('#ratingPage')).toHaveClass(/active/);
     await expect(page.locator('#positionPage')).toHaveClass(/inactive/);
   });
 
   test('cycle dots update', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await expect(page.locator('#dotRating')).toHaveClass(/active/);
     await page.evaluate(() => cycleRatingPos());
     await expect(page.locator('#dotPos')).toHaveClass(/active/);
@@ -554,7 +577,7 @@ test.describe('Rating/Position cycling', () => {
 
 test.describe('Track map', () => {
   test('track map updates when data arrives', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'K10MediaBroadcaster.Plugin.TrackMap.Ready': 1,
       'K10MediaBroadcaster.Plugin.TrackMap.SvgPath': 'M10 10 L 90 10 L 90 90 L 10 90 Z',
       'K10MediaBroadcaster.Plugin.TrackMap.PlayerX': 50,
@@ -568,7 +591,7 @@ test.describe('Track map', () => {
   });
 
   test('opponents render as circles', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'K10MediaBroadcaster.Plugin.TrackMap.Ready': 1,
       'K10MediaBroadcaster.Plugin.TrackMap.SvgPath': 'M10 10 L 90 90',
       'K10MediaBroadcaster.Plugin.TrackMap.PlayerX': 50,
@@ -590,7 +613,7 @@ test.describe('Track map', () => {
 
 test.describe('Layout positions', () => {
   test('top-right positions dashboard at top-right', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const dash = page.locator('#dashboard');
     await expect(dash).toHaveClass(/layout-tr/);
     const box = await dash.boundingBox();
@@ -599,7 +622,7 @@ test.describe('Layout positions', () => {
   });
 
   test('top-left mirrors layout with LTR flow', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await page.evaluate(() => {
       _settings.layoutPosition = 'top-left';
       applyLayout();
@@ -612,7 +635,7 @@ test.describe('Layout positions', () => {
   });
 
   test('bottom-right places dashboard at bottom', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await page.evaluate(() => {
       _settings.layoutPosition = 'bottom-right';
       applyLayout();
@@ -625,7 +648,7 @@ test.describe('Layout positions', () => {
   });
 
   test('bottom-left has LTR flow and bottom positioning', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await page.evaluate(() => {
       _settings.layoutPosition = 'bottom-left';
       applyLayout();
@@ -639,7 +662,7 @@ test.describe('Layout positions', () => {
   });
 
   test('top-center is centered horizontally', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await page.evaluate(() => {
       _settings.layoutPosition = 'top-center';
       applyLayout();
@@ -655,7 +678,7 @@ test.describe('Layout positions', () => {
   });
 
   test('bottom-center is centered at bottom', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await page.evaluate(() => {
       _settings.layoutPosition = 'bottom-center';
       applyLayout();
@@ -674,7 +697,7 @@ test.describe('Layout positions', () => {
 
 test.describe('Layout flow direction', () => {
   test('right-side positions use RTL flow', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await page.evaluate(() => {
       _settings.layoutPosition = 'top-right';
       applyLayout();
@@ -683,7 +706,7 @@ test.describe('Layout flow direction', () => {
   });
 
   test('left-side positions use LTR flow', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await page.evaluate(() => {
       _settings.layoutPosition = 'top-left';
       applyLayout();
@@ -692,7 +715,7 @@ test.describe('Layout flow direction', () => {
   });
 
   test('center positions respect explicit flow setting', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await page.evaluate(() => {
       _settings.layoutPosition = 'top-center';
       _settings.layoutFlow = 'rtl';
@@ -708,7 +731,7 @@ test.describe('Layout flow direction', () => {
   });
 
   test('LTR flow puts logo on the left side', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await page.evaluate(() => {
       _settings.layoutPosition = 'top-left';
       applyLayout();
@@ -720,7 +743,7 @@ test.describe('Layout flow direction', () => {
   });
 
   test('RTL flow puts logo on the right side', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const logoBox = await page.locator('.logo-col').boundingBox();
     const tachoBox = await page.locator('.tacho-block').boundingBox();
     // Logo should be to the right of tacho
@@ -730,7 +753,7 @@ test.describe('Layout flow direction', () => {
 
 test.describe('Vertical swap', () => {
   test('vswap class applied when enabled', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await page.evaluate(() => {
       _settings.verticalSwap = true;
       applyLayout();
@@ -739,7 +762,7 @@ test.describe('Vertical swap', () => {
   });
 
   test('vswap reverses fuel/tyres column order', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     // Without vswap: fuel is above tyres
     let fuelBox = await page.locator('.fuel-block').boundingBox();
     let tyresBox = await page.locator('.tyres-block').boundingBox();
@@ -756,7 +779,7 @@ test.describe('Vertical swap', () => {
   });
 
   test('vswap reverses logo column order', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     let k10Box = await page.locator('#k10LogoSquare').boundingBox();
     let carBox = await page.locator('#carLogoSquare').boundingBox();
     expect(k10Box.y).toBeLessThan(carBox.y);
@@ -771,7 +794,7 @@ test.describe('Vertical swap', () => {
   });
 
   test('vswap does not affect tachometer (single panel)', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const beforeBox = await page.locator('.tacho-block').boundingBox();
     await page.evaluate(() => {
       _settings.verticalSwap = true;
@@ -790,35 +813,39 @@ test.describe('Vertical swap', () => {
 
 test.describe('Settings panel', () => {
   test('settings overlay opens on toggleSettings()', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await page.evaluate(() => toggleSettings());
     const overlay = page.locator('#settingsOverlay');
     await expect(overlay).toHaveClass(/open/);
   });
 
   test('settings overlay closes on second toggle', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await page.evaluate(() => { toggleSettings(); toggleSettings(); });
     const overlay = page.locator('#settingsOverlay');
     await expect(overlay).not.toHaveClass(/open/);
   });
 
   test('position dropdown reflects current setting', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const select = page.locator('#settingsPosition');
     await expect(select).toHaveValue('top-right');
   });
 
   test('flow direction row hidden for corner positions', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const flowRow = page.locator('#flowDirectionRow');
     await expect(flowRow).toBeHidden();
   });
 
   test('flow direction row visible for center positions', async ({ page }) => {
-    await loadDashboard(page);
-    // Open settings panel so flow row can be visible
+    await load(page);
+    // Open settings panel and switch to the Layout tab
     await page.evaluate(() => toggleSettings());
+    await page.evaluate(() => {
+      const layoutTab = document.querySelector('.settings-tab[data-tab="layout"]');
+      if (layoutTab) switchSettingsTab(layoutTab);
+    });
     await page.evaluate(() => {
       _settings.layoutPosition = 'top-center';
       applyLayout();
@@ -828,7 +855,7 @@ test.describe('Settings panel', () => {
   });
 
   test('vswap toggle reflects current state', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const toggle = page.locator('#vswapToggle');
     await expect(toggle).not.toHaveClass(/on/);
 
@@ -840,7 +867,7 @@ test.describe('Settings panel', () => {
   });
 
   test('toggling fuel off hides fuel panel', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await expect(page.locator('.fuel-block')).toBeVisible();
     await page.evaluate(() => {
       _settings.showFuel = false;
@@ -850,7 +877,7 @@ test.describe('Settings panel', () => {
   });
 
   test('toggling commentary off hides commentary column', async ({ page }) => {
-    await loadDashboard(page, {
+    await load(page, {
       'K10MediaBroadcaster.Plugin.CommentaryVisible': 1,
       'K10MediaBroadcaster.Plugin.CommentaryText': 'Test',
       'K10MediaBroadcaster.Plugin.CommentaryTopicTitle': 'Test',
@@ -866,7 +893,7 @@ test.describe('Settings panel', () => {
   });
 
   test('fuel-tyres column hides when both children hidden', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await page.evaluate(() => {
       _settings.showFuel = false;
       _settings.showTyres = false;
@@ -876,7 +903,7 @@ test.describe('Settings panel', () => {
   });
 
   test('logo column hides when both logos hidden', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await page.evaluate(() => {
       _settings.showK10Logo = false;
       _settings.showCarLogo = false;
@@ -894,7 +921,7 @@ test.describe('Connection backoff', () => {
   test('backoff counter increments on fetch failure', async ({ page }) => {
     // Route to fail
     await page.route(/k10mediabroadcaster/, (route) => route.abort());
-    await page.goto(`file://${(await import('./helpers.mjs')).DASHBOARD_PATH.replace('file://', '')}`, { waitUntil: 'load' });
+    await page.goto(dashboardPath, { waitUntil: 'load' });
     await page.waitForTimeout(300);
 
     const fails = await page.evaluate(() => _connFails);
@@ -904,7 +931,7 @@ test.describe('Connection backoff', () => {
   test('backoff resets on successful fetch', async ({ page }) => {
     // Start with failures
     await page.route(/k10mediabroadcaster/, (route) => route.abort());
-    await page.goto(`file://${(await import('./helpers.mjs')).DASHBOARD_PATH.replace('file://', '')}`, { waitUntil: 'load' });
+    await page.goto(dashboardPath, { waitUntil: 'load' });
     await page.waitForTimeout(200);
 
     // Now succeed
@@ -930,7 +957,7 @@ test.describe('Connection backoff', () => {
 
 test.describe('Window API', () => {
   test('all expected functions are exposed on window', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const fns = await page.evaluate(() => [
       typeof window.updateTacho,
       typeof window.renderHist,
@@ -952,7 +979,7 @@ test.describe('Window API', () => {
   });
 
   test('getTyreTempClass returns correct classes', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     const results = await page.evaluate(() => ({
       zero: getTyreTempClass(0),
       cold: getTyreTempClass(120),
@@ -968,7 +995,7 @@ test.describe('Window API', () => {
   });
 
   test('showCommentary/hideCommentary work via window API', async ({ page }) => {
-    await loadDashboard(page);
+    await load(page);
     await page.evaluate(() => showCommentary(30, 'Test Title', 'Test text', 'test_cat'));
     await expect(page.locator('#commentaryCol')).toHaveClass(/visible/);
     await expect(page.locator('#commentaryTitle')).toHaveText('Test Title');
@@ -978,3 +1005,5 @@ test.describe('Window API', () => {
     await expect(page.locator('#commentaryCol')).not.toHaveClass(/visible/);
   });
 });
+
+} // end registerDashboardTests

@@ -36,6 +36,7 @@ import './modules/spotter'
 import './modules/fps'
 import './modules/webgl'
 import './modules/commentary-viz'
+import './modules/window-globals'
 import { initPollEngine } from './modules/poll-engine'
 
 // Start the poll engine (loads settings, connects Discord, starts polling)
