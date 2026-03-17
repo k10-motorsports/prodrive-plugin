@@ -32,6 +32,11 @@
     <Resource Include="icon.png" />
   </ItemGroup>
 
+  <!-- WinForms — needed for FolderBrowserDialog in settings panel -->
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
   <!-- SimHub plugin DLLs — must NOT be copied to output (Private=False) -->
   <ItemGroup>
     <Reference Include="GameReaderCommon">

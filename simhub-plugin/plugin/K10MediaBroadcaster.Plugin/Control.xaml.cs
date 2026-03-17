@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
 using SimHub.Plugins;
+using WinForms = System.Windows.Forms;
 
 namespace K10MediaBroadcaster.Plugin
 {
@@ -16,6 +18,7 @@ namespace K10MediaBroadcaster.Plugin
             _plugin = plugin;
             InitializeComponent();
             LoadSettings();
+            RefreshTrackLists();
             _loading = false;
         }
 
@@ -109,6 +112,62 @@ namespace K10MediaBroadcaster.Plugin
                 TopicsPathBox.Text = dlg.FileName;
                 _plugin.Settings.TopicsFilePath = dlg.FileName;
                 SaveAndApply();
+            }
+        }
+
+        private void RefreshTrackLists()
+        {
+            try
+            {
+                var bundled = _plugin.GetBundledTrackIds();
+                BundledTracksList.Text = bundled.Count > 0
+                    ? string.Join("\n", bundled) + $"\n\n({bundled.Count} track{(bundled.Count == 1 ? "" : "s")})"
+                    : "(none)";
+
+                var local = _plugin.GetLocalOnlyTrackIds();
+                LocalTracksList.Text = local.Count > 0
+                    ? string.Join("\n", local) + $"\n\n({local.Count} track{(local.Count == 1 ? "" : "s")})"
+                    : "(none — all local tracks are already compiled)";
+
+                ExportTracksBtn.IsEnabled = local.Count > 0;
+            }
+            catch (Exception ex)
+            {
+                BundledTracksList.Text = $"Error: {ex.Message}";
+                LocalTracksList.Text = $"Error: {ex.Message}";
+            }
+        }
+
+        private void RefreshTracks_Click(object sender, RoutedEventArgs e)
+        {
+            RefreshTrackLists();
+            ExportStatusLabel.Text = "";
+        }
+
+        private void ExportTracks_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new WinForms.FolderBrowserDialog
+            {
+                Description = "Select the trackmaps folder in your repo (e.g. k10-media-broadcaster-data\\trackmaps)",
+                ShowNewFolderButton = true
+            };
+
+            if (dlg.ShowDialog() == WinForms.DialogResult.OK)
+            {
+                try
+                {
+                    int count = _plugin.ExportLocalMapsTo(dlg.SelectedPath);
+                    ExportStatusLabel.Text = count > 0
+                        ? $"Saved {count} track map{(count == 1 ? "" : "s")} to {dlg.SelectedPath}"
+                        : "No new tracks to export.";
+                    RefreshTrackLists();
+                }
+                catch (Exception ex)
+                {
+                    ExportStatusLabel.Foreground = new System.Windows.Media.SolidColorBrush(
+                        System.Windows.Media.Color.FromRgb(0xcf, 0x6f, 0x6f));
+                    ExportStatusLabel.Text = $"Export failed: {ex.Message}";
+                }
             }
         }
 

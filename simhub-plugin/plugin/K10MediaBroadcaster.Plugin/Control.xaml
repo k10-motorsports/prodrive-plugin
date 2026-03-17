@@ -101,6 +101,53 @@
         <TextBlock Text="Use ThumbsUp / ThumbsDown actions in Control Mapper to rate prompts."
                    FontSize="10" Foreground="#666" TextWrapping="Wrap" Margin="0,0,0,20"/>
 
+        <!-- Track Maps -->
+        <TextBlock Text="TRACK MAPS" FontSize="11" FontWeight="Bold"
+                   Foreground="#888" Margin="0,0,0,6"/>
+
+        <TextBlock Text="Compiled tracks (bundled with plugin):" FontSize="11"
+                   Foreground="#999" Margin="0,0,0,4"/>
+        <Border Background="#222" CornerRadius="4" Padding="8" Margin="0,0,0,8"
+                MaxHeight="140">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <TextBlock x:Name="BundledTracksList"
+                           Text="(loading…)"
+                           Foreground="#aaa" FontSize="11" FontFamily="Consolas"
+                           TextWrapping="Wrap"/>
+            </ScrollViewer>
+        </Border>
+
+        <TextBlock Text="Local-only tracks (not yet compiled):" FontSize="11"
+                   Foreground="#999" Margin="0,0,0,4"/>
+        <Border Background="#2a2218" CornerRadius="4" Padding="8" Margin="0,0,0,8"
+                MaxHeight="140">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <TextBlock x:Name="LocalTracksList"
+                           Text="(loading…)"
+                           Foreground="#d4a856" FontSize="11" FontFamily="Consolas"
+                           TextWrapping="Wrap"/>
+            </ScrollViewer>
+        </Border>
+
+        <Grid Margin="0,0,0,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Button x:Name="ExportTracksBtn" Grid.Column="0"
+                    Content="Save local tracks to repo…"
+                    Background="#333" Foreground="White" BorderBrush="#555"
+                    Padding="10,4" FontSize="12"
+                    Click="ExportTracks_Click"/>
+            <Button x:Name="RefreshTracksBtn" Grid.Column="1"
+                    Content="Refresh"
+                    Background="#333" Foreground="White" BorderBrush="#555"
+                    Padding="10,4" Margin="8,0,0,0" FontSize="12"
+                    Click="RefreshTracks_Click"/>
+        </Grid>
+        <TextBlock x:Name="ExportStatusLabel"
+                   Text="" FontSize="10" Foreground="#6fcf6f" Margin="0,0,0,20"/>
+
         <!-- Status -->
         <Border Background="#0d3d0d" CornerRadius="4" Padding="12,8">
             <TextBlock x:Name="StatusText"
