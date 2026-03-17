@@ -4,6 +4,16 @@
  */
 
 /**
+ * Discord user data returned from Electron IPC OAuth2 flow.
+ */
+export interface DiscordUser {
+  id: string;
+  username: string;
+  globalName?: string;
+  avatar?: string;
+}
+
+/**
  * Layout position in the viewport.
  */
 export type LayoutPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top-center' | 'bottom-center';

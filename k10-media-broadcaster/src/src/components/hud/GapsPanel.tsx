@@ -75,7 +75,7 @@ export default function GapsPanel() {
           </div>
           <div className="gap-driver">{telemetry.driverAhead || '—'}</div>
           <div className="gap-ir">
-            {telemetry.irAhead > 0 ? `iR: ${telemetry.irAhead}` : ''}
+            {telemetry.irAhead > 0 ? `${telemetry.irAhead} iR` : ''}
           </div>
         </div>
       </div>
@@ -88,7 +88,7 @@ export default function GapsPanel() {
           </div>
           <div className="gap-driver">{telemetry.driverBehind || '—'}</div>
           <div className="gap-ir">
-            {telemetry.irBehind > 0 ? `iR: ${telemetry.irBehind}` : ''}
+            {telemetry.irBehind > 0 ? `${telemetry.irBehind} iR` : ''}
           </div>
         </div>
       </div>

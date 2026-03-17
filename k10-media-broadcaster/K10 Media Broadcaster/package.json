@@ -9,10 +9,11 @@
     "start": "electron .",
     "dev": "electron . --dev",
     "start:safe": "cross-env K10_FORCE_SOFTWARE=1 electron .",
-    "build": "npm install electron-builder --save-dev && electron-builder",
-    "build:mac": "npm install electron-builder --save-dev && electron-builder --mac",
-    "build:win": "npm install electron-builder --save-dev && electron-builder --win",
-    "dist": "npm install electron-builder --save-dev && electron-builder --mac --win"
+    "rebuild-react": "cd ../src && npm install && npx vite build",
+    "build": "npm run rebuild-react && npm install electron-builder --save-dev && electron-builder",
+    "build:mac": "npm run rebuild-react && npm install electron-builder --save-dev && electron-builder --mac",
+    "build:win": "npm run rebuild-react && npm install electron-builder --save-dev && electron-builder --win",
+    "dist": "npm run rebuild-react && npm install electron-builder --save-dev && electron-builder --mac --win"
   },
   "build": {
     "appId": "org.k10mediabroadcaster.broadcaster",
@@ -21,6 +22,8 @@
       "main.js",
       "preload.js",
       "dashboard.html",
+      "dashboard-react.html",
+      "modules/**/*",
       "images/**/*"
     ],
     "icon": "images/branding/icon.png",

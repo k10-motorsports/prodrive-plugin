@@ -137,9 +137,21 @@ function parseTelemetry(raw: TelemetryProps): ParsedTelemetry {
     // Driver Info
     driverFirstName: raw['K10MediaBroadcaster.Plugin.DriverFirstName'] || '',
     driverLastName: raw['K10MediaBroadcaster.Plugin.DriverLastName'] || '',
+    driverDisplayName: (() => {
+      const first = raw['K10MediaBroadcaster.Plugin.DriverFirstName'] || '';
+      const last = raw['K10MediaBroadcaster.Plugin.DriverLastName'] || '';
+      if (first && last) return first.charAt(0) + '. ' + last;
+      if (last) return last;
+      return 'YOU';
+    })(),
 
     // Flag
     flagState: raw['currentFlagState'] || '',
+
+    // Flag colors for grid module (from country flags data)
+    flagColor1: raw['K10MediaBroadcaster.Plugin.Grid.FlagColor1'] || raw['K10MediaBroadcaster.Plugin.Demo.Grid.FlagColor1'] || '',
+    flagColor2: raw['K10MediaBroadcaster.Plugin.Grid.FlagColor2'] || raw['K10MediaBroadcaster.Plugin.Demo.Grid.FlagColor2'] || '',
+    flagColor3: raw['K10MediaBroadcaster.Plugin.Grid.FlagColor3'] || raw['K10MediaBroadcaster.Plugin.Demo.Grid.FlagColor3'] || '',
 
     // Grid State
     sessionState: v('K10MediaBroadcaster.Plugin.Grid.SessionState', 'Demo.Grid.SessionState') || '',
@@ -197,18 +209,14 @@ export function TelemetryProvider({
   });
 
   // Track demo mode state
-  const demoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const demoFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const demoRafRef = useRef<number | null>(null);
   const demoStartRef = useRef<number>(0);
   const isInDemoRef = useRef(false);
 
-  // Stop demo sequence
+  // Stop demo sequence (does NOT clear the fallback timer)
   const stopDemo = () => {
     isInDemoRef.current = false;
-    if (demoTimerRef.current) {
-      clearTimeout(demoTimerRef.current);
-      demoTimerRef.current = null;
-    }
     if (demoRafRef.current) {
       cancelAnimationFrame(demoRafRef.current);
       demoRafRef.current = null;
@@ -233,13 +241,13 @@ export function TelemetryProvider({
 
   // Initialize client and polling on mount
   useEffect(() => {
+    console.log('[K10] TelemetryProvider mount — connecting to', settings.simhubUrl);
     const client = createTelemetryClient(settings.simhubUrl, {
       pollMs: 33, // ~30fps
       timeoutMs: 2000,
       maxBackoffMs: 10000,
       onStatusChange: (status) => {
         setConnectionStatus(status);
-        // Don't stop demo on connect — the poll callback checks plugin DemoMode
       },
     });
 
@@ -270,18 +278,28 @@ export function TelemetryProvider({
       })
       .then((stopFn) => {
         stopPollingRef.current = stopFn;
+        console.log('[K10] Polling started');
+      })
+      .catch((err) => {
+        console.warn('[K10] Polling failed to start:', err);
+        if (!isInDemoRef.current) startDemo();
       });
 
-    // After 5 seconds of no connection, start demo mode
-    demoTimerRef.current = setTimeout(() => {
-      const currentStats = client.getStats();
-      if (currentStats.connectedCount === 0) {
+    // After 3 seconds of no connection, start demo mode
+    // (Use a separate ref so StrictMode cleanup doesn't kill it)
+    const fallbackTimer = setTimeout(() => {
+      console.log('[K10] Demo fallback timer fired, connectedCount:', client.getStats().connectedCount);
+      if (client.getStats().connectedCount === 0 && !isInDemoRef.current) {
+        console.log('[K10] No SimHub connection — starting demo');
         startDemo();
       }
-    }, 5000);
+    }, 3000);
+    demoFallbackTimerRef.current = fallbackTimer;
 
     // Cleanup on unmount or settings change
     return () => {
+      console.log('[K10] TelemetryProvider cleanup');
+      clearTimeout(fallbackTimer);
       stopDemo();
       if (stopPollingRef.current) {
         stopPollingRef.current();

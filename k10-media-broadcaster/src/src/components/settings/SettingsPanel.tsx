@@ -1,9 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSettings } from '@hooks/useSettings';
-import type { LayoutPosition, SecondaryLayout } from '../../types/settings';
+import type { LayoutPosition, SecondaryLayout, DiscordUser } from '../../types/settings';
 import styles from './SettingsPanel.module.css';
 
 type TabType = 'sections' | 'layout' | 'connections' | 'keys' | 'system';
+
+const DISCORD_GUILD_INVITE = 'https://discord.gg/k10mediabroadcaster';
+
+const DISCORD_ICON_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.947 2.418-2.157 2.418z"/></svg>';
 
 /**
  * SettingsPanel: Overlay settings UI
@@ -13,6 +17,73 @@ export function SettingsPanel() {
   const { settings, updateSetting } = useSettings();
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('sections');
+  const [discordUser, setDiscordUser] = useState<DiscordUser | null>(null);
+  const [discordConnecting, setDiscordConnecting] = useState(false);
+  const [discordError, setDiscordError] = useState('');
+
+  // Load Discord user state on mount
+  useEffect(() => {
+    const k10 = (window as any).k10;
+    (async () => {
+      // Try Electron IPC first
+      if (k10?.getDiscordUser) {
+        try {
+          const user = await k10.getDiscordUser();
+          if (user?.id) { setDiscordUser(user); return; }
+        } catch { /* ok */ }
+      }
+      // Fallback: check settings stored in localStorage
+      try {
+        const saved = JSON.parse(localStorage.getItem('k10-settings') || '{}');
+        if (saved.discordUser?.id) setDiscordUser(saved.discordUser);
+      } catch { /* ok */ }
+    })();
+  }, []);
+
+  const connectDiscord = useCallback(async () => {
+    if (discordConnecting) return;
+    const k10 = (window as any).k10;
+    if (!k10?.discordConnect) {
+      openDiscordInvite();
+      return;
+    }
+    setDiscordConnecting(true);
+    setDiscordError('');
+    try {
+      const result = await k10.discordConnect();
+      if (result?.success && result.user) {
+        setDiscordUser(result.user);
+        // Persist to settings
+        try {
+          const saved = JSON.parse(localStorage.getItem('k10-settings') || '{}');
+          saved.discordUser = result.user;
+          localStorage.setItem('k10-settings', JSON.stringify(saved));
+        } catch { /* ok */ }
+      } else {
+        setDiscordError(result?.error || 'Connection failed');
+        setTimeout(() => setDiscordError(''), 3000);
+      }
+    } catch (err) {
+      console.error('[K10] Discord connect error:', err);
+      setDiscordError('Connection failed');
+      setTimeout(() => setDiscordError(''), 3000);
+    } finally {
+      setDiscordConnecting(false);
+    }
+  }, [discordConnecting]);
+
+  const disconnectDiscord = useCallback(async () => {
+    const k10 = (window as any).k10;
+    if (k10?.discordDisconnect) {
+      await k10.discordDisconnect();
+    }
+    setDiscordUser(null);
+    try {
+      const saved = JSON.parse(localStorage.getItem('k10-settings') || '{}');
+      delete saved.discordUser;
+      localStorage.setItem('k10-settings', JSON.stringify(saved));
+    } catch { /* ok */ }
+  }, []);
 
   // Listen for Electron IPC settings-mode event (main process catches the global hotkey)
   useEffect(() => {
@@ -36,6 +107,15 @@ export function SettingsPanel() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  const openDiscordInvite = () => {
+    const k10 = (window as any).k10;
+    if (k10?.openExternal) {
+      k10.openExternal(DISCORD_GUILD_INVITE);
+    } else {
+      window.open(DISCORD_GUILD_INVITE, '_blank');
+    }
+  };
 
   const handleClose = () => setIsOpen(false);
 
@@ -340,8 +420,80 @@ export function SettingsPanel() {
           </div>
 
           <div className={styles.groupLabel}>Discord</div>
-          <div className={styles.hint}>
-            Discord integration coming soon
+          <div className="conn-card">
+            <div className="conn-card-header">
+              <div className="conn-card-icon discord">
+                <span dangerouslySetInnerHTML={{ __html: DISCORD_ICON_SVG }} style={{ color: '#5865F2', width: 18, height: 18, display: 'flex' }} />
+              </div>
+              <div>
+                <div className="conn-card-title">Discord</div>
+                <div className="conn-card-subtitle">Connect to the K10 community server</div>
+              </div>
+            </div>
+
+            {/* Not connected state */}
+            {!discordUser && (
+              <div>
+                <div className="conn-card-status">
+                  <div className={`conn-dot ${discordError ? 'red' : 'red'}`} />
+                  <div className="conn-status-text">
+                    {discordError
+                      ? <><strong style={{ color: 'hsl(0,75%,60%)' }}>Failed</strong> — {discordError}</>
+                      : 'Not connected'
+                    }
+                  </div>
+                </div>
+                <div className="conn-card-detail">
+                  Connect your Discord account to join the K10 Media Broadcaster community and unlock future features for authenticated users.
+                </div>
+                <div className="conn-card-actions">
+                  <button
+                    className="conn-btn discord-btn"
+                    onClick={connectDiscord}
+                    disabled={discordConnecting}
+                  >
+                    {discordConnecting ? 'Connecting...' : (
+                      <><span dangerouslySetInnerHTML={{ __html: DISCORD_ICON_SVG }} style={{ width: 12, height: 12, display: 'inline-flex', verticalAlign: '-1px', marginRight: 4 }} /> Connect Discord</>
+                    )}
+                  </button>
+                  <button className="conn-btn invite-btn" onClick={openDiscordInvite}>
+                    Join Server
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Connected state */}
+            {discordUser && (
+              <div>
+                <div className="conn-card-status">
+                  <div className="conn-dot green" />
+                  <div className="conn-status-text"><strong>Connected</strong></div>
+                </div>
+                <div className="conn-user-info">
+                  <div className="conn-user-avatar">
+                    {discordUser.avatar && (
+                      <img
+                        src={`https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png?size=64`}
+                        alt={discordUser.globalName || discordUser.username}
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <div className="conn-user-name">{discordUser.globalName || discordUser.username}</div>
+                    <div className="conn-user-id">{discordUser.id}</div>
+                  </div>
+                </div>
+                <div className="conn-card-actions">
+                  <button className="conn-btn invite-btn" onClick={openDiscordInvite}>
+                    Join Server
+                  </button>
+                  <button className="conn-btn disconnect-btn" onClick={disconnectDiscord}>
+                    Disconnect
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

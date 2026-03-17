@@ -162,7 +162,8 @@ export default function PedalsPanel() {
           {throttleHist.map((value, i) => (
             <div
               key={i}
-              style={{ height: `${value * 100}%` }}
+              className={`pedal-hist-bar throttle${i === HISTORY_LENGTH - 1 ? ' live' : ''}`}
+              style={{ height: `${Math.max(1, value * 100)}%` }}
             />
           ))}
         </div>
@@ -170,7 +171,8 @@ export default function PedalsPanel() {
           {brakeHist.map((value, i) => (
             <div
               key={i}
-              style={{ height: `${value * 100}%` }}
+              className={`pedal-hist-bar brake${i === HISTORY_LENGTH - 1 ? ' live' : ''}`}
+              style={{ height: `${Math.max(1, value * 100)}%` }}
             />
           ))}
         </div>
@@ -178,7 +180,8 @@ export default function PedalsPanel() {
           {clutchHist.map((value, i) => (
             <div
               key={i}
-              style={{ height: `${value * 100}%` }}
+              className={`pedal-hist-bar clutch${i === HISTORY_LENGTH - 1 ? ' live' : ''}`}
+              style={{ height: `${Math.max(1, value * 100)}%` }}
             />
           ))}
         </div>

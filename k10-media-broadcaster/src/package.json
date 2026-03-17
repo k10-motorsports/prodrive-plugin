@@ -11,6 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:screenshots": "playwright test",
+    "screenshots": "node test/screenshots/demo-screenshots.mjs",
+    "screenshots:quick": "node test/screenshots/demo-screenshots.mjs --quick",
     "lint": "eslint . --ext ts,tsx"
   },
   "dependencies": {

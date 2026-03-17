@@ -481,3 +481,136 @@ Change `POLL_MS` in `config.js` (default: 33ms = 30fps).
 1. Add shader section in `webgl.js` (before master FX loop)
 2. Follow pattern: `initGL('canvasId')` -> shader source -> compile -> `window._*FXFrame(dt)` -> `window.set*`
 3. Add to master FX loop: `if (window._*FXFrame) window._*FXFrame(dt);`
+
+---
+
+## React Dashboard (`dashboard-react.html`)
+
+The React dashboard is a **parallel implementation** of the vanilla `dashboard.html` HUD, built with React 19 + TypeScript + Vite and compiled to a single self-contained HTML file. It must remain in **functional parity** with `dashboard.html` — every visual, data, and behavioral feature present in the vanilla version should be reproduced in the React version, and vice versa.
+
+### File Layout
+
+```
+src/                                    <- React source root (build with `npm run build`)
++-- index.html                          <- Vite entry point
++-- vite.config.ts                      <- vite-plugin-singlefile, electron-compat post-process
++-- src/
+    +-- main.tsx                        <- App entry, mounts <Dashboard />
+    +-- App.tsx                         <- Root component
+    +-- types/
+    |   +-- telemetry.ts                <- TelemetryProps (raw API) + ParsedTelemetry (normalized)
+    +-- hooks/
+    |   +-- useTelemetry.tsx            <- Polling hook, parses raw props -> ParsedTelemetry
+    +-- lib/
+    |   +-- demo-sequence.ts            <- Demo mode timeline (mirrors DemoTelemetryProvider.cs)
+    |   +-- bathurst-map.ts             <- Bathurst SVG path + getTrackPosition() for demo
+    +-- styles/
+    |   +-- global.css                  <- CSS variables, base styles (mirrors base.css + effects.css)
+    |   +-- components.module.css       <- Component-scoped styles
+    +-- components/
+        +-- Dashboard.tsx               <- Root HUD layout
+        +-- hud/
+        |   +-- Tachometer.tsx          <- RPM bar segments (mirrors webgl-helpers.js tachometer section)
+        |   +-- PedalsPanel.tsx         <- Pedal histograms (mirrors webgl-helpers.js pedal section)
+        |   +-- TrackMaps.tsx           <- Full + zoom SVG maps (mirrors poll-engine.js map section)
+        |   +-- GapsPanel.tsx           <- Ahead/Behind gaps (mirrors poll-engine.js gaps section)
+        |   +-- PositionPanel.tsx       <- Position, delta, iRating cycle (mirrors poll-engine.js position)
+        |   +-- CommentaryPanel.tsx     <- Commentary card + icons (mirrors commentary-viz.js)
+        +-- panels/
+        |   +-- LeaderboardPanel.tsx    <- Leaderboard + sparklines (mirrors leaderboard.js)
+        |   +-- DatastreamPanel.tsx     <- G-force diamond + yaw trail (mirrors datastream.js)
+        +-- overlays/
+            +-- GridModule.tsx          <- Formation lap / start lights (mirrors formation.js)
+            +-- RaceEndScreen.tsx       <- Race finish screen (mirrors race-end.js)
+```
+
+**Build command:** `cd src && npm run build`
+**Output:** `K10 Media Broadcaster/dashboard-react.html` (~420KB, single inlined file)
+
+---
+
+### Functional Parity Rules
+
+When making **any** change to the vanilla dashboard or the React dashboard, the equivalent change **must** be applied to the other implementation. The following table maps vanilla modules to their React counterparts:
+
+| Vanilla (`modules/js/`)      | React component                          | What must stay in sync                                      |
+|------------------------------|------------------------------------------|-------------------------------------------------------------|
+| `webgl-helpers.js` (tachometer) | `hud/Tachometer.tsx`                 | Segment count (11), color thresholds (0.55 / 0.73 / 0.91), pulse classes |
+| `webgl-helpers.js` (pedals)  | `hud/PedalsPanel.tsx`                    | 20-bar histogram, CSS classes `pedal-hist-bar throttle/brake/clutch`, `live` class on last bar |
+| `webgl-helpers.js` (track map) | `hud/TrackMaps.tsx`                    | Low-pass smoothing (α=0.45 / α=0.08 on jump >20), viewBox clamp, SF marker, opponent proximity `close` class |
+| `leaderboard.js`             | `panels/LeaderboardPanel.tsx`            | Step sparklines, gap format (`-1.2s` / `+3.4s`), iRating `2.8k` format, lap time color classes |
+| `datastream.js`              | `panels/DatastreamPanel.tsx`             | G-force diamond (maxG=3, r=28, DPR-aware), yaw ring buffer (80 samples), gradient fill waveform, centered yaw bar |
+| `race-end.js`                | `overlays/RaceEndScreen.tsx`             | Tint classes (`re-tint-gold/silver/bronze/green/neutral/purple`), clean race threshold (≤4 incidents), title text |
+| `formation.js`               | `overlays/GridModule.tsx`                | Grid dot count, `gridded` class, countdown text (PIT/WARM/FORM/GRID/PACE/READY), start lights phases 1-6 |
+| `commentary-viz.js` / `webgl-helpers.js` (icons) | `hud/CommentaryPanel.tsx` | Stroke-based SVG icons (35+), hue overrides for heat/wear/best topics, scroll overflow animation |
+| `poll-engine.js` (position)  | `hud/PositionPanel.tsx`                  | Position delta from first valid position, ▲/▼ indicators, iR/SR page cycle |
+| `poll-engine.js` (gaps)      | `hud/GapsPanel.tsx`                      | Session-aware mode (race: ahead/behind, non-race: best/last lap), `iR` suffix format |
+| `demo-sequence.ts` (React)   | `DemoTelemetryProvider.cs` (C#)          | Timeline phases, lap counts, session states — keep in rough sync when adding new demo features |
+
+---
+
+### Key Architectural Differences
+
+**Layout:** The vanilla dashboard uses a fixed CSS grid defined in `dashboard.css`. The React version externalizes layout as user-configurable settings (panel position classes injected via props). **Do not hard-code layout** in the React components — accept `posClasses` / `panelStyle` props.
+
+**WebGL shaders:** The vanilla version uses 10 WebGL2 shader programs (`webgl.js`) for glow effects. The React version does **not** replicate WebGL shaders — visual effects are achieved with CSS animations and canvas 2D APIs. If a glow effect is added to the vanilla version, add an equivalent CSS animation in the React version.
+
+**Polling:** Both versions poll `http://localhost:8889/k10mediabroadcaster/` at ~30fps. The React version uses `useTelemetry.tsx` (a custom hook with `setInterval`) instead of `poll-engine.js`'s `requestAnimationFrame`-based loop.
+
+**Demo mode:** The vanilla version's demo data comes from the C# `DemoTelemetryProvider.cs`. The React version has its own `demo-sequence.ts` that runs entirely client-side. When adding a new demo feature, update **both** files.
+
+---
+
+### Adding a New Feature — Parity Checklist
+
+When adding or modifying a feature, work through both implementations:
+
+1. **Vanilla first:** Implement in the appropriate `modules/js/*.js` file and update `dashboard.html` markup if needed.
+2. **Identify the React counterpart** from the table above.
+3. **Mirror the logic:** Copy the algorithm (thresholds, formulas, CSS class names, element IDs) exactly. The React version's goal is visual and behavioral identity with the vanilla version, not a clean-room reimplementation.
+4. **Update `telemetry.ts`** if a new data field is needed (`TelemetryProps` for the raw key, `ParsedTelemetry` for the normalized field).
+5. **Update `useTelemetry.tsx`** to parse and map the new field.
+6. **Update `demo-sequence.ts`** to include realistic demo values for the new field.
+7. **Update `DemoTelemetryProvider.cs`** (C# side) if the same field needs to appear in the SimHub plugin's demo mode.
+8. **Build and verify:** `cd src && npm run build` — must produce `dashboard-react.html` with no TypeScript errors.
+
+---
+
+### Element ID Correspondence
+
+React components preserve the same `id` attributes as the vanilla DOM to ease cross-referencing. When the vanilla version uses `document.getElementById('dsYawFill')`, the React component renders `<div id="dsYawFill">`. This is intentional — do not rename element IDs in the React version unless the vanilla version also changes them.
+
+---
+
+### CSS Class Name Correspondence
+
+All CSS class names that encode state or behavior are kept identical between implementations:
+
+| Class | Used in | Meaning |
+|-------|---------|---------|
+| `pedal-hist-bar throttle/brake/clutch` | PedalsPanel | Histogram bar identity |
+| `live` | PedalsPanel | Rightmost (newest) bar |
+| `lb-player`, `lb-p1`, `lb-ahead`, `lb-behind` | LeaderboardPanel | Leaderboard row roles |
+| `lap-pb`, `lap-fast`, `lap-slow` | LeaderboardPanel | Lap time color coding |
+| `gap-ahead`, `gap-behind`, `gap-player` | LeaderboardPanel | Gap text color |
+| `re-tint-gold/silver/bronze/green/neutral/purple` | RaceEndScreen | Finish result tint |
+| `re-confetti-dot` | RaceEndScreen | Confetti particle |
+| `grid-dot`, `player`, `gridded` | GridModule | Grid strip dot state |
+| `lights-active` | GridModule | Start lights container active state |
+| `go-visible` | GridModule | GO! text reveal |
+| `map-track`, `map-player`, `map-opponent`, `close` | TrackMaps | SVG map element roles |
+| `ds-positive`, `ds-negative`, `ds-neutral` | DatastreamPanel | Lap delta color |
+| `ctrl-active` | ControlsPanel | ABS/TC active flash |
+
+---
+
+### Known Divergences (Acceptable)
+
+These features exist in the vanilla dashboard but are **not** implemented in the React version, and that is intentional:
+
+- **WebGL2 shaders** — tachoFX, pedalsFX, flagFX, lbFX, spotterFX, bonkersFX, commTrailFX, gridFlagFX
+- **Spotter panel** — the proximity spotter (`spotter.js`) has no React counterpart yet
+- **Race timeline bar** — `race-timeline.js` has no React counterpart yet
+- **Pit limiter overlay** — `pit-limiter.js` bonkers spark particles not yet ported
+- **Settings overlay** — React uses external layout config, not the in-HUD settings panel
+- **Connection cards** — Discord OAuth and SimHub connection UI live in the Electron shell, not the React HUD

@@ -1,8 +1,10 @@
 @echo off
 echo ═══════════════════════════════════════════════
-echo  K10 Media Broadcaster — Install Dependencies
+echo  K10 Media Broadcaster — Rebuild React Dashboard
 echo ═══════════════════════════════════════════════
 echo.
+
+cd /d "%~dp0"
 
 where npm >nul 2>nul
 if %ERRORLEVEL% NEQ 0 (
@@ -12,38 +14,29 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b 1
 )
 
-echo [1/4] Installing Electron dependencies...
-npm install
+if not exist "%~dp0..\src\package.json" (
+    echo ERROR: React source directory not found at ..\src
+    pause
+    exit /b 1
+)
+
+echo [1/3] Installing React dependencies...
+pushd "%~dp0..\src"
+call npm install
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo ERROR: npm install failed.
-    pause
-    exit /b 1
-)
-
-echo.
-echo [2/4] Installing React dashboard dependencies...
-pushd "%~dp0..\src"
-if not exist "package.json" (
-    echo WARNING: React source directory not found — skipping React build.
-    popd
-    goto :done
-)
-npm install
-if %ERRORLEVEL% NEQ 0 (
-    echo.
-    echo ERROR: React dependency install failed.
     popd
     pause
     exit /b 1
 )
 
 echo.
-echo [3/4] Building React dashboard...
+echo [2/3] Building React dashboard...
 call npx vite build
 if %ERRORLEVEL% NEQ 0 (
     echo.
-    echo ERROR: React dashboard build failed.
+    echo ERROR: Vite build failed.
     popd
     pause
     exit /b 1
@@ -51,15 +44,14 @@ if %ERRORLEVEL% NEQ 0 (
 popd
 
 echo.
-echo [4/4] Verifying build output...
+echo [3/3] Verifying build output...
 if exist "%~dp0dashboard-react.html" (
     echo   dashboard-react.html OK
 ) else (
     echo   WARNING: dashboard-react.html not found
 )
 
-:done
 echo.
-echo Done! Run start.bat or 'K10 Media Broadcaster.cmd' to launch the overlay.
+echo Done! React dashboard rebuilt successfully.
 echo.
 pause

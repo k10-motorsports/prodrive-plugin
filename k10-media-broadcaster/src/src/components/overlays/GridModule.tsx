@@ -4,67 +4,113 @@ import { useTelemetry } from '@hooks/useTelemetry';
 export default function GridModule() {
   const { telemetry } = useTelemetry();
 
-  // Determine if grid module is active (formation lap or start lights)
+  // Determine if grid module is active (pre-race states or start lights)
+  // SessionState: 1=GetInCar, 2=Warmup, 3=ParadeLaps/Formation — matches original dashboard
+  const sessionNum = parseInt(telemetry.sessionState) || 0;
+  const isPreRace = sessionNum >= 1 && sessionNum <= 3;
+  const lightsPhase = telemetry.lightsPhase || 0;
+
   const gridActive = useMemo(() => {
-    return telemetry.lightsPhase > 0 || (telemetry.sessionState === 'gridding' || telemetry.sessionState === 'formation');
-  }, [telemetry.lightsPhase, telemetry.sessionState]);
+    return lightsPhase > 0 || isPreRace;
+  }, [lightsPhase, isPreRace]);
 
   // Determine if we should show formation info (grid active but lights haven't started)
   const showFormationInfo = useMemo(() => {
-    return gridActive && telemetry.lightsPhase === 0;
-  }, [gridActive, telemetry.lightsPhase]);
+    return isPreRace && lightsPhase === 0;
+  }, [isPreRace, lightsPhase]);
+
+  // Title based on session state (matches original formation.js)
+  const gridTitle = sessionNum === 1 ? 'Get In Car'
+    : sessionNum === 2 ? 'Warm Up'
+    : 'Formation Lap';
+
+  // Countdown text based on pace mode and session state (matches original)
+  const countdownText = useMemo(() => {
+    if (lightsPhase > 0) return '—';
+    const paceMode = telemetry.paceMode || 0;
+    if (paceMode === 1) return 'GRID';
+    if (paceMode === 2) return 'PACE';
+    if (paceMode === 3) return 'READY';
+    if (sessionNum === 1) return 'PIT';
+    if (sessionNum === 2) return 'WARM';
+    return 'FORM';
+  }, [lightsPhase, telemetry.paceMode, sessionNum]);
 
   // Determine if we should show start lights (lights phase > 0)
   const showStartLights = useMemo(() => {
-    return telemetry.lightsPhase > 0;
-  }, [telemetry.lightsPhase]);
+    return lightsPhase > 0;
+  }, [lightsPhase]);
 
   // Map lights phase to light states
   const getLightState = (bulbIndex: number): 'off' | 'red' | 'green' => {
-    const phase = telemetry.lightsPhase;
-
-    if (phase === 0) return 'off';
-    if (phase >= 1 && phase <= 5) {
+    if (lightsPhase === 0) return 'off';
+    if (lightsPhase >= 1 && lightsPhase <= 5) {
       // Phases 1-5: building reds (light N lit for phase >= N)
-      return bulbIndex <= phase ? 'red' : 'off';
+      return bulbIndex <= lightsPhase ? 'red' : 'off';
     }
-    if (phase === 6) return 'red'; // All red (hold)
-    if (phase === 7) return 'green'; // All green
-    if (phase === 8) return 'off'; // Done
+    if (lightsPhase === 6) return 'red'; // All red (hold)
+    if (lightsPhase === 7) return 'green'; // All green
+    if (lightsPhase === 8) return 'off'; // Done
 
     return 'off';
   };
 
-  // Extract flag colors from telemetry (flagColors should be array of 3 colors)
+  // Extract flag colors from telemetry
   const flagColors = useMemo(() => {
-    // If telemetry has flagColors, use it; otherwise default to generic stripes
-    // This assumes flagColors is provided in telemetry as an array
     return {
-      color1: '',
-      color2: '',
-      color3: '',
+      color1: telemetry.flagColor1 || '',
+      color2: telemetry.flagColor2 || '',
+      color3: telemetry.flagColor3 || '',
     };
-  }, []);
+  }, [telemetry.flagColor1, telemetry.flagColor2, telemetry.flagColor3]);
+
+  const hasFlagColors = flagColors.color1 || flagColors.color2 || flagColors.color3;
+
+  // Start type display
+  const startTypeText = useMemo(() => {
+    const st = (telemetry.startType || 'rolling').toLowerCase();
+    return st === 'standing' ? 'Standing Start' : 'Rolling Start';
+  }, [telemetry.startType]);
+
+  const startTypeClass = (telemetry.startType || 'rolling').toLowerCase();
+
+  // Grid strip dots
+  const gridStripDots = useMemo(() => {
+    const total = telemetry.totalCars || 0;
+    const gridded = telemetry.griddedCars || 0;
+    const playerPos = telemetry.position || 0;
+    if (total <= 0) return null;
+    const dots = [];
+    for (let i = 1; i <= total; i++) {
+      const isPlayer = i === playerPos;
+      const isGridded = i <= gridded;
+      let cls = 'grid-dot';
+      if (isPlayer) cls += ' player';
+      else if (isGridded) cls += ' gridded';
+      dots.push(<div key={i} className={cls} />);
+    }
+    return dots;
+  }, [telemetry.totalCars, telemetry.griddedCars, telemetry.position]);
 
   if (!gridActive) {
     return null;
   }
 
   return (
-    <div className={`grid-module ${gridActive ? 'grid-active' : ''}`} id="gridModule">
+    <div className={`grid-module ${gridActive ? 'grid-visible' : ''}`} id="gridModule">
       {/* WebGL Canvas Placeholder */}
       <canvas className="grid-flag-gl" id="gridFlagGlCanvas" />
 
       {/* Countdown Display */}
       <div className="grid-countdown" id="gridCountdown">
-        {telemetry.lightsPhase > 0 ? '—' : telemetry.gridCountdown?.toString() || '—'}
+        {countdownText}
       </div>
 
       {/* Formation/Start Info Section */}
       {showFormationInfo && (
         <div className="grid-info" id="gridInfo">
           {/* Country Flag */}
-          <div className="grid-flag" id="gridFlag">
+          <div className={`grid-flag${hasFlagColors ? ' flag-active' : ''}`} id="gridFlag">
             <div className="grid-flag-stripe" id="flagStripe1" style={{ backgroundColor: flagColors.color1 }} />
             <div className="grid-flag-stripe" id="flagStripe2" style={{ backgroundColor: flagColors.color2 }} />
             <div className="grid-flag-stripe" id="flagStripe3" style={{ backgroundColor: flagColors.color3 }} />
@@ -74,29 +120,31 @@ export default function GridModule() {
           <div className="grid-bg" id="gridBg" />
 
           {/* Title */}
-          <div className="grid-title">Formation Lap</div>
+          <div className="grid-title">{gridTitle}</div>
 
           {/* Cars gridded/total info */}
           <div className="grid-cars">
-            <span id="gridCarsGridded">{telemetry.griddedCars}</span>
+            <span id="gridCarsGridded">{telemetry.griddedCars || 0}</span>
             <span className="grid-cars-total">
-              / <span id="gridCarsTotal">{telemetry.totalCars}</span> gridded
+              / <span id="gridCarsTotal">{telemetry.totalCars || 0}</span> gridded
             </span>
           </div>
 
-          {/* Strip element (visual separator) */}
-          <div className="grid-strip" id="gridStrip" />
+          {/* Grid strip — one dot per car, player highlighted */}
+          <div className="grid-strip" id="gridStrip">
+            {gridStripDots}
+          </div>
 
           {/* Start type */}
-          <div className="grid-start-type" id="gridStartType">
-            {telemetry.startType || 'Rolling Start'}
+          <div className={`grid-start-type ${startTypeClass}`} id="gridStartType">
+            {startTypeText}
           </div>
         </div>
       )}
 
       {/* Start Lights Section */}
       {showStartLights && (
-        <div className="start-lights" id="startLights">
+        <div className="start-lights lights-active" id="startLights">
           <div className="lights-housing">
             {/* 5 light columns, each with top and bottom bulb */}
             {Array.from({ length: 5 }).map((_, colIndex) => {
@@ -106,11 +154,11 @@ export default function GridModule() {
               return (
                 <div key={colIndex} className="light-col">
                   <div
-                    className={`light-bulb ${lightState === 'red' ? 'light-on-red' : ''} ${lightState === 'green' ? 'light-on-green' : ''}`}
+                    className={`light-bulb${lightState === 'red' ? ' lit-red' : ''}${lightState === 'green' ? ' lit-green' : ''}`}
                     id={`light${bulbIndex}t`}
                   />
                   <div
-                    className={`light-bulb ${lightState === 'red' ? 'light-on-red' : ''} ${lightState === 'green' ? 'light-on-green' : ''}`}
+                    className={`light-bulb${lightState === 'red' ? ' lit-red' : ''}${lightState === 'green' ? ' lit-green' : ''}`}
                     id={`light${bulbIndex}b`}
                   />
                 </div>
@@ -119,8 +167,8 @@ export default function GridModule() {
           </div>
 
           {/* GO! Text */}
-          <div className="lights-go" id="lightsGo">
-            {telemetry.lightsPhase === 7 ? 'GO!' : ''}
+          <div className={`lights-go${lightsPhase === 7 ? ' go-visible' : ''}`} id="lightsGo">
+            {lightsPhase === 7 ? 'GO!' : ''}
           </div>
         </div>
       )}

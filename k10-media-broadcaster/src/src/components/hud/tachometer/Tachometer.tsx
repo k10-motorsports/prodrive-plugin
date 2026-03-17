@@ -1,15 +1,18 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import { useTelemetry } from '@hooks/useTelemetry';
 
 /**
  * Tachometer HUD Component
  * Displays gear, speed, RPM with visual bar indicator and redline state.
- * - 11 segments colored by RPM ratio: green (0-60%), yellow (60-80%), red (80-91%), redline (>91%)
- * - RPM text color changes based on engine load
+ * - 11 segments colored by RPM ratio: green (<55%), yellow (55-73%), red (73-91%), redline (>91%)
+ * - RPM text pulses when new segments light up
  * - Whole component gets 'tacho-redline' class when in redline state
  */
 export function Tachometer() {
   const { telemetry } = useTelemetry();
+  const prevLitRef = useRef(0);
+  const rpmRef = useRef<HTMLSpanElement>(null);
+  const pulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const rpmRatio = useMemo(() => {
     if (!telemetry.maxRpm || telemetry.maxRpm <= 0) return 0;
@@ -17,43 +20,77 @@ export function Tachometer() {
   }, [telemetry.rpm, telemetry.maxRpm]);
 
   const isRedline = rpmRatio >= 0.91;
+  const lit = Math.round(rpmRatio * 11);
 
-  // Determine RPM text color class
-  const rpmColorClass = useMemo(() => {
-    if (rpmRatio < 0.6) return 'var(--text-dim)';
-    if (rpmRatio < 0.8) return 'var(--amber)';
-    return 'var(--red)';
-  }, [rpmRatio]);
+  // Determine top color for RPM text (matches original thresholds)
+  const rpmColor = useMemo(() => {
+    let topColor = 'dim';
+    for (let i = 0; i < 11; i++) {
+      if (i < lit) {
+        const f = i / 11;
+        if (f < 0.55) topColor = 'green';
+        else if (f < 0.73) topColor = 'yellow';
+        else topColor = 'red';
+      }
+    }
+    const colorMap: Record<string, string> = {
+      green: 'var(--green)',
+      yellow: 'var(--amber)',
+      red: 'var(--red)',
+      dim: 'var(--text-dim)',
+    };
+    return colorMap[topColor];
+  }, [lit]);
 
-  // Generate 11 tachometer segments
+  // Pulse RPM text when a new segment lights up (matches original)
+  useEffect(() => {
+    const el = rpmRef.current;
+    if (!el) return;
+    if (lit > prevLitRef.current && lit > 0) {
+      let topColor = 'green';
+      for (let i = 0; i < lit; i++) {
+        const f = i / 11;
+        if (f >= 0.73) topColor = 'red';
+        else if (f >= 0.55) topColor = 'yellow';
+      }
+      const pulseClass = topColor === 'green' ? 'rpm-pulse-green'
+        : topColor === 'yellow' ? 'rpm-pulse-yellow' : 'rpm-pulse-red';
+      el.classList.remove('rpm-pulse-green', 'rpm-pulse-yellow', 'rpm-pulse-red');
+      void el.offsetWidth;
+      el.classList.add(pulseClass);
+      if (pulseTimerRef.current) clearTimeout(pulseTimerRef.current);
+      pulseTimerRef.current = setTimeout(() => {
+        el.classList.remove('rpm-pulse-green', 'rpm-pulse-yellow', 'rpm-pulse-red');
+      }, 180);
+    }
+    prevLitRef.current = lit;
+  }, [lit]);
+
+  // Generate 11 tachometer segments (matches original thresholds: 0.55, 0.73, 0.91)
   const segments = useMemo(() => {
-    const numSegments = 11;
     const result = [];
-
-    for (let i = 0; i < numSegments; i++) {
-      const segmentRatio = (i + 1) / numSegments;
+    for (let i = 0; i < 11; i++) {
       let segmentClass = 'tacho-seg';
+      const isLit = i < lit;
 
-      if (rpmRatio >= segmentRatio) {
-        // This segment should be lit
-        if (segmentRatio <= 0.6) {
-          segmentClass += ' lit-green';
-        } else if (segmentRatio <= 0.8) {
-          segmentClass += ' lit-yellow';
-        } else if (segmentRatio <= 0.91) {
-          segmentClass += ' lit-red';
-        } else {
-          segmentClass += ' lit-redline';
-        }
+      if (isLit) {
+        const f = i / 11;
+        if (f < 0.55) segmentClass += ' lit-green';
+        else if (f < 0.73) segmentClass += ' lit-yellow';
+        else if (f < 0.91) segmentClass += ' lit-red';
+        else segmentClass += ' lit-redline';
       }
 
       result.push(
-        <div key={i} className={segmentClass} />
+        <div
+          key={i}
+          className={segmentClass}
+          style={{ height: isLit ? '100%' : '2px' }}
+        />
       );
     }
-
     return result;
-  }, [rpmRatio]);
+  }, [lit]);
 
   const blockClass = isRedline
     ? 'panel tacho-block tacho-redline'
@@ -74,7 +111,7 @@ export function Tachometer() {
         </div>
       </div>
 
-      <span className="tacho-rpm" id="rpmText" style={{ color: rpmColorClass }}>
+      <span className="tacho-rpm" id="rpmText" ref={rpmRef} style={{ color: rpmColor }}>
         {Math.round(telemetry.rpm)}
       </span>
 

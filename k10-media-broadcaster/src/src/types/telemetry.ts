@@ -289,9 +289,15 @@ export interface ParsedTelemetry {
   // Driver Info
   driverFirstName: string;
   driverLastName: string;
+  driverDisplayName: string;
 
   // Flag
   flagState: string;
+
+  // Flag colors for grid module
+  flagColor1: string;
+  flagColor2: string;
+  flagColor3: string;
 
   // Grid State
   sessionState: string;

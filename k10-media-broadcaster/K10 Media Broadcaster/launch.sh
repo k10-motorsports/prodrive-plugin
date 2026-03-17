@@ -8,7 +8,28 @@ if [ ! -d "node_modules" ] || [ ! -x "node_modules/.bin/electron" ]; then
     rm -rf node_modules package-lock.json
     npm install 2>&1 | tail -5
 fi
+
+# Rebuild React dashboard if missing
+SRC_DIR="$(dirname "$0")/../src"
+if [ -f "$SRC_DIR/package.json" ] && [ ! -f "dashboard-react.html" ]; then
+    echo "Building React dashboard..."
+    if [ ! -d "$SRC_DIR/node_modules" ]; then
+        (cd "$SRC_DIR" && npm install 2>&1 | tail -3)
+    fi
+    (cd "$SRC_DIR" && npx vite build 2>&1 | tail -5)
+fi
+
 chmod +x node_modules/.bin/* 2>/dev/null
+
+# Fix Electron code signature if needed (macOS Apple Silicon)
+ELECTRON_APP="node_modules/electron/dist/Electron.app"
+if [ -d "$ELECTRON_APP" ]; then
+    codesign --verify "$ELECTRON_APP" 2>/dev/null
+    if [ $? -ne 0 ]; then
+        xattr -cr "$ELECTRON_APP" 2>/dev/null
+        codesign --force --deep --sign - "$ELECTRON_APP" 2>/dev/null
+    fi
+fi
 
 # Launch Electron (nohup + disown to fully detach)
 nohup npx electron . >/dev/null 2>&1 &

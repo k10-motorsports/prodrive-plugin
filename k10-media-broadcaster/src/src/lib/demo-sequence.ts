@@ -17,6 +17,7 @@
  */
 
 import type { ParsedTelemetry } from '../types/telemetry';
+import { BATHURST_SVG, getTrackPosition } from './bathurst-map';
 
 const LOOP_DURATION = 195;
 
@@ -69,13 +70,15 @@ const BASE: ParsedTelemetry = {
   lapDelta: 0, completedLaps: 0,
   isInPitLane: false, speedKmh: 0,
   pitLimiterOn: false, pitSpeedLimitKmh: 72,
-  trackMapReady: false, trackMapSvg: '', playerMapX: 50, playerMapY: 50,
+  trackMapReady: true, trackMapSvg: BATHURST_SVG, playerMapX: 50, playerMapY: 82,
   opponentMapPositions: '', leaderboardJson: '',
   driverFirstName: 'Kevin', driverLastName: 'Conboy',
+  driverDisplayName: 'K. Conboy',
   flagState: '',
+  flagColor1: '', flagColor2: '', flagColor3: '',
   sessionState: '0',
   griddedCars: 0, totalCars: 24, paceMode: '', startType: 'rolling',
-  lightsPhase: 0, trackCountry: 'US',
+  lightsPhase: 0, trackCountry: 'AU',
   gridCountdown: 0,
   demoMode: true,
 };
@@ -96,6 +99,21 @@ function osc(t: number, period: number, min: number, max: number): number {
 /** Lerp */
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * Math.max(0, Math.min(1, t));
+}
+
+/** Build opponent map positions string for N cars at various track offsets */
+function buildOpponents(playerPct: number, totalCars: number, playerPos: number): string {
+  const parts: string[] = [];
+  for (let i = 1; i <= totalCars; i++) {
+    if (i === playerPos) continue; // Skip player
+    // Spread opponents around the track relative to player
+    const offset = (i - playerPos) * (1 / totalCars);
+    const oppPct = ((playerPct + offset) % 1 + 1) % 1;
+    const [x, y] = getTrackPosition(oppPct);
+    const inPit = 0; // No opponents in pit during demo
+    parts.push(`${x.toFixed(1)},${y.toFixed(1)},${inPit}`);
+  }
+  return parts.join(';');
 }
 
 /**
@@ -121,6 +139,8 @@ export function getDemoTelemetry(elapsedMs: number): ParsedTelemetry {
       speedMph: 0,
       fuelLiters: 80,
       tyreTempFL: 70, tyreTempFR: 70, tyreTempRL: 70, tyreTempRR: 70,
+      flagColor1: '#00008B', flagColor2: '#FFFFFF', flagColor3: '#FF0000',
+      griddedCars: 0, totalCars: 24,
     };
   }
 
@@ -142,6 +162,8 @@ export function getDemoTelemetry(elapsedMs: number): ParsedTelemetry {
       tyreTempRR: lerp(70, 128, warmupPct),
       isInPitLane: warmupPct < 0.5,
       pitLimiterOn: warmupPct < 0.5,
+      flagColor1: '#00008B', flagColor2: '#FFFFFF', flagColor3: '#FF0000',
+      griddedCars: Math.floor(lerp(0, 24, warmupPct)), totalCars: 24,
     };
   }
 
@@ -172,8 +194,12 @@ export function getDemoTelemetry(elapsedMs: number): ParsedTelemetry {
       tyreTempRL: lerp(130, 165, paradePct),
       tyreTempRR: lerp(128, 163, paradePct),
       trackPct: paradePct * 0.95,
+      playerMapX: getTrackPosition(paradePct * 0.95)[0],
+      playerMapY: getTrackPosition(paradePct * 0.95)[1],
+      opponentMapPositions: buildOpponents(paradePct * 0.95, 24, 8),
       griddedCars: 24,
       totalCars: 24,
+      flagColor1: '#00008B', flagColor2: '#FFFFFF', flagColor3: '#FF0000',
     };
   }
 
@@ -204,6 +230,7 @@ export function getDemoTelemetry(elapsedMs: number): ParsedTelemetry {
       griddedCars: 24,
       totalCars: 24,
       tyreTempFL: 175, tyreTempFR: 178, tyreTempRL: 165, tyreTempRR: 163,
+      flagColor1: '#00008B', flagColor2: '#FFFFFF', flagColor3: '#FF0000',
     };
   }
 
@@ -298,6 +325,9 @@ export function getDemoTelemetry(elapsedMs: number): ParsedTelemetry {
       absActive: inCorner && seededRandom(t * 3) > 0.7,
       tcActive: !inCorner && seededRandom(t * 4) > 0.85,
       trackPct: lapProgress,
+      playerMapX: getTrackPosition(lapProgress)[0],
+      playerMapY: getTrackPosition(lapProgress)[1],
+      opponentMapPositions: buildOpponents(lapProgress, 24, pos),
       lapDelta: osc(t, 15, -0.5, 0.3),
       completedLaps: currentLap - 1,
       trackTemp: 32 + seededRandom(Math.floor(t / 60)) * 3,
@@ -346,6 +376,9 @@ export function getDemoTelemetry(elapsedMs: number): ParsedTelemetry {
       tyreWearFL: 0.68, tyreWearFR: 0.64, tyreWearRL: 0.76, tyreWearRR: 0.73,
       incidentCount: 2,
       trackPct: lerp(0.7, 0.98, (t - 160) / 5),
+      playerMapX: getTrackPosition(lerp(0.7, 0.98, (t - 160) / 5))[0],
+      playerMapY: getTrackPosition(lerp(0.7, 0.98, (t - 160) / 5))[1],
+      opponentMapPositions: buildOpponents(lerp(0.7, 0.98, (t - 160) / 5), 24, 3),
       completedLaps: 24,
       griddedCars: 24,
       totalCars: 24,

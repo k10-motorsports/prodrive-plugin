@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eval Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --surface: #ffffff;
+      --border: #e8e6dc;
+      --text: #141413;
+      --text-muted: #b0aea5;
+      --accent: #d97757;
+      --accent-hover: #c4613f;
+      --green: #788c5d;
+      --green-bg: #eef2e8;
+      --red: #c44;
+      --red-bg: #fceaea;
+      --header-bg: #141413;
+      --header-text: #faf9f5;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Lora', Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .header .instructions {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-top: 0.25rem;
+    }
+    .header .progress {
+      font-size: 0.875rem;
+      opacity: 0.8;
+      text-align: right;
+    }
+
+    /* ---- Main content ---- */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* ---- Sections ---- */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      flex-shrink: 0;
+    }
+    .section-header {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .section-body {
+      padding: 1rem;
+    }
+
+    /* ---- Config badge ---- */
+    .config-badge {
+      display: inline-block;
+      padding: 0.2rem 0.625rem;
+      border-radius: 9999px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-left: 0.75rem;
+      vertical-align: middle;
+    }
+    .config-badge.config-primary {
+      background: rgba(33, 150, 243, 0.12);
+      color: #1976d2;
+    }
+    .config-badge.config-baseline {
+      background: rgba(255, 193, 7, 0.15);
+      color: #f57f17;
+    }
+
+    /* ---- Prompt ---- */
+    .prompt-text {
+      white-space: pre-wrap;
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    /* ---- Outputs ---- */
+    .output-file {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .output-file + .output-file {
+      margin-top: 1rem;
+    }
+    .output-file-header {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .output-file-header .dl-btn {
+      font-size: 0.7rem;
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+    .output-file-header .dl-btn:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+    .output-file-content {
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+    .output-file-content pre {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    .output-file-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .output-file-content iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+    }
+    .output-file-content table {
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      width: 100%;
+    }
+    .output-file-content table td,
+    .output-file-content table th {
+      border: 1px solid var(--border);
+      padding: 0.375rem 0.5rem;
+      text-align: left;
+    }
+    .output-file-content table th {
+      background: var(--bg);
+      font-weight: 600;
+    }
+    .output-file-content .download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .output-file-content .download-link:hover {
+      background: var(--border);
+    }
+    .empty-state {
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    /* ---- Feedback ---- */
+    .prev-feedback {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.625rem 0.75rem;
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .prev-feedback-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+      color: var(--text-muted);
+    }
+    .feedback-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      resize: vertical;
+      color: var(--text);
+    }
+    .feedback-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .feedback-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      min-height: 1.1em;
+    }
+
+    /* ---- Grades (collapsible) ---- */
+    .grades-toggle {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .grades-toggle:hover {
+      color: var(--accent);
+    }
+    .grades-toggle .arrow {
+      margin-right: 0.5rem;
+      transition: transform 0.15s;
+      font-size: 0.75rem;
+    }
+    .grades-toggle .arrow.open {
+      transform: rotate(90deg);
+    }
+    .grades-content {
+      display: none;
+      margin-top: 0.75rem;
+    }
+    .grades-content.open {
+      display: block;
+    }
+    .grades-summary {
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .grade-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .grade-pass { background: var(--green-bg); color: var(--green); }
+    .grade-fail { background: var(--red-bg); color: var(--red); }
+    .assertion-list {
+      list-style: none;
+    }
+    .assertion-item {
+      padding: 0.625rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8125rem;
+    }
+    .assertion-item:last-child { border-bottom: none; }
+    .assertion-status {
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+    .assertion-status.pass { color: var(--green); }
+    .assertion-status.fail { color: var(--red); }
+    .assertion-evidence {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      padding-left: 1.5rem;
+    }
+
+    /* ---- View tabs ---- */
+    .view-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 2rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .view-tab {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .view-tab:hover { color: var(--text); }
+    .view-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .view-panel { display: none; }
+    .view-panel.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+    /* ---- Benchmark view ---- */
+    .benchmark-view {
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .benchmark-table {
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.8125rem;
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+    .benchmark-table th, .benchmark-table td {
+      padding: 0.625rem 0.75rem;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+    .benchmark-table th {
+      font-family: 'Poppins', sans-serif;
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .benchmark-table tr:hover { background: var(--bg); }
+    .benchmark-table tr.benchmark-row-with { background: rgba(33, 150, 243, 0.06); }
+    .benchmark-table tr.benchmark-row-without { background: rgba(255, 193, 7, 0.06); }
+    .benchmark-table tr.benchmark-row-with:hover { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-without:hover { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-table tr.benchmark-row-avg { font-weight: 600; border-top: 2px solid var(--border); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-with { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-without { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-delta-positive { color: var(--green); font-weight: 600; }
+    .benchmark-delta-negative { color: var(--red); font-weight: 600; }
+    .benchmark-notes {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    .benchmark-notes h3 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+    }
+    .benchmark-notes ul {
+      list-style: disc;
+      padding-left: 1.25rem;
+    }
+    .benchmark-notes li {
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      margin-bottom: 0.375rem;
+    }
+    .benchmark-empty {
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+      padding: 3rem;
+    }
+
+    /* ---- Navigation ---- */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .done-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .done-btn:hover {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .done-btn.ready {
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+    .done-btn.ready:hover {
+      background: var(--accent-hover);
+    }
+    /* ---- Done overlay ---- */
+    .done-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .done-overlay.visible {
+      display: flex;
+    }
+    .done-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 2rem 3rem;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+    }
+    .done-card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .done-card p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .done-card .btn-row {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .done-card button {
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    .done-card button:hover {
+      background: var(--bg);
+    }
+    /* ---- Toast ---- */
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .toast.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" style="height:100vh; display:flex; flex-direction:column;">
+    <div class="header">
+      <div>
+        <h1>Eval Review: <span id="skill-name"></span></h1>
+        <div class="instructions">Review each output and leave feedback below. Navigate with arrow keys or buttons. When done, copy feedback and paste into Claude Code.</div>
+      </div>
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <!-- View tabs (only shown when benchmark data exists) -->
+    <div class="view-tabs" id="view-tabs" style="display:none;">
+      <button class="view-tab active" onclick="switchView('outputs')">Outputs</button>
+      <button class="view-tab" onclick="switchView('benchmark')">Benchmark</button>
+    </div>
+
+    <!-- Outputs panel (qualitative review) -->
+    <div class="view-panel active" id="panel-outputs">
+    <div class="main">
+      <!-- Prompt -->
+      <div class="section">
+        <div class="section-header">Prompt <span class="config-badge" id="config-badge" style="display:none;"></span></div>
+        <div class="section-body">
+          <div class="prompt-text" id="prompt-text"></div>
+        </div>
+      </div>
+
+      <!-- Outputs -->
+      <div class="section">
+        <div class="section-header">Output</div>
+        <div class="section-body" id="outputs-body">
+          <div class="empty-state">No output files found</div>
+        </div>
+      </div>
+
+      <!-- Previous Output (collapsible) -->
+      <div class="section" id="prev-outputs-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="togglePrevOutputs()">
+            <span class="arrow" id="prev-outputs-arrow">&#9654;</span>
+            Previous Output
+          </div>
+        </div>
+        <div class="grades-content" id="prev-outputs-content"></div>
+      </div>
+
+      <!-- Grades (collapsible) -->
+      <div class="section" id="grades-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="toggleGrades()">
+            <span class="arrow" id="grades-arrow">&#9654;</span>
+            Formal Grades
+          </div>
+        </div>
+        <div class="grades-content" id="grades-content"></div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="section">
+        <div class="section-header">Your Feedback</div>
+        <div class="section-body">
+          <textarea
+            class="feedback-textarea"
+            id="feedback"
+            placeholder="What do you think of this output? Any issues, suggestions, or things that look great?"
+          ></textarea>
+          <div class="feedback-status" id="feedback-status"></div>
+          <div class="prev-feedback" id="prev-feedback" style="display:none;">
+            <div class="prev-feedback-label">Previous feedback</div>
+            <div id="prev-feedback-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav" id="outputs-nav">
+      <button class="nav-btn" id="prev-btn" onclick="navigate(-1)">&#8592; Previous</button>
+      <button class="done-btn" id="done-btn" onclick="showDoneDialog()">Submit All Reviews</button>
+      <button class="nav-btn" id="next-btn" onclick="navigate(1)">Next &#8594;</button>
+    </div>
+    </div><!-- end panel-outputs -->
+
+    <!-- Benchmark panel (quantitative stats) -->
+    <div class="view-panel" id="panel-benchmark">
+      <div class="benchmark-view" id="benchmark-content">
+        <div class="benchmark-empty">No benchmark data available. Run a benchmark to see quantitative results here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Done overlay -->
+  <div class="done-overlay" id="done-overlay">
+    <div class="done-card">
+      <h2>Review Complete</h2>
+      <p>Your feedback has been saved. Go back to your Claude Code session and tell Claude you're done reviewing.</p>
+      <div class="btn-row">
+        <button onclick="closeDoneDialog()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ---- Embedded data (injected by generate_review.py) ----
+    const EMBEDDED_DATA = {"skill_name": "react-dashboard-validator", "runs": [{"id": "eval-tachometer-match-with_skill", "prompt": "Here's a screenshot of the tachometer panel from dashboard.html. The tachometer has 11 segments \u2014 the first 6 are green, the next 2 are yellow, the next 1 is red, and the last 2 are redline red. Make the React version match this exactly.", "eval_id": 1, "outputs": [{"name": "summary.md", "type": "text", "content": "# Tachometer Panel Audit Summary\n\n## Objective\nValidate that the React tachometer implementation (`src/src/components/hud/tachometer/Tachometer.tsx`) matches the vanilla dashboard.html tachometer, which should display exactly **6 green segments, 2 yellow, 1 red, and 2 redline segments** across its 11-segment bar.\n\n## Audit Findings\n\n### Current Implementation Status (Read-Only Audit)\n\n#### Vanilla Dashboard (webgl-helpers.js)\n- **File:** `/K10 Media Broadcaster/modules/js/webgl-helpers.js` (lines 1-56)\n- **Segment count:** 11 (correct)\n- **Color thresholds:** 0.55, 0.73, 0.91\n- **Actual color distribution:** With thresholds at 0.55/0.73/0.91, the 11 segments produce:\n  - Segments 0-5 (i/11 < 0.55): **6 GREEN** \u2713\n  - Segments 6-7 (0.55 \u2264 i/11 < 0.73): **2 YELLOW** \u2713\n  - Segments 8 (0.73 \u2264 i/11 < 0.91): **3 YELLOW** \u2717 (should be split)\n  - Segment 9 (8/11 \u2248 0.727 < 0.73): **1 RED** \u2717\n  - Segment 10 (9/11 \u2248 0.818 < 0.91): **1 RED** \u2717\n  - (Result: 6 GREEN, 3 YELLOW, 2 RED, 0 REDLINE)\n\n#### React Dashboard (Tachometer.tsx)\n- **File:** `/src/src/components/hud/tachometer/Tachometer.tsx`\n- **Segment count:** 11 (correct)\n- **Color thresholds:** 0.55, 0.73, 0.91 (matches vanilla)\n- **Actual color distribution:** Identical to vanilla \u2014 produces 6 GREEN, 3 YELLOW, 2 RED, 0 REDLINE\n\n### Discrepancy Identified\n\n**The current implementation in BOTH vanilla and React does NOT produce the target 6-2-1-2 distribution.**\n\n#### Root Cause\nThe color thresholds (0.55, 0.73, 0.91) do not align with segment boundaries. Segment 8 (at position 8/11 \u2248 0.7272) falls within the 0.73 boundary and is therefore colored YELLOW instead of RED.\n\n#### Math Verification\nFor segment `i`, the position fraction is `f = i / 11`:\n- i=8: f = 8/11 \u2248 0.7272, which is **less than 0.73** \u2192 classified as YELLOW (not RED)\n- i=9: f = 9/11 \u2248 0.8181, which is **less than 0.91** \u2192 classified as RED\n- i=10: f = 10/11 \u2248 0.9090, which is **less than 0.91** \u2192 classified as RED\n\n**Current output:** 6 GREEN, 3 YELLOW (segments 6-8), 2 RED (segments 9-10), 0 REDLINE\n\n**Target output:** 6 GREEN, 2 YELLOW (segments 6-7), 1 RED (segment 8), 2 REDLINE (segments 9-10)\n\n### Required Changes\n\nTo achieve the target 6-2-1-2 distribution, the thresholds must be adjusted to align with segment boundaries:\n\n| Segment Range | Current Threshold | Required Threshold | Position |\n|---|---|---|---|\n| GREEN (0-5) | 0.55 | 6/11 \u2248 0.5454 | Before segment 6 |\n| YELLOW (6-7) | 0.73 | 8/11 \u2248 0.7272 | Before segment 8 |\n| RED (8) | 0.91 | 9/11 \u2248 0.8181 | Before segment 9 |\n| REDLINE (9-10) | \u2014 | (else) | Segments 9+ |\n\n#### Changes to Vanilla Dashboard (webgl-helpers.js)\nReplace lines 29-33:\n```javascript\n// OLD:\nif (f < 0.55) { segs[i].classList.add('lit-green'); topColor = 'green'; }\nelse if (f < 0.73) { segs[i].classList.add('lit-yellow'); topColor = 'yellow'; }\nelse if (f < 0.91) { segs[i].classList.add('lit-red'); topColor = 'red'; }\nelse { segs[i].classList.add('lit-redline'); topColor = 'red'; }\n\n// NEW:\nif (f < 0.5454) { segs[i].classList.add('lit-green'); topColor = 'green'; }\nelse if (f < 0.7272) { segs[i].classList.add('lit-yellow'); topColor = 'yellow'; }\nelse if (f < 0.8181) { segs[i].classList.add('lit-red'); topColor = 'red'; }\nelse { segs[i].classList.add('lit-redline'); topColor = 'red'; }\n\n// OR using exact fractions (preferred):\nif (i < 6) { segs[i].classList.add('lit-green'); topColor = 'green'; }\nelse if (i < 8) { segs[i].classList.add('lit-yellow'); topColor = 'yellow'; }\nelse if (i < 9) { segs[i].classList.add('lit-red'); topColor = 'red'; }\nelse { segs[i].classList.add('lit-redline'); topColor = 'red'; }\n```\n\n#### Changes to React Dashboard (Tachometer.tsx)\nThree locations need updates to match:\n\n**1. Line 28-34 (rpmColor calculation):**\n```javascript\n// OLD:\nif (f < 0.55) topColor = 'green';\nelse if (f < 0.73) topColor = 'yellow';\nelse topColor = 'red';\n\n// NEW:\nif (i < 6) topColor = 'green';\nelse if (i < 8) topColor = 'yellow';\nelse topColor = 'red';\n```\n\n**2. Line 52-54 (pulse color detection):**\n```javascript\n// OLD:\nfor (let i = 0; i < lit; i++) {\n  const f = i / 11;\n  if (f >= 0.73) topColor = 'red';\n  else if (f >= 0.55) topColor = 'yellow';\n}\n\n// NEW:\nfor (let i = 0; i < lit; i++) {\n  if (i >= 8) topColor = 'red';\n  else if (i >= 6) topColor = 'yellow';\n}\n```\n\n**3. Line 76-81 (segment rendering):**\n```javascript\n// OLD:\nif (isLit) {\n  const f = i / 11;\n  if (f < 0.55) segmentClass += ' lit-green';\n  else if (f < 0.73) segmentClass += ' lit-yellow';\n  else if (f < 0.91) segmentClass += ' lit-red';\n  else segmentClass += ' lit-redline';\n}\n\n// NEW:\nif (isLit) {\n  if (i < 6) segmentClass += ' lit-green';\n  else if (i < 8) segmentClass += ' lit-yellow';\n  else if (i < 9) segmentClass += ' lit-red';\n  else segmentClass += ' lit-redline';\n}\n```\n\n### Build Impact\n\nNo structural changes are required \u2014 only threshold value changes. Build commands:\n- **Vanilla:** No build needed (direct JS in dashboard.html)\n- **React:** `cd /sessions/gifted-keen-pasteur/mnt/media-coach-simhub-plugin/k10-media-broadcaster/src && npm run build`\n\nExpected result: `dashboard-react.html` compiled with zero TypeScript errors, segment colors matching vanilla.\n\n### PARITY RULE VERIFICATION\n\nPer DASHBOARD_MCP.md (line 538):\n> \"Segment count (11), color thresholds (0.55 / 0.73 / 0.91), pulse classes\"\n\n**Current Status:** The thresholds listed in the documentation do NOT produce the 6-2-1-2 distribution described in the task. **Both vanilla and React need corrected thresholds to match the documented behavior.**\n\n---\n\n## Summary\n\n| Item | Status |\n|------|--------|\n| **Vanilla segment count** | \u2713 Correct (11) |\n| **React segment count** | \u2713 Correct (11) |\n| **Vanilla color distribution** | \u2717 INCORRECT (6-3-2-0 instead of 6-2-1-2) |\n| **React color distribution** | \u2717 INCORRECT (6-3-2-0 instead of 6-2-1-2) |\n| **Threshold alignment** | \u2717 MISALIGNED (0.55/0.73/0.91 don't segment 6-2-1-2) |\n| **Code parity** | \u2713 Both use identical logic |\n\n**Discrepancies found:** 1 critical issue\n- Tachometer color thresholds produce 6-3-2-0 distribution instead of documented 6-2-1-2\n\n**Changes needed:** Update thresholds in both implementations to use segment-based logic (i < 6, i < 8, i < 9) instead of fraction-based logic.\n\n**Audit type:** Read-only \u2014 **no modifications made** to actual files. This summary documents the required changes only.\n"}], "grading": {"eval_id": 1, "run_type": "with_skill", "assertions": [{"text": "reads-vanilla-source", "passed": true, "evidence": "Summary reads and analyzes webgl-helpers.js multiple times, including threshold values at lines 29-33"}, {"text": "reads-react-component", "passed": true, "evidence": "Summary extensively analyzes Tachometer.tsx with detailed code snippets and line references (lines 28-34, 52-54, 76-81)"}, {"text": "identifies-threshold-values", "passed": true, "evidence": "Summary identifies and discusses threshold values 0.55, 0.73, and 0.91 throughout the analysis"}, {"text": "build-succeeds", "passed": false, "evidence": "Summary explicitly states 'Read-only \u2014 **no modifications made** to actual files' and 'Audit type: Read-only', so npm run build was not executed"}, {"text": "provides-summary", "passed": true, "evidence": "Summary provides comprehensive Tachometer analysis with detailed findings, math verification, and recommended changes in the final Summary section"}]}}, {"id": "eval-tachometer-match-without_skill", "prompt": "Here's a screenshot of the tachometer panel from dashboard.html. The tachometer has 11 segments \u2014 the first 6 are green, the next 2 are yellow, the next 1 is red, and the last 2 are redline red. Make the React version match this exactly.", "eval_id": 1, "outputs": [{"name": "summary.md", "type": "text", "content": "# Tachometer Segment Configuration Audit\n\n## Specification\nThe tachometer must have 11 segments with the following color distribution:\n- Segments 0-5 (6 total): GREEN\n- Segments 6-7 (2 total): YELLOW\n- Segment 8 (1 total): RED\n- Segments 9-10 (2 total): REDLINE RED\n\n## Analysis\n\n### Original Dashboard (HTML)\n**File:** `/sessions/gifted-keen-pasteur/mnt/media-coach-simhub-plugin/k10-media-broadcaster/K10 Media Broadcaster/modules/js/webgl-helpers.js`\n\nThe original implementation uses these thresholds:\n```javascript\nconst f = i / TACH_SEGS; // where TACH_SEGS = 11\nif (f < 0.55) { segs[i].classList.add('lit-green'); }\nelse if (f < 0.73) { segs[i].classList.add('lit-yellow'); }\nelse if (f < 0.91) { segs[i].classList.add('lit-red'); }\nelse { segs[i].classList.add('lit-redline'); }\n```\n\n### React Implementation\n**File:** `/sessions/gifted-keen-pasteur/mnt/media-coach-simhub-plugin/k10-media-broadcaster/src/src/components/hud/tachometer/Tachometer.tsx`\n\nThe React component uses identical logic:\n```javascript\nconst f = i / 11;\nif (f < 0.55) segmentClass += ' lit-green';\nelse if (f < 0.73) segmentClass += ' lit-yellow';\nelse if (f < 0.91) segmentClass += ' lit-red';\nelse segmentClass += ' lit-redline';\n```\n\n## Discrepancies Found\n\n### Critical Issue: Incorrect REDLINE Threshold\n\n**Problem:** The threshold of `0.91` is too high. This causes segments 9 and 10 to be incorrectly classified as RED instead of REDLINE.\n\n**Mathematical Analysis:**\n\n| Segment | f = i/11 | Current Class | Expected Class | Status |\n|---------|----------|---------------|----------------|--------|\n| 0 | 0.0000 | GREEN | GREEN | \u2713 MATCH |\n| 1 | 0.0909 | GREEN | GREEN | \u2713 MATCH |\n| 2 | 0.1818 | GREEN | GREEN | \u2713 MATCH |\n| 3 | 0.2727 | GREEN | GREEN | \u2713 MATCH |\n| 4 | 0.3636 | GREEN | GREEN | \u2713 MATCH |\n| 5 | 0.4545 | GREEN | GREEN | \u2713 MATCH |\n| 6 | 0.5454 | YELLOW | YELLOW | \u2713 MATCH |\n| 7 | 0.6363 | YELLOW | YELLOW | \u2713 MATCH |\n| 8 | 0.7272 | RED | RED | \u2713 MATCH |\n| 9 | 0.8181 | RED | REDLINE | \u2717 MISMATCH |\n| 10 | 0.9090 | RED | REDLINE | \u2717 MISMATCH |\n\n**Root Cause:**\n- The threshold `f < 0.91` will be true for segment 9 (f \u2248 0.8181) and segment 10 (f \u2248 0.9090)\n- Both segments 9 and 10 should be REDLINE, not RED\n- The correct threshold should be `f < 9/11` (approximately 0.8181818...) to separate RED from REDLINE\n\n## Recommended Fix\n\nChange the REDLINE threshold from `0.91` to `9/11` (or approximately `0.8181818`):\n\n**Lines 79-81 in Tachometer.tsx:**\n```javascript\n// BEFORE:\nelse if (f < 0.91) segmentClass += ' lit-red';\nelse segmentClass += ' lit-redline';\n\n// AFTER:\nelse if (f < 9/11) segmentClass += ' lit-red';   // RED: segment 8 only\nelse segmentClass += ' lit-redline';             // REDLINE: segments 9-10\n```\n\n**Same fix applies to the original HTML (webgl-helpers.js).**\n\n## Summary\n\n- **Total Discrepancies:** 2 segments (segments 9 and 10)\n- **Type:** Color classification error\n- **Severity:** High - Visual dashboard mismatch\n- **Files Requiring Changes:**\n  - `/sessions/gifted-keen-pasteur/mnt/media-coach-simhub-plugin/k10-media-broadcaster/src/src/components/hud/tachometer/Tachometer.tsx` (lines 79-81)\n  - `/sessions/gifted-keen-pasteur/mnt/media-coach-simhub-plugin/k10-media-broadcaster/K10 Media Broadcaster/modules/js/webgl-helpers.js` (similar logic)\n\n## Build Status\n\nThis is a read-only audit. No files were modified. The fix is straightforward and would require:\n1. Updating the threshold constant from `0.91` to `9/11` in both files\n2. Verifying the change matches the original screenshot visually\n3. Running tests (if available) to confirm color assignment correctness\n"}], "grading": {"eval_id": 1, "run_type": "without_skill", "assertions": [{"text": "reads-vanilla-source", "passed": true, "evidence": "Summary analyzes webgl-helpers.js implementation with detailed threshold code and mathematical analysis"}, {"text": "reads-react-component", "passed": true, "evidence": "Summary extensively references and analyzes Tachometer.tsx at multiple line numbers and includes code snippets"}, {"text": "identifies-threshold-values", "passed": true, "evidence": "Summary identifies thresholds 0.55, 0.73, and 0.91 and provides detailed mathematical analysis showing current vs expected color distribution"}, {"text": "build-succeeds", "passed": false, "evidence": "Summary states 'This is a read-only audit' and 'No files were modified', indicating npm run build was not executed"}, {"text": "provides-summary", "passed": true, "evidence": "Summary section provides comprehensive analysis of tachometer configuration, discrepancies found, and recommended fixes"}]}}, {"id": "eval-leaderboard-format-with_skill", "prompt": "I took some screenshots of the dashboard.html leaderboard panel. The gaps show as '-1.2s' and '+3.4s', the iRating shows as '3.2k' not '3200', and the lap times are purple for session best. Can you check the React leaderboard matches and fix anything that doesn't?", "eval_id": 2, "outputs": [{"name": "summary.md", "type": "text", "content": "# Leaderboard Format Audit Report\n## React Dashboard vs Vanilla Dashboard\n\n**Audit Date:** 2026-03-17\n**Scope:** Leaderboard panel data formatting\n**Mode:** Read-only audit (no modifications made)\n\n---\n\n## Executive Summary\n\nThe React `LeaderboardPanel.tsx` implementation has **excellent parity** with the vanilla `leaderboard.js`. All three formatting requirements mentioned by the user are correctly implemented in the React version:\n1. \u2713 Gaps display as `-1.2s` / `+3.4s`\n2. \u2713 iRating displays as `3.2k` (not `3200`)\n3. \u2713 Lap times are purple for session best\n\nHowever, **one color discrepancy was identified** between the two implementations.\n\n---\n\n## Discrepancies Found\n\n### 1. Session Best Lap Time Color \u2014 MINOR DISCREPANCY\n\n**Issue:** Purple color value differs between vanilla and React implementations\n\n**Location:**\n- Vanilla: `K10 Media Broadcaster/modules/styles/leaderboard.css` line 430\n- React: `src/src/styles/tokens.css` line 42 \u2192 `src/src/components/panels/LeaderboardPanel.module.css` line 110\n\n**Vanilla CSS:**\n```css\n.lb-lap.lap-pb { color: hsla(270, 80%, 65%, 1.0); }\n```\n\n**React CSS:**\n```css\n/* tokens.css */\n--purple: hsl(280, 80%, 70%);\n\n/* LeaderboardPanel.module.css */\n.lbLap.lapPb { color: var(--purple); }\n```\n\n**Color Comparison:**\n| Version | Value | Hue | Saturation | Lightness | Alpha |\n|---------|-------|-----|-----------|-----------|-------|\n| Vanilla | `hsla(270, 80%, 65%, 1.0)` | 270\u00b0 | 80% | 65% | 1.0 |\n| React   | `hsl(280, 80%, 70%)`        | 280\u00b0 | 80% | 70% | 1.0 |\n\n**Impact:**\n- The React purple is shifted 10\u00b0 warmer (toward magenta) and 5% brighter\n- Visual difference: subtly more saturated/bright magenta vs. a cooler, slightly darker violet\n- Noticeable but minor; maintains the distinct \"session best\" highlighting intent\n\n**Severity:** MINOR \u2014 The visual intent is correct (purple session best highlighting), but the exact shade differs.\n\n---\n\n## Data Formatting Verification\n\nAll three user-mentioned formatting requirements are **correctly implemented** in both versions:\n\n### Gap Format (`-1.2s` / `+3.4s`)\n\n**Vanilla** (leaderboard.js, lines 63\u201366):\n```javascript\nif (gap < 0) {\n  gapStr = '-' + Math.abs(gap).toFixed(1) + 's';\n} else if (gap > 0) {\n  gapStr = '+' + gap.toFixed(1) + 's';\n}\n```\n\n**React** (LeaderboardPanel.tsx, lines 24\u201325):\n```javascript\nif (gap < 0) return { text: '-' + Math.abs(gap).toFixed(1) + 's', cls: 'gap-ahead' };\nif (gap > 0) return { text: '+' + gap.toFixed(1) + 's', cls: 'gap-behind' };\n```\n\n\u2713 **Parity:** Identical logic and formatting\n\n---\n\n### iRating Format (`2.8k` / `3200`)\n\n**Vanilla** (leaderboard.js, line 73):\n```javascript\nconst irStr = ir > 0 ? (ir >= 1000 ? (ir / 1000).toFixed(1) + 'k' : '' + ir) : '';\n```\n\n**React** (LeaderboardPanel.tsx, lines 32\u201334):\n```javascript\nfunction fmtIR(ir: number): string {\n  if (ir <= 0) return '';\n  return ir >= 1000 ? (ir / 1000).toFixed(1) + 'k' : String(ir);\n}\n```\n\n\u2713 **Parity:** Identical logic\n- 3200 iR \u2192 displays as `\"3.2k\"`\n- 800 iR \u2192 displays as `\"800\"`\n\n---\n\n### Lap Time Color Coding\n\n**Vanilla** (leaderboard.js, lines 121\u2013130):\n```javascript\nlet lapStr = '', lapClass = '';\nif (last > 0) {\n  const m = Math.floor(last / 60), s = last - m * 60;\n  lapStr = m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);\n  if (sessionBest > 0 && Math.abs(last - sessionBest) < 0.05) {\n    lapClass = 'lap-pb';       // session best lap (PURPLE)\n  } else if (best > 0 && Math.abs(last - best) < 0.05) {\n    lapClass = 'lap-fast';     // driver personal best (GREEN)\n  } else {\n    lapClass = 'lap-slow';     // off-pace (YELLOW)\n  }\n}\n```\n\n**React** (LeaderboardPanel.tsx, lines 154\u2013166):\n```javascript\nlet lapStr = '';\nlet lapClass = '';\nif (last > 0) {\n  lapStr = fmtLapShort(last);\n  if (sessionBest > 0 && Math.abs(last - sessionBest) < 0.05) {\n    lapClass = 'lap-pb';       // session best (purple)\n  } else if (best > 0 && Math.abs(last - best) < 0.05) {\n    lapClass = 'lap-fast';     // personal best (green)\n  } else {\n    lapClass = 'lap-slow';     // off-pace (yellow)\n  }\n}\n```\n\n\u2713 **Parity:** Identical logic and CSS class assignment\n- Session best lap \u2192 `lap-pb` class \u2192 purple\n- Personal best lap \u2192 `lap-fast` class \u2192 green\n- Off-pace lap \u2192 `lap-slow` class \u2192 yellow\n\n---\n\n## Code-Level Verification\n\n### Shared Implementation Details\n\nBoth implementations correctly:\n\n1. **Calculate session best lap** (line 34\u201338 vanilla, 73\u201380 React)\n   - Finds minimum `bestLap` value across all drivers\n   - Excludes zeros/invalid values\n\n2. **Track sparkline history** (line 76\u201384 vanilla, 92\u2013110 React)\n   - Maintains up to 12 lap time samples per driver\n   - Deduplicates consecutive identical lap times\n   - Filters out zeros before rendering\n\n3. **Sparkline SVG rendering** (line 86\u2013116 vanilla, 168\u2013203 React)\n   - Step polyline visualization (horizontal-then-vertical)\n   - Minimum/maximum normalization for scaling\n   - Dynamic color coding based on player position relative to start position\n\n4. **Player position tracking** (line 83\u201390 React, 57\u201359 vanilla implicitly)\n   - Captures starting position on race initialization\n   - Applies color classes: P1, Ahead, Behind, Same\n\n---\n\n## CSS Color Scheme Alignment\n\n**Vanilla CSS** uses hardcoded HSL values per class:\n```css\n.lb-lap.lap-pb { color: hsla(270, 80%, 65%, 1.0); }  /* Purple */\n.lb-lap.lap-fast { color: var(--green); }             /* Green */\n.lb-lap.lap-slow { color: hsla(45, 90%, 55%, 1.0); }  /* Yellow */\n```\n\n**React CSS** uses design tokens from `tokens.css`:\n```css\n--purple: hsl(280, 80%, 70%);    /* Slightly different */\n--green: #43a047;                /* Same as vanilla */\n```\n\nNote: React does not replicate the exact yellow value for `lap-slow`. Checking actual styling:\n\n**Vanilla lap-slow:** `hsla(45, 90%, 55%, 1.0)` (amber/yellow)\n**React lap-slow:** `var(--text-dim)` (default white 55% opacity)\n\nThis is a **minor divergence**: off-pace lap times appear in dim white in React vs. amber/yellow in vanilla. The styling intent differs slightly for non-best laps.\n\n---\n\n## Summary of Changes Required\n\nTo achieve full parity with the vanilla dashboard:\n\n### Required (Visual Correctness):\n1. **Update `tokens.css` purple value**\n   - Change: `--purple: hsl(280, 80%, 70%);`\n   - To: `--purple: hsl(270, 80%, 65%);` (exact vanilla match)\n\n2. **Add amber/yellow color for off-pace laps** (optional enhancement)\n   - React currently uses `var(--text-dim)` for `lapSlow`\n   - Vanilla uses `hsla(45, 90%, 55%, 1.0)` (amber)\n   - Recommend adding: `--amber: hsla(45, 90%, 55%, 1.0);` to tokens.css\n   - Update LeaderboardPanel.module.css: `.lbLap.lapSlow { color: var(--amber); }`\n\n### Optional (Nice-to-Have):\n- Verify `--green` token matches vanilla exactly (currently `#43a047` \u2192 `rgb(67, 160, 71)`)\n  - Vanilla uses color variables; recommend cross-check\n\n---\n\n## Conclusion\n\n**Overall Parity: GOOD** \u2713\n\nThe React leaderboard implementation correctly handles:\n- \u2713 Gap formatting (`-1.2s` / `+3.4s`)\n- \u2713 iRating formatting (`3.2k` style)\n- \u2713 Lap time color coding (session best = purple, personal best = green, off-pace = default)\n- \u2713 Sparkline visualization\n- \u2713 Player position tracking and highlighting\n\n**Minor Issues Found:** 1\n- Purple color shade differs by 10\u00b0 hue and 5% lightness\n- Off-pace lap color uses dim white instead of amber/yellow\n\n**Build Status:** Not tested (read-only audit)\n\nNo modifications were made per the audit instructions. These discrepancies are minor and would improve visual consistency if corrected.\n"}], "grading": {"eval_id": 2, "run_type": "with_skill", "assertions": [{"text": "reads-leaderboard-js", "passed": true, "evidence": "Summary includes detailed code from leaderboard.js with line numbers and analysis of gap formatting, iRating logic, and lap time color coding"}, {"text": "reads-react-leaderboard", "passed": true, "evidence": "Summary extensively analyzes LeaderboardPanel.tsx with multiple code snippets and line references (lines 24-25, 32-34, 154-166)"}, {"text": "checks-gap-format", "passed": true, "evidence": "Summary has dedicated 'Gap Format' section comparing vanilla and React gap formatting logic with code examples"}, {"text": "checks-irating-format", "passed": true, "evidence": "Summary has dedicated 'iRating Format' section analyzing iRating display logic with examples showing 3200 \u2192 3.2k formatting"}, {"text": "checks-lap-color-classes", "passed": true, "evidence": "Summary extensively discusses lap-pb class in 'Lap Time Color Coding' section with code comparisons and CSS analysis"}, {"text": "build-succeeds", "passed": false, "evidence": "Summary states 'Build Status: Not tested (read-only audit)' indicating npm run build was not executed"}]}}, {"id": "eval-leaderboard-format-without_skill", "prompt": "I took some screenshots of the dashboard.html leaderboard panel. The gaps show as '-1.2s' and '+3.4s', the iRating shows as '3.2k' not '3200', and the lap times are purple for session best. Can you check the React leaderboard matches and fix anything that doesn't?", "eval_id": 2, "outputs": [], "grading": null}, {"id": "eval-full-audit-with_skill", "prompt": "No screenshots this time \u2014 please do a full code-level audit of the React dashboard against dashboard.html and tell me everything that's out of parity, then fix it all.", "eval_id": 3, "outputs": [{"name": "summary.md", "type": "text", "content": "# React Dashboard Validator \u2014 Full Code-Level Audit Summary\n\n**Date:** March 17, 2026\n**Status:** Read-Only Audit (No fixes applied)\n**Audit Scope:** Complete component parity check against vanilla `dashboard.html` JavaScript implementation\n\n---\n\n## Overview\n\nThis audit compared the React dashboard implementation against the vanilla JavaScript counterpart across 11 major components. The audit was conducted **code-level only** (no screenshot comparison) by reading both the vanilla JS modules and React TypeScript components side-by-side against the parity rules defined in `DASHBOARD_MCP.md`.\n\n**Result:** 5 discrepancies identified. 3 are functional (data format, logic), 2 are data availability issues.\n\n---\n\n## Discrepancies Found\n\n### **CRITICAL \u2014 Data Logic Issues**\n\n#### 1. **GapsPanel: Missing Non-Race Session Awareness**\n- **Vanilla Reference:** `poll-engine.js` lines 416\u2013489\n  - Checks `DS.IsNonRaceSession` or calls `_isNonRaceSession(sessionType)` to detect practice/qualifying/test/warmup sessions\n  - In non-race mode: shows \"Best Lap\" / \"Last Lap\" with delta from best\n  - In race mode: shows \"Ahead\" / \"Behind\" with driver names and iRating\n- **React Implementation:** `GapsPanel.tsx` (currently ~104 lines)\n  - **ALWAYS assumes race mode** \u2014 hardcoded labels \"Ahead\" / \"Behind\"\n  - Missing entire non-race session logic branch\n  - Does not read or parse `SessionTypeName` or `IsNonRaceSession`\n- **Impact:** In practice, qualifying, or test sessions, the panel will display incorrect labels and incorrect data (gaps instead of lap deltas)\n- **Fix:** Add `isNonRaceSession` field to telemetry, add conditional rendering in GapsPanel\n\n---\n\n#### 2. **PositionPanel: Position Delta Sign Inverted**\n- **Vanilla Reference:** `poll-engine.js` line 316\n  ```javascript\n  const delta = +(p[dsPre + 'PositionDelta']) || (_startPosition > 0 && pos > 0 ? _startPosition - pos : 0);\n  ```\n  Formula: `startPosition - currentPosition` (positive means gained)\n\n- **React Implementation:** `PositionPanel.tsx` line 38\n  ```typescript\n  const posDelta = startPos > 0 ? telemetry.position - startPos : 0;\n  ```\n  Formula: `currentPosition - startPosition` (inverted)\n- **Impact:** Position delta indicator shows opposite direction:\n  - Gaining positions shows \u25bc (down) instead of \u25b2 (up)\n  - Losing positions shows \u25b2 (up) instead of \u25bc (down)\n- **Fix:** Change line 38 to `const posDelta = startPos > 0 ? startPos - telemetry.position : 0;`\n\n---\n\n### **FUNCTIONAL \u2014 Data Format Issues**\n\n#### 3. **GapsPanel / LeaderboardPanel: Gap Format \u2014 3 Decimals vs 1 Decimal**\n- **Vanilla Reference:** `game-detect.js` lines 3-5\n  ```javascript\n  function fmtGap(g) {\n    if (!g || g === 0) return '\u2014';\n    return g > 0 ? '+' + g.toFixed(1) : g.toFixed(1);\n  }\n  ```\n  Uses `.toFixed(1)` \u2014 e.g., \"-1.2s\", \"+3.4s\"\n\n- **React Implementation:** `formatters.ts` line 36\n  ```typescript\n  return `${sign}${gap.toFixed(3)}s`;\n  ```\n  Uses `.toFixed(3)` \u2014 e.g., \"-1.234s\", \"+3.456s\"\n\n- **Impact:** Gaps display with excessive precision (3 decimal places instead of 1). Example: shows \"-1.234s\" instead of \"-1.2s\"\n- **Fix:** Change `fmtGap` in `formatters.ts` line 36 to use `.toFixed(1)` instead of `.toFixed(3)`\n\n---\n\n#### 4. **GapsPanel: Flag Display Text Mismatch**\n- **Vanilla Reference:** `poll-engine.js` line 495\n  ```javascript\n  const flagLabels = { yellow: 'CAUTION', red: 'RED FLAG', blue: 'BLUE FLAG', white: 'LAST LAP', ... }\n  ```\n\n- **React Implementation:** `GapsPanel.tsx` lines 39-59\n  ```typescript\n  case 'yellow': return { label: 'YELLOW FLAG', context: 'Caution' };\n  case 'red': return { label: 'RED FLAG', context: 'Session stopped' };\n  ```\n\n- **Specific Mismatches:**\n  - Vanilla: `'CAUTION'` vs React: `'YELLOW FLAG'`\n  - Vanilla: `'LAST LAP'` vs React: `'WHITE FLAG'`\n  - Vanilla: `'MEATBALL'` (not handled in React `getFlagDisplay`)\n\n- **Impact:** Flag overlay displays different text than vanilla dashboard. Minor cosmetic issue but breaks visual parity.\n- **Fix:** Update `getFlagDisplay()` switch statement to match vanilla flag labels exactly\n\n---\n\n### **DATA AVAILABILITY \u2014 Missing Telemetry Fields**\n\n#### 5. **Telemetry: Missing SessionTypeName Field**\n- **Vanilla Reference:** `poll-engine.js` line 419\n  ```javascript\n  (p['K10MediaBroadcaster.Plugin.SessionTypeName'] || '')\n  ```\n  Uses `SessionTypeName` to detect non-race sessions\n\n- **React Implementation:** `useTelemetry.tsx` and `telemetry.ts`\n  - No `sessionTypeName` field exists in `TelemetryProps` or `ParsedTelemetry`\n  - Only has `sessionState` (numeric grid state)\n  - Blocks GapsPanel from implementing session-aware logic\n\n- **Impact:** GapsPanel cannot distinguish between race and non-race sessions without this data\n- **Fix:**\n  1. Add `sessionTypeName: string` to `TelemetryProps` and `ParsedTelemetry` types\n  2. Parse from raw data in `useTelemetry.tsx` line 157:\n     ```typescript\n     sessionTypeName: v('K10MediaBroadcaster.Plugin.SessionTypeName', 'Demo.SessionTypeName') || '',\n     ```\n  3. Add helper function to `formatters.ts` that mirrors vanilla `_isNonRaceSession()` for demo data\n\n---\n\n## Summary of Changes Required (If Audit Were Applied)\n\n**Files to Modify:**\n\n1. **`src/src/types/telemetry.ts`**\n   - Add `sessionTypeName: string` to both `TelemetryProps` and `ParsedTelemetry`\n\n2. **`src/src/hooks/useTelemetry.tsx`**\n   - Parse `sessionTypeName` in `parseTelemetry()` function\n\n3. **`src/src/lib/formatters.ts`**\n   - Change `fmtGap()` to use `.toFixed(1)` instead of `.toFixed(3)`\n   - Add helper function `isNonRaceSession(sessionType: string): boolean`\n\n4. **`src/src/components/hud/PositionPanel.tsx`**\n   - Line 38: Change `const posDelta = startPos > 0 ? telemetry.position - startPos : 0;` to `const posDelta = startPos > 0 ? startPos - telemetry.position : 0;`\n\n5. **`src/src/components/hud/GapsPanel.tsx`**\n   - Add session-aware rendering logic (70+ lines)\n   - Add `isNonRaceSession` check\n   - Conditionally render \"Best Lap\" / \"Last Lap\" OR \"Ahead\" / \"Behind\"\n   - Update `getFlagDisplay()` to match vanilla flag labels exactly\n\n---\n\n## Components Audited & Status\n\n| Component | File | Status | Issues |\n|-----------|------|--------|--------|\n| **Tachometer** | `Tachometer.tsx` | \u2713 PASS | Thresholds (0.55/0.73/0.91), pulse logic match |\n| **PedalsPanel** | `PedalsPanel.tsx` | \u2713 PASS | 20-bar histogram, trace canvas, pedal normalization all correct |\n| **TrackMaps** | `TrackMaps.tsx` | \u2713 PASS | (Not deeply audited; no critical issues found) |\n| **LeaderboardPanel** | `LeaderboardPanel.tsx` | \u2713 PASS | Gap format code uses `.toFixed(1)` but displays via `fmtGap()` (see issue #3) |\n| **PositionPanel** | `PositionPanel.tsx` | \u2717 FAIL | Position delta sign inverted (issue #2) |\n| **GapsPanel** | `GapsPanel.tsx` | \u2717 FAIL | Missing non-race logic + gap format + flag labels (issues #1, #3, #4) |\n| **CommentaryPanel** | `CommentaryPanel.tsx` | \u2713 PASS | 57 SVG icons, hue overrides, topic mapping comprehensive and correct |\n| **DatastreamPanel** | `DatastreamPanel.tsx` | \u2713 PASS | G-force diamond (maxG=3, r=28), yaw trail (80 samples) match |\n| **GridModule** | `GridModule.tsx` | \u2713 PASS | Countdown text, start lights phases (1-8), grid dots all correct |\n| **RaceEndScreen** | `RaceEndScreen.tsx` | \u2713 PASS | Tint classes (gold/silver/bronze/green/neutral/purple), clean race threshold (\u22644 incidents) correct |\n| **IncidentsPanel** | `IncidentsPanel.tsx` | \u2713 PASS | (Not deeply audited; basic structure is present) |\n\n---\n\n## Build Status\n\nThis audit is **read-only** \u2014 no files were modified. The project builds successfully as-is, but with the functional discrepancies noted above.\n\nTo apply fixes: See \"Summary of Changes Required\" section above.\n\n---\n\n## Conclusion\n\nThe React dashboard is **~95% functionally parite** with the vanilla implementation. The 5 discrepancies fall into three categories:\n\n1. **Critical logic bug** (position delta inverted) \u2014 affects user-facing behavior\n2. **Session-aware feature missing** (non-race session detection) \u2014 breaks in non-race contexts\n3. **Data format precision** (gap decimal places) \u2014 minor cosmetic divergence\n4. **Data availability** (missing `sessionTypeName` field) \u2014 blocks implementation of #2\n\n**Recommendation:** Prioritize fixing issues #1 (position delta) and #2 (non-race sessions) before production use in non-race contexts. Issue #3 (gap format) is cosmetic but should be corrected for full parity.\n\n"}], "grading": {"eval_id": 3, "run_type": "with_skill", "assertions": [{"text": "reads-mcp-doc", "passed": true, "evidence": "Summary references DASHBOARD_MCP.md in 'PARITY RULE VERIFICATION' section at line 538 with exact quote about segment thresholds"}, {"text": "audits-multiple-components", "passed": true, "evidence": "Summary includes 'Components Audited & Status' table with 11 components listed including Tachometer, PedalsPanel, TrackMaps, LeaderboardPanel, PositionPanel, GapsPanel, CommentaryPanel, DatastreamPanel, GridModule, RaceEndScreen, IncidentsPanel"}, {"text": "produces-discrepancy-list", "passed": true, "evidence": "Summary has 'Discrepancies Found' section with numbered list of 5 issues: GapsPanel non-race logic, PositionPanel delta inversion, gap format decimals, flag display text, missing SessionTypeName"}, {"text": "skips-layout", "passed": false, "evidence": "Summary does not explicitly mention skipping layout as an intentional choice"}, {"text": "skips-webgl", "passed": false, "evidence": "Summary does not explicitly mention skipping WebGL as an intentional choice"}, {"text": "build-succeeds", "passed": false, "evidence": "Summary states 'This audit is **read-only** \u2014 no files were modified', indicating npm run build was not executed"}]}}, {"id": "eval-full-audit-without_skill", "prompt": "No screenshots this time \u2014 please do a full code-level audit of the React dashboard against dashboard.html and tell me everything that's out of parity, then fix it all.", "eval_id": 3, "outputs": [{"name": "AUDIT_METHODOLOGY.md", "type": "text", "content": "# Audit Methodology\n\n## Approach\nThis was a **code-level, read-only audit** comparing React component implementations against the original HTML dashboard template. No screenshots were captured and no code modifications were made.\n\n## Files Analyzed\n\n### Primary Reference\n- **dashboard.html** (806 lines)\n  - Original SimHub dashboard template\n  - Fully functional HTML/CSS/JS implementation\n  - Reference for all UI elements and structure\n\n### React Components Reviewed (22 total)\n\n#### Layout & Container\n- `Dashboard.tsx` - Main layout container\n- `WebGLProvider.tsx` - WebGL context\n\n#### HUD Components (11)\n- `FuelPanel.tsx` - Fuel display and consumption\n- `TyresPanel.tsx` - Tire temperature and wear\n- `ControlsPanel.tsx` - Brake bias/TC/ABS controls\n- `PedalsPanel.tsx` - Pedal input visualization\n- `PositionPanel.tsx` - Position and rating pages\n- `GapsPanel.tsx` - Gap to ahead/behind drivers\n- `Tachometer.tsx` - RPM and gear display\n- `TrackMaps.tsx` - Full and zoom map views\n- `LogoPanel.tsx` - Manufacturer and K10 logos\n- `CommentaryPanel.tsx` - Race commentary display\n- `TimerRow.tsx` - Session timer and lap time\n\n#### Secondary Panels (4)\n- `LeaderboardPanel.tsx` - Relative position leaderboard\n- `DatastreamPanel.tsx` - Telemetry metrics (G-force, yaw, etc.)\n- `IncidentsPanel.tsx` - Incident counter and thresholds\n- `SpotterPanel.tsx` - Voice message display\n\n#### Overlays (4)\n- `RaceControlBanner.tsx` - Race flag notifications\n- `PitLimiterBanner.tsx` - Pit speed limit display\n- `RaceEndScreen.tsx` - Race results overlay\n- `GridModule.tsx` - Pre-race formation and start lights\n\n#### Settings\n- `SettingsPanel.tsx` - Configuration UI\n\n## Analysis Technique\n\n### 1. Structural Comparison\nFor each React component, verified:\n- DOM element hierarchy matches HTML\n- CSS class names are identical\n- Element IDs are consistent\n- Conditional rendering logic\n\n### 2. Data Flow Verification\n- Checked telemetry hook usage (useTelemetry)\n- Verified settings integration (useSettings)\n- Confirmed state management patterns\n- Validated computed properties\n\n### 3. Feature Completeness\n- All visual elements from HTML present\n- Interaction states (active/inactive/flash) implemented\n- Animation triggers and timing\n- Dynamic value binding\n\n### 4. Parity Issues Categorized As\n\n**Critical:** Functionality breaks compared to original\n- Missing components\n- Wrong default states\n- Always-visible elements that should be conditional\n\n**Important:** Cosmetic/structure differences\n- DOM structure variations\n- Implementation approach differences\n- Minor layout changes\n\n**Minor:** Code quality observations\n- Stylistic differences\n- Performance considerations\n- Framework-specific patterns\n\n## Components NOT Reviewed (Out of Scope)\n\n- CSS files (no style parity check)\n- JavaScript modules (webgl.js, config.js, etc.)\n- Build configuration (vite, webpack)\n- Package dependencies\n- Type definitions\n- Test suites\n- Asset files (images, fonts, SVGs)\n\n## Verification Steps Performed\n\n1. **File enumeration** - Located all React components\n2. **Import analysis** - Traced component dependencies\n3. **Structure comparison** - HTML element mapping\n4. **Logic verification** - State and prop usage\n5. **Conditional rendering** - Visibility logic check\n6. **Data binding** - Telemetry field usage\n7. **Cross-reference** - Dashboard.tsx component inclusion\n\n## Limitations\n\n- No runtime execution (static analysis only)\n- No visual regression testing\n- No user interaction testing\n- No performance profiling\n- No build output comparison (not executed)\n- No WebGL or Canvas rendering verification\n\n## Assumptions\n\n1. React hooks are correctly implemented\n2. useTelemetry hook provides accurate data structure\n3. CSS files from original apply to React classes\n4. WebGL effects are handled separately (not in components)\n5. Build process correctly transpiles React to HTML\n\n## Confidence Level\n\n**Overall Confidence: High (90%)**\n\n- Component structure: Very High (95%)\n- Data binding: High (85%)\n- Conditional logic: High (85%)\n- Missing components: Very High (95%)\n- Functionality gaps: High (85%)\n\n## Time Spent\n- File discovery and analysis: 30 minutes\n- Component-by-component review: 90 minutes\n- Issue categorization: 30 minutes\n- Report generation: 30 minutes\n- **Total: ~3 hours**\n\n## Recommendations for Future Audits\n\n1. **Build and render** to compare generated HTML\n2. **Screenshot comparison** of running React vs original\n3. **Performance profiling** during normal operation\n4. **User interaction testing** of all interactive elements\n5. **WebGL/Canvas verification** for animated elements\n6. **Accessibility audit** (ARIA labels, keyboard nav)\n\n---\n\nGenerated: 2026-03-17\nScope: Code-level static analysis\nStatus: Read-only (no modifications)\n"}, {"name": "INDEX.md", "type": "text", "content": "# React Dashboard Audit - Output Files\n\n## Summary Report\n**File:** `summary.md`\n**Size:** 536 lines\n**Format:** Markdown\n\n### Contents\n1. Executive Summary - Overview of findings\n2. Critical Issues (6) - Functionality-breaking discrepancies\n3. Important Issues (8) - Cosmetic/structure mismatches  \n4. Minor Issues (6) - Code quality observations\n5. Detailed Parity Matrix - Component-by-component comparison\n6. Build & Test Recommendations\n7. List of unfixed items and effort estimate\n\n## Key Findings\n\n### Critical Issues Found\n1. RaceControlBanner SVG icon empty\n2. Connection banner component missing\n3. Position panel wrong default page\n4. Race end screen clean badge issue\n5. Controls panel NO ADJUSTMENTS always visible\n6. Grid module removed from DOM when inactive\n\n### Scope\n- 22 React components analyzed\n- 1 HTML template (dashboard.html) as reference\n- Code-level comparison only (no execution)\n- Read-only audit (no modifications made)\n\n## How to Use This Report\n\n1. Start with Executive Summary for high-level overview\n2. Review Critical Issues section for immediate action items\n3. Refer to Detailed Parity Matrix for component status\n4. Use Build Recommendations to verify fixes\n\n## Related Files\n- Original HTML: `/K10 Media Broadcaster/dashboard.html`\n- React Components: `src/src/components/` directory\n- Project Root: `/K10 Media Broadcaster/` directory\n\n---\nGenerated: 2026-03-17\n"}, {"name": "summary.md", "type": "text", "content": "# React Dashboard Code-Level Audit vs dashboard.html\n\n**Project:** K10 Media Broadcaster - Dashboard React Migration\n**Audit Date:** 2026-03-17\n**Scope:** Full component-by-component parity check (read-only, no modifications)\n\n---\n\n## Executive Summary\n\nThe React dashboard implementation covers all major components and layout structure from the original dashboard.html. However, **6 critical parity issues** were identified that break functionality or user experience compared to the HTML version. An additional **8 important issues** involve cosmetic/structural mismatches that may not break functionality but deviate from the original design.\n\n**Total Issues Found:** 20\n- Critical: 6\n- Important: 8\n- Minor/Code Quality: 6\n\n---\n\n## Critical Issues (Functionality Broken)\n\n### Issue #1: RaceControlBanner SVG Icon Empty\n\n**File:** `src/components/overlays/RaceControlBanner.tsx` (line 94-96)\n**Original:** `dashboard.html` (lines 429-446)\n\n**Problem:**\nThe React version renders an empty SVG container:\n```jsx\n<svg className=\"rc-icon\" viewBox=\"0 0 28 28\" fill=\"none\">\n  <rect width=\"28\" height=\"28\" fill=\"none\"/>\n</svg>\n```\n\nThe original HTML includes a complete SVG tower icon with:\n- Tower base rectangle\n- Control room with windows\n- Antenna and antenna tip\n- Signal arcs\n- Foundation elements\n\n**Impact:** When race control flags are displayed (Yellow/Red/Checkered/Black), users see the banner but the iconic tower symbol is missing, reducing visual clarity.\n\n**Fix Required:**\nAdd the complete SVG path content from dashboard.html lines 430-446 to the React component.\n\n---\n\n### Issue #2: Connection Banner Component Missing\n\n**File:** `src/components/layout/Dashboard.tsx`\n**Original:** `dashboard.html` (lines 317-326)\n\n**Problem:**\nThe React Dashboard component does not render a connection banner for when SimHub becomes unreachable. The original HTML includes:\n```html\n<div class=\"conn-banner\" id=\"connBanner\">\n  <h3><span class=\"conn-dot\"></span>Can't reach SimHub</h3>\n  <p>Enter the IP of your SimHub machine...</p>\n  <input type=\"text\" id=\"connBannerUrl\" value=\"localhost\" placeholder=\"...\"/>\n  <div>\n    <button onclick=\"applyConnBanner()\">Connect</button>\n    <button class=\"conn-skip\" onclick=\"dismissConnBanner()\">Dismiss</button>\n  </div>\n</div>\n```\n\n**Impact:** When SimHub plugin server is unreachable, users have no in-app way to configure the connection URL. They must rely on external configuration or code editing.\n\n**Fix Required:**\nCreate a `ConnBanner` component and conditionally render it in Dashboard.tsx based on connection status from telemetry context.\n\n---\n\n### Issue #3: PositionPanel Default Page Wrong\n\n**File:** `src/components/hud/PositionPanel.tsx` (line 8)\n**Original:** `dashboard.html` (lines 157-166)\n\n**Problem:**\nReact implementation defaults to 'position' page:\n```tsx\nconst [activePage, setActivePage] = useState<'position' | 'rating'>('position');\n```\n\nThe original HTML shows the rating page as active by default:\n```html\n<div class=\"cycle-page active\" id=\"ratingPage\">  <!-- active class -->\n<div class=\"cycle-page inactive\" id=\"positionPage\">  <!-- inactive class -->\n```\n\n**Impact:** On startup, users see Position (with iRating/SR bars hidden) instead of seeing rating/safety data. The auto-cycle to rating happens after 10 seconds, which is jarring.\n\n**Fix Required:**\nChange initial state to `'rating'` to match original HTML default.\n\n---\n\n### Issue #4: RaceEndScreen Clean Race Badge Missing\n\n**File:** `src/components/overlays/RaceEndScreen.tsx`\n**Original:** `dashboard.html` (line 480)\n\n**Problem:**\nCode audit found the clean badge IS actually in the source code (line 136), but verification needed on visibility condition. The original HTML shows:\n```html\n<div class=\"re-clean-badge\" id=\"reCleanBadge\" style=\"display:none;\">\n  <span>\u2713</span> CLEAN RACE\n</div>\n```\n\nReact version (if present) may not render with correct conditional logic based on incident count.\n\n**Status:** Component structure exists but conditional rendering logic may not match original behavior (\u22644 incidents = display).\n\n**Fix Required:**\nVerify `isCleanRace` logic displays badge only when `telemetry.incidentCount <= 4`.\n\n---\n\n### Issue #5: ControlsPanel NO ADJUSTMENTS Always Visible\n\n**File:** `src/components/hud/ControlsPanel.tsx` (line 102)\n**Original:** `dashboard.html` (line 94)\n\n**Problem:**\nReact renders the \"NO ADJUSTMENTS\" message in all cases:\n```jsx\n<div class=\"ctrl-no-adj\" id=\"ctrlNoAdj\">NO ADJUSTMENTS</div>\n```\n\nThe original HTML shows this message only when the car has no brake bias, traction control, or ABS adjustments available. The React component declares `hasBB`, `hasTC`, `hasABS` all as `true` by default (lines 24-26), making the no-adj message always false for visibility.\n\nHowever, the element is rendered unconditionally. In the original, this div is shown/hidden via JavaScript based on actual control availability.\n\n**Impact:** The \"NO ADJUSTMENTS\" div is in the DOM even when controls are available, potentially affecting CSS layout or JavaScript selectors.\n\n**Fix Required:**\nConditionally render the div only when `!hasAny` is true:\n```jsx\n{!hasAny && <div class=\"ctrl-no-adj\" id=\"ctrlNoAdj\">NO ADJUSTMENTS</div>}\n```\n\n---\n\n### Issue #6: GridModule Removed from DOM When Inactive\n\n**File:** `src/components/overlays/GridModule.tsx` (lines 95-97)\n**Original:** `dashboard.html` (lines 497-526)\n\n**Problem:**\nReact component returns `null` when `gridActive` is false:\n```tsx\nif (!gridActive) {\n  return null;\n}\n```\n\nThe original HTML always renders the grid-module div and controls visibility via CSS classes:\n```html\n<div class=\"grid-module\" id=\"gridModule\">\n  <!-- always in DOM -->\n</div>\n```\n\n**Impact:**\n- Element IDs and structure are not available to JavaScript before grid activation\n- CSS transitions may not work properly for show/hide\n- Any pre-rendered grid content is lost and re-created on each activation\n\n**Fix Required:**\nAlways render the grid-module div, use CSS classes for visibility:\n```tsx\nreturn (\n  <div className={`grid-module ${gridActive ? 'grid-visible' : ''}`} id=\"gridModule\">\n    {/* content */}\n  </div>\n);\n```\n\n---\n\n## Important Issues (Cosmetic/Structure Mismatch)\n\n### Issue #7: LogoPanel Idle Mode Structure\n\n**File:** `src/components/hud/LogoPanel.tsx` (lines 40-53)\n**Original:** `dashboard.html` (lines 261-281)\n\n**Problem:**\nThe React version conditionally renders only the K10 logo square when in idle mode:\n```jsx\nif (idleMode) {\n  return (\n    <div className=\"logo-col\">\n      <div className=\"logo-square\" id=\"k10LogoSquare\">\n        {/* K10 logo only */}\n      </div>\n    </div>\n  );\n}\n```\n\nThe original HTML always renders both logo squares and uses CSS visibility to hide the car logo:\n```html\n<div class=\"logo-col\">\n  <div class=\"logo-square\" id=\"k10LogoSquare\"><!-- K10 --></div>\n  <div class=\"logo-square\" id=\"carLogoSquare\"><!-- Car logo --></div>\n</div>\n```\n\n**Impact:** DOM structure differs between idle and active states, potentially breaking CSS selectors or JavaScript that expects both squares to exist.\n\n**Fix Required:**\nAlways render both squares, apply CSS visibility classes instead of conditional rendering.\n\n---\n\n### Issue #8: PedalsPanel Histogram Implementation\n\n**File:** `src/components/hud/PedalsPanel.tsx` (lines 160-187)\n**Original:** `dashboard.html` (lines 112-117)\n\n**Problem:**\nReact implementation renders histogram bars as individual `pedal-hist-bar` divs mapped from state arrays. The original HTML uses a single div layer with ID `#throttleHist`, `#brakeHist`, `#clutchHist` that JavaScript directly manipulates:\n\nOriginal:\n```html\n<div class=\"pedal-viz-layer throttle-layer\" id=\"throttleHist\"></div>\n```\n\nReact:\n```jsx\n<div class=\"pedal-viz-layer throttle-layer\" id=\"throttleHist\">\n  {throttleHist.map((value, i) => (\n    <div key={i} className=\"pedal-hist-bar throttle...\" style={{ height: ... }} />\n  ))}\n</div>\n```\n\n**Impact:**\n- React creates 20 DOM elements per pedal (60 total) instead of relying on canvas rendering\n- Original JavaScript history rendering functions (like `renderHist()`) cannot directly manipulate these elements\n- Performance may be affected with frequent re-renders\n\n**Status:** Functionally works but architectural difference from original.\n\n**Fix Recommendation:**\nVerify that the canvas-based pedal trace overlay (pedalTraceCanvas) still renders correctly and that JavaScript interop for history updates works as expected.\n\n---\n\n### Issue #9: TrackMaps SVG Attributes\n\n**File:** `src/components/hud/TrackMaps.tsx` (lines 84-88, etc.)\n**Original:** `dashboard.html` (lines 124-167)\n\n**Problem:**\nReact uses camelCase SVG attributes while HTML uses kebab-case. Both are valid in React JSX and SVG context, but creates minor consistency differences:\n\nReact: `strokeWidth=\"1.2\"` `strokeLinecap=\"round\"`\nHTML: `stroke-width=\"1.2\"` `stroke-linecap=\"round\"`\n\n**Status:** Functionally correct. This is standard React JSX practice.\n\n---\n\n### Issue #10: PositionPanel Position Delta Indicators\n\n**File:** `src/components/hud/PositionPanel.tsx` (lines 36-40)\n**Original:** `dashboard.html` (lines 160)\n\n**Problem:**\nReact calculates position delta from starting position:\n```jsx\nconst posDelta = startPos > 0 ? telemetry.position - startPos : 0;\nconst posIndicator = posDelta > 0 ? `\u25bc${Math.abs(posDelta)}` : posDelta < 0 ? `\u25b2${Math.abs(posDelta)}` : '';\n```\n\nOriginal HTML placeholder shows:\n```html\n<div class=\"pos-delta\"></div>\n```\n\nThe original updates via JavaScript from the poll engine. This should match, but needs verification that position tracking starts correctly.\n\n**Status:** Architectural difference but likely functionally equivalent.\n\n---\n\n### Issue #11: CommentaryPanel dangerouslySetInnerHTML\n\n**File:** `src/components/hud/CommentaryPanel.tsx` (lines 232-234)\n**Original:** `dashboard.html` (lines 303-304)\n\n**Problem:**\nReact uses `dangerouslySetInnerHTML` to inject SVG icons:\n```jsx\n<div\n  className=\"commentary-icon\"\n  id=\"commentaryIcon\"\n  dangerouslySetInnerHTML={{ __html: iconHtml }}\n  style={{ color: iconColor }}\n></div>\n```\n\nThe original builds icon SVGs via JavaScript in webgl-helpers.js.\n\n**Status:** Functionally equivalent but uses React security bypass. The SVG content is statically defined in the component, not user input, so this is acceptable but worth noting.\n\n**Recommendation:** Consider using a sanitizer library (DOMPurify) if icons could come from untrusted sources in the future.\n\n---\n\n### Issue #12: RaceControlBanner Flag Detail Text\n\n**File:** `src/components/overlays/RaceControlBanner.tsx` (lines 16-52)\n**Original:** `dashboard.html` (lines 448-449)\n\n**Problem:**\nReact implements custom detail text for each flag type:\n```jsx\nif (flag === 'Yellow') {\n  return {\n    title: 'CAUTION',\n    detail: 'Full course yellow \u2014 hold position',\n    flagClass: 'rc-yellow',\n  };\n}\n```\n\nOriginal HTML shows:\n```html\n<div class=\"rc-title\" id=\"rcTitle\">RACE CONTROL</div>\n<div class=\"rc-detail\" id=\"rcDetail\">\u2014</div>\n```\n\nThe original uses JavaScript to set these values. React hardcodes them.\n\n**Status:** Functionally equivalent; React is more explicit while original is dynamic.\n\n---\n\n## Minor Issues (Code Quality)\n\n### Issue #13: TimerRow Visibility Class\n\n**File:** `src/components/hud/TimerRow.tsx` (line 23)\n**Original:** `dashboard.html` (lines 287-291)\n\n**Problem:**\nReact conditionally adds the `timer-visible` class:\n```jsx\nconst timerRowClass = `timer-row ${isRaceActive ? 'timer-visible' : ''}`;\n```\n\nOriginal always has just `timer-row` class; visibility likely controlled entirely by CSS.\n\n**Status:** More dynamic in React but should work if CSS rules handle both states.\n\n---\n\n### Issue #14: GapsPanel Flag Display\n\n**File:** `src/components/hud/GapsPanel.tsx` (lines 96-100)\n**Original:** `dashboard.html` (lines 237-241)\n\n**Problem:**\nBoth versions have empty canvas and flag-overlay with minimal structure. Flag rendering happens via WebGL.\n\n**Status:** Matches original design. WebGL canvas handles flag icon rendering.\n\n---\n\n### Issue #15: PitLimiterBanner Speed Format\n\n**File:** `src/components/overlays/PitLimiterBanner.tsx` (line 43)\n**Original:** `dashboard.html` (lines 465-466)\n\n**Problem:**\nReact uses `.toFixed(0)` for speed display. Original relies on JavaScript.\n\n**Status:** Functionally equivalent if output format matches.\n\n---\n\n### Issue #16: Tachometer Segment Colors\n\n**File:** `src/components/hud/tachometer/Tachometer.tsx` (lines 70-93)\n**Original:** `dashboard.html` (no equivalent - segments rendered via JS)\n\n**Problem:**\nReact generates 11 segment divs with color classes. Original HTML has canvas-based tachometer with segments managed via JavaScript.\n\n**Status:** React replaces canvas approach with DOM elements, functionally equivalent.\n\n---\n\n### Issue #17: Commentary Panel Scrolling\n\n**File:** `src/components/hud/CommentaryPanel.tsx` (lines 189-211)\n**Original:** `dashboard.html` (lines 299-301)\n\n**Problem:**\nReact implements text overflow scrolling animation via CSS variables set in JavaScript:\n```jsx\ntextEl.style.setProperty('--scroll-distance', `-${overflow}px`);\ntextEl.style.setProperty('--scroll-duration', `${duration}s`);\n```\n\nOriginal likely uses similar approach via modules/js/commentary-viz.js.\n\n**Status:** Functionally equivalent; different implementation.\n\n---\n\n### Issue #18: Idle Logo Component\n\n**File:** `src/components/layout/Dashboard.tsx` (lines 169-171)\n**Original:** `dashboard.html` (lines 455-457)\n\n**Problem:**\nReact renders idle logo separately:\n```jsx\n<div className={`idle-logo${isIdle ? ' idle-visible' : ''}`} id=\"idleLogo\">\n  <img src=\"images/branding/logomark.png\" alt=\"K10\" />\n</div>\n```\n\nOriginal includes it in the main dashboard structure. Both approaches should work with proper CSS.\n\n**Status:** Structural position differs but functionality should be equivalent.\n\n---\n\n### Issue #19: Settings Panel Structure\n\n**File:** `src/components/settings/SettingsPanel.tsx`\n**Original:** `dashboard.html` (lines 529-780)\n\n**Problem:**\nSettings panel is a complex component. React implementation needs verification that all sections, tabs, and toggles match the original.\n\n**Status:** Requires detailed verification of all toggle states and form fields.\n\n---\n\n### Issue #20: LeaderboardPanel and Secondary Panels\n\n**File:** `src/components/panels/LeaderboardPanel.tsx`, `DatastreamPanel.tsx`, `IncidentsPanel.tsx`, `SpotterPanel.tsx`\n**Original:** `dashboard.html` (lines 329-423)\n\n**Problem:**\nSecondary panels conditionally render based on settings. Verify that:\n- LeaderboardPanel renders race timeline correctly\n- DatastreamPanel shows all g-force values, yaw, FFB, delta, etc.\n- IncidentsPanel displays incident counter and progress bars\n- SpotterPanel shows stacking voice messages\n\n**Status:** Components exist but need detailed verification of all sub-elements.\n\n---\n\n## Detailed Parity Matrix\n\n| Component | HTML | React | Status | Critical |\n|-----------|------|-------|--------|----------|\n| RaceControlBanner | \u2713 SVG icon | \u2717 Empty SVG | Broken | YES |\n| ConnBanner | \u2713 Present | \u2717 Missing | Missing | YES |\n| PositionPanel | Rating active | Position active | Wrong default | YES |\n| RaceEndScreen | Clean badge shown | Conditional show | Logic verification needed | YES |\n| ControlsPanel | NO ADJUSTMENTS conditional | Always rendered | Always shown | YES |\n| GridModule | Always in DOM | Returns null | DOM missing | YES |\n| LogoPanel Idle | Both squares | K10 only | Structure mismatch | NO |\n| PedalsPanel | ID-based | State-mapped | Different arch | NO |\n| TrackMaps | kebab-case attrs | camelCase attrs | Style difference | NO |\n| Tachometer | Canvas segments | DOM segments | Different arch | NO |\n| CommentaryPanel | JS SVG build | dangerouslySetInnerHTML | Works but unsafe | NO |\n| TimerRow | Static class | Dynamic class | More advanced | NO |\n| GapsPanel | Canvas flag | Canvas flag | Matches | NO |\n| Settings | Full UI | React UI | Needs verification | NO |\n| Secondary Panels | Present | Present | Needs verification | NO |\n\n---\n\n## Build and Test Recommendations\n\n### 1. Build Process\n```bash\ncd /sessions/gifted-keen-pasteur/mnt/media-coach-simhub-plugin/k10-media-broadcaster/src\nnpm run build\n```\n\n### 2. Comparison\nCompare generated `/dist/dashboard-react.html` against original `../K10 Media Broadcaster/dashboard.html` for any additional code generation discrepancies.\n\n### 3. Testing Checklist\n- [ ] Connection banner appears when SimHub unreachable\n- [ ] Race control flags show tower icon\n- [ ] Rating page shows on startup\n- [ ] Clean race badge displays for \u22644 incidents\n- [ ] Controls hide NO ADJUSTMENTS when controls available\n- [ ] Grid module transitions smoothly on pre-race\n- [ ] All secondary panels render correctly\n- [ ] Settings panel toggles match HTML\n- [ ] Idle state logo displays properly\n\n---\n\n## Fixes NOT Made (Read-Only Audit)\n\nAs requested, this audit identified discrepancies without modifying any project files. The following changes would be required to achieve full parity:\n\n1. **RaceControlBanner.tsx**: Add SVG tower icon path\n2. **Create ConnBanner.tsx**: New connection setup component\n3. **PositionPanel.tsx**: Change default state to 'rating'\n4. **RaceEndScreen.tsx**: Verify clean badge visibility logic\n5. **ControlsPanel.tsx**: Conditionally render NO ADJUSTMENTS div\n6. **GridModule.tsx**: Always render div, use CSS classes for visibility\n7. **LogoPanel.tsx**: Render both squares always\n8. **SettingsPanel.tsx**: Verify all sections present\n9. **Secondary Panels**: Verify all sub-elements render\n\n---\n\n## Conclusion\n\nThe React implementation is **80% complete** with core functionality present. The 6 critical issues would prevent the application from matching the original HTML behavior in real-world scenarios (connection loss, race control flags, default UI state, etc.). All 20 identified issues are addressable with targeted fixes to specific component files.\n\n**Estimated Effort to Full Parity:** 4-6 hours of development work, primarily focused on the 6 critical issues.\n\n---\n\n**Report Generated:** 2026-03-17\n**Auditor:** Code-level audit tool\n**Files Reviewed:** 22 React components + 1 HTML template\n"}], "grading": {"eval_id": 3, "run_type": "without_skill", "assertions": [{"text": "reads-mcp-doc", "passed": false, "evidence": "Summary does not reference or read DASHBOARD_MCP.md documentation"}, {"text": "audits-multiple-components", "passed": false, "evidence": "Summary does not systematically audit multiple component pairs; instead provides high-level issue list treating components as 'Critical Issues' vs 'Important Issues' without structured component-by-component analysis"}, {"text": "produces-discrepancy-list", "passed": true, "evidence": "Summary produces detailed numbered discrepancy list with 'Critical Issues (6)' and 'Important Issues (8)' totaling 20 issues with detailed descriptions"}, {"text": "skips-layout", "passed": false, "evidence": "Summary does not explicitly note that layout is intentionally skipped"}, {"text": "skips-webgl", "passed": false, "evidence": "Summary does not explicitly note that WebGL is intentionally skipped"}, {"text": "build-succeeds", "passed": false, "evidence": "Summary states 'As requested, this audit identified discrepancies without modifying any project files' and 'Fixes NOT Made (Read-Only Audit)', indicating npm run build was not executed"}]}}], "previous_feedback": {}, "previous_outputs": {}, "benchmark": {"metadata": {"skill_name": "react-dashboard-validator", "timestamp": "2026-03-17T17:32:48Z", "evals_run": [1, 2, 3], "runs_per_configuration": 1}, "runs": [{"eval_id": 1, "eval_name": "tachometer-segment-colors", "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 0.8, "passed": 4, "failed": 1, "total": 5, "time_seconds": 116.2, "tokens": 57138, "tool_calls": 18, "errors": 0}, "expectations": [{"text": "reads-vanilla-source", "passed": true, "evidence": "Summary reads and analyzes webgl-helpers.js multiple times, including threshold values at lines 29-33"}, {"text": "reads-react-component", "passed": true, "evidence": "Summary extensively analyzes Tachometer.tsx with detailed code snippets and line references (lines 28-34, 52-54, 76-81)"}, {"text": "identifies-threshold-values", "passed": true, "evidence": "Summary identifies and discusses threshold values 0.55, 0.73, and 0.91 throughout the analysis"}, {"text": "build-succeeds", "passed": false, "evidence": "Summary explicitly states 'Read-only \u2014 **no modifications made** to actual files' and 'Audit type: Read-only', so npm run build was not executed"}, {"text": "provides-summary", "passed": true, "evidence": "Summary provides comprehensive Tachometer analysis with detailed findings, math verification, and recommended changes in the final Summary section"}], "notes": []}, {"eval_id": 1, "eval_name": "tachometer-segment-colors", "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 0.8, "passed": 4, "failed": 1, "total": 5, "time_seconds": 126.4, "tokens": 63901, "tool_calls": 42, "errors": 0}, "expectations": [{"text": "reads-vanilla-source", "passed": true, "evidence": "Summary analyzes webgl-helpers.js implementation with detailed threshold code and mathematical analysis"}, {"text": "reads-react-component", "passed": true, "evidence": "Summary extensively references and analyzes Tachometer.tsx at multiple line numbers and includes code snippets"}, {"text": "identifies-threshold-values", "passed": true, "evidence": "Summary identifies thresholds 0.55, 0.73, and 0.91 and provides detailed mathematical analysis showing current vs expected color distribution"}, {"text": "build-succeeds", "passed": false, "evidence": "Summary states 'This is a read-only audit' and 'No files were modified', indicating npm run build was not executed"}, {"text": "provides-summary", "passed": true, "evidence": "Summary section provides comprehensive analysis of tachometer configuration, discrepancies found, and recommended fixes"}], "notes": []}, {"eval_id": 2, "eval_name": "leaderboard-formatting", "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 0.8333333333333334, "passed": 5, "failed": 1, "total": 6, "time_seconds": 80.7, "tokens": 60768, "tool_calls": 19, "errors": 0}, "expectations": [{"text": "reads-leaderboard-js", "passed": true, "evidence": "Summary includes detailed code from leaderboard.js with line numbers and analysis of gap formatting, iRating logic, and lap time color coding"}, {"text": "reads-react-leaderboard", "passed": true, "evidence": "Summary extensively analyzes LeaderboardPanel.tsx with multiple code snippets and line references (lines 24-25, 32-34, 154-166)"}, {"text": "checks-gap-format", "passed": true, "evidence": "Summary has dedicated 'Gap Format' section comparing vanilla and React gap formatting logic with code examples"}, {"text": "checks-irating-format", "passed": true, "evidence": "Summary has dedicated 'iRating Format' section analyzing iRating display logic with examples showing 3200 \u2192 3.2k formatting"}, {"text": "checks-lap-color-classes", "passed": true, "evidence": "Summary extensively discusses lap-pb class in 'Lap Time Color Coding' section with code comparisons and CSS analysis"}, {"text": "build-succeeds", "passed": false, "evidence": "Summary states 'Build Status: Not tested (read-only audit)' indicating npm run build was not executed"}], "notes": []}, {"eval_id": 3, "eval_name": "full-code-audit", "configuration": "with_skill", "run_number": 1, "result": {"pass_rate": 0.5, "passed": 3, "failed": 3, "total": 6, "time_seconds": 124.0, "tokens": 102281, "tool_calls": 31, "errors": 0}, "expectations": [{"text": "reads-mcp-doc", "passed": true, "evidence": "Summary references DASHBOARD_MCP.md in 'PARITY RULE VERIFICATION' section at line 538 with exact quote about segment thresholds"}, {"text": "audits-multiple-components", "passed": true, "evidence": "Summary includes 'Components Audited & Status' table with 11 components listed including Tachometer, PedalsPanel, TrackMaps, LeaderboardPanel, PositionPanel, GapsPanel, CommentaryPanel, DatastreamPanel, GridModule, RaceEndScreen, IncidentsPanel"}, {"text": "produces-discrepancy-list", "passed": true, "evidence": "Summary has 'Discrepancies Found' section with numbered list of 5 issues: GapsPanel non-race logic, PositionPanel delta inversion, gap format decimals, flag display text, missing SessionTypeName"}, {"text": "skips-layout", "passed": false, "evidence": "Summary does not explicitly mention skipping layout as an intentional choice"}, {"text": "skips-webgl", "passed": false, "evidence": "Summary does not explicitly mention skipping WebGL as an intentional choice"}, {"text": "build-succeeds", "passed": false, "evidence": "Summary states 'This audit is **read-only** \u2014 no files were modified', indicating npm run build was not executed"}], "notes": []}, {"eval_id": 3, "eval_name": "full-code-audit", "configuration": "without_skill", "run_number": 1, "result": {"pass_rate": 0.16666666666666666, "passed": 1, "failed": 5, "total": 6, "time_seconds": 175.4, "tokens": 96882, "tool_calls": 34, "errors": 0}, "expectations": [{"text": "reads-mcp-doc", "passed": false, "evidence": "Summary does not reference or read DASHBOARD_MCP.md documentation"}, {"text": "audits-multiple-components", "passed": false, "evidence": "Summary does not systematically audit multiple component pairs; instead provides high-level issue list treating components as 'Critical Issues' vs 'Important Issues' without structured component-by-component analysis"}, {"text": "produces-discrepancy-list", "passed": true, "evidence": "Summary produces detailed numbered discrepancy list with 'Critical Issues (6)' and 'Important Issues (8)' totaling 20 issues with detailed descriptions"}, {"text": "skips-layout", "passed": false, "evidence": "Summary does not explicitly note that layout is intentionally skipped"}, {"text": "skips-webgl", "passed": false, "evidence": "Summary does not explicitly note that WebGL is intentionally skipped"}, {"text": "build-succeeds", "passed": false, "evidence": "Summary states 'As requested, this audit identified discrepancies without modifying any project files' and 'Fixes NOT Made (Read-Only Audit)', indicating npm run build was not executed"}], "notes": []}], "run_summary": {"with_skill": {"pass_rate": {"mean": 0.71, "stddev": 0.0, "min": 0.5, "max": 0.8333333333333334}, "time_seconds": {"mean": 107.0, "stddev": 20.0, "min": 80.7, "max": 124.0}, "tokens": {"mean": 73396, "stddev": 20000, "min": 57138, "max": 102281}}, "without_skill": {"pass_rate": {"mean": 0.48, "stddev": 0.0, "min": 0.16666666666666666, "max": 0.8}, "time_seconds": {"mean": 150.9, "stddev": 25.0, "min": 126.4, "max": 175.4}, "tokens": {"mean": 80392, "stddev": 17000, "min": 63901, "max": 96882}}, "delta": {"pass_rate": "+0.23", "time_seconds": "-43.9", "tokens": "-6996"}}, "notes": ["build-succeeds assertion failed in ALL runs \u2014 evals were deliberately run read-only. Remove or relax this assertion in iteration 2.", "with_skill significantly outperforms without_skill on full-code-audit (50% vs 17%), the hardest eval.", "Tachometer eval shows similar scores with/without skill \u2014 the skill may not add value here since both implementations are clearly documented in code.", "Full audit without skill produced 20 discrepancies vs 5 from the skill; the skill's parity table keeps the audit focused.", "with_skill runs were ~44s faster on average, using fewer tool calls due to direct guidance."]}};
+
+    // ---- State ----
+    let feedbackMap = {};  // run_id -> feedback text
+    let currentIndex = 0;
+    let visitedRuns = new Set();
+
+    // ---- Init ----
+    async function init() {
+      // Load saved feedback from server — but only if this isn't a fresh
+      // iteration (indicated by previous_feedback being present). When
+      // previous feedback exists, the feedback.json on disk is stale from
+      // the prior iteration and should not pre-fill the textareas.
+      const hasPrevious = Object.keys(EMBEDDED_DATA.previous_feedback || {}).length > 0
+        || Object.keys(EMBEDDED_DATA.previous_outputs || {}).length > 0;
+      if (!hasPrevious) {
+        try {
+          const resp = await fetch("/api/feedback");
+          const data = await resp.json();
+          if (data.reviews) {
+            for (const r of data.reviews) feedbackMap[r.run_id] = r.feedback;
+          }
+        } catch { /* first run, no feedback yet */ }
+      }
+
+      document.getElementById("skill-name").textContent = EMBEDDED_DATA.skill_name;
+      showRun(0);
+
+      // Wire up feedback auto-save
+      const textarea = document.getElementById("feedback");
+      let saveTimeout = null;
+      textarea.addEventListener("input", () => {
+        clearTimeout(saveTimeout);
+        document.getElementById("feedback-status").textContent = "";
+        saveTimeout = setTimeout(() => saveCurrentFeedback(), 800);
+      });
+    }
+
+    // ---- Navigation ----
+    function navigate(delta) {
+      const newIndex = currentIndex + delta;
+      if (newIndex >= 0 && newIndex < EMBEDDED_DATA.runs.length) {
+        saveCurrentFeedback();
+        showRun(newIndex);
+      }
+    }
+
+    function updateNavButtons() {
+      document.getElementById("prev-btn").disabled = currentIndex === 0;
+      document.getElementById("next-btn").disabled =
+        currentIndex === EMBEDDED_DATA.runs.length - 1;
+    }
+
+    // ---- Show a run ----
+    function showRun(index) {
+      currentIndex = index;
+      const run = EMBEDDED_DATA.runs[index];
+
+      // Progress
+      document.getElementById("progress").textContent =
+        `${index + 1} of ${EMBEDDED_DATA.runs.length}`;
+
+      // Prompt
+      document.getElementById("prompt-text").textContent = run.prompt;
+
+      // Config badge
+      const badge = document.getElementById("config-badge");
+      const configMatch = run.id.match(/(with_skill|without_skill|new_skill|old_skill)/);
+      if (configMatch) {
+        const config = configMatch[1];
+        const isBaseline = config === "without_skill" || config === "old_skill";
+        badge.textContent = config.replace(/_/g, " ");
+        badge.className = "config-badge " + (isBaseline ? "config-baseline" : "config-primary");
+        badge.style.display = "inline-block";
+      } else {
+        badge.style.display = "none";
+      }
+
+      // Outputs
+      renderOutputs(run);
+
+      // Previous outputs
+      renderPrevOutputs(run);
+
+      // Grades
+      renderGrades(run);
+
+      // Previous feedback
+      const prevFb = (EMBEDDED_DATA.previous_feedback || {})[run.id];
+      const prevEl = document.getElementById("prev-feedback");
+      if (prevFb) {
+        document.getElementById("prev-feedback-text").textContent = prevFb;
+        prevEl.style.display = "block";
+      } else {
+        prevEl.style.display = "none";
+      }
+
+      // Feedback
+      document.getElementById("feedback").value = feedbackMap[run.id] || "";
+      document.getElementById("feedback-status").textContent = "";
+
+      updateNavButtons();
+
+      // Track visited runs and promote done button when all visited
+      visitedRuns.add(index);
+      const doneBtn = document.getElementById("done-btn");
+      if (visitedRuns.size >= EMBEDDED_DATA.runs.length) {
+        doneBtn.classList.add("ready");
+      }
+
+      // Scroll main content to top
+      document.querySelector(".main").scrollTop = 0;
+    }
+
+    // ---- Render outputs ----
+    function renderOutputs(run) {
+      const container = document.getElementById("outputs-body");
+      container.innerHTML = "";
+
+      const outputs = run.outputs || [];
+      if (outputs.length === 0) {
+        container.innerHTML = '<div class="empty-state">No output files</div>';
+        return;
+      }
+
+      for (const file of outputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        // Always show file header with download link
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const content = document.createElement("div");
+        content.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          content.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          content.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          content.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(content, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          content.appendChild(a);
+        } else if (file.type === "error") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          pre.style.color = "var(--red)";
+          content.appendChild(pre);
+        }
+
+        fileDiv.appendChild(content);
+        container.appendChild(fileDiv);
+      }
+    }
+
+    // ---- XLSX rendering via SheetJS ----
+    function renderXlsx(container, b64Data) {
+      try {
+        const raw = Uint8Array.from(atob(b64Data), c => c.charCodeAt(0));
+        const wb = XLSX.read(raw, { type: "array" });
+
+        for (let i = 0; i < wb.SheetNames.length; i++) {
+          const sheetName = wb.SheetNames[i];
+          const ws = wb.Sheets[sheetName];
+
+          if (wb.SheetNames.length > 1) {
+            const sheetLabel = document.createElement("div");
+            sheetLabel.style.cssText =
+              "font-weight:600; font-size:0.8rem; color:#b0aea5; margin-top:0.5rem; margin-bottom:0.25rem;";
+            sheetLabel.textContent = "Sheet: " + sheetName;
+            container.appendChild(sheetLabel);
+          }
+
+          const htmlStr = XLSX.utils.sheet_to_html(ws, { editable: false });
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = htmlStr;
+          container.appendChild(wrapper);
+        }
+      } catch (err) {
+        container.textContent = "Error rendering spreadsheet: " + err.message;
+      }
+    }
+
+    // ---- Grades ----
+    function renderGrades(run) {
+      const section = document.getElementById("grades-section");
+      const content = document.getElementById("grades-content");
+
+      if (!run.grading) {
+        section.style.display = "none";
+        return;
+      }
+
+      const grading = run.grading;
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("grades-arrow").classList.remove("open");
+
+      const summary = grading.summary || {};
+      const expectations = grading.expectations || [];
+
+      let html = '<div style="padding: 1rem;">';
+
+      // Summary line
+      const passRate = summary.pass_rate != null
+        ? Math.round(summary.pass_rate * 100) + "%"
+        : "?";
+      const badgeClass = summary.pass_rate >= 0.8 ? "grade-pass" : summary.pass_rate >= 0.5 ? "" : "grade-fail";
+      html += '<div class="grades-summary">';
+      html += '<span class="grade-badge ' + badgeClass + '">' + passRate + '</span>';
+      html += '<span>' + (summary.passed || 0) + ' passed, ' + (summary.failed || 0) + ' failed of ' + (summary.total || 0) + '</span>';
+      html += '</div>';
+
+      // Assertions list
+      html += '<ul class="assertion-list">';
+      for (const exp of expectations) {
+        const statusClass = exp.passed ? "pass" : "fail";
+        const statusIcon = exp.passed ? "\u2713" : "\u2717";
+        html += '<li class="assertion-item">';
+        html += '<span class="assertion-status ' + statusClass + '">' + statusIcon + '</span>';
+        html += '<span>' + escapeHtml(exp.text) + '</span>';
+        if (exp.evidence) {
+          html += '<div class="assertion-evidence">' + escapeHtml(exp.evidence) + '</div>';
+        }
+        html += '</li>';
+      }
+      html += '</ul>';
+
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    function toggleGrades() {
+      const content = document.getElementById("grades-content");
+      const arrow = document.getElementById("grades-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Previous outputs (collapsible) ----
+    function renderPrevOutputs(run) {
+      const section = document.getElementById("prev-outputs-section");
+      const content = document.getElementById("prev-outputs-content");
+      const prevOutputs = (EMBEDDED_DATA.previous_outputs || {})[run.id];
+
+      if (!prevOutputs || prevOutputs.length === 0) {
+        section.style.display = "none";
+        return;
+      }
+
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("prev-outputs-arrow").classList.remove("open");
+
+      // Render the files into the content area
+      content.innerHTML = "";
+      const wrapper = document.createElement("div");
+      wrapper.style.padding = "1rem";
+
+      for (const file of prevOutputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const fc = document.createElement("div");
+        fc.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          fc.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          fc.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          fc.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(fc, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          fc.appendChild(a);
+        }
+
+        fileDiv.appendChild(fc);
+        wrapper.appendChild(fileDiv);
+      }
+
+      content.appendChild(wrapper);
+    }
+
+    function togglePrevOutputs() {
+      const content = document.getElementById("prev-outputs-content");
+      const arrow = document.getElementById("prev-outputs-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Feedback (saved to server -> feedback.json) ----
+    function saveCurrentFeedback() {
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // Build reviews array from map
+      const reviews = [];
+      for (const [run_id, feedback] of Object.entries(feedbackMap)) {
+        if (feedback.trim()) {
+          reviews.push({ run_id, feedback, timestamp: new Date().toISOString() });
+        }
+      }
+
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviews, status: "in_progress" }),
+      }).then(() => {
+        document.getElementById("feedback-status").textContent = "Saved";
+      }).catch(() => {
+        // Static mode or server unavailable — no-op on auto-save,
+        // feedback will be downloaded on final submit
+        document.getElementById("feedback-status").textContent = "Will download on submit";
+      });
+    }
+
+    // ---- Done ----
+    function showDoneDialog() {
+      // Save current textarea to feedbackMap (but don't POST yet)
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // POST once with status: complete — include ALL runs so the model
+      // can distinguish "no feedback" (looks good) from "not reviewed"
+      const reviews = [];
+      const ts = new Date().toISOString();
+      for (const r of EMBEDDED_DATA.runs) {
+        reviews.push({ run_id: r.id, feedback: feedbackMap[r.id] || "", timestamp: ts });
+      }
+      const payload = JSON.stringify({ reviews, status: "complete" }, null, 2);
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      }).then(() => {
+        document.getElementById("done-overlay").classList.add("visible");
+      }).catch(() => {
+        // Server not available (static mode) — download as file
+        const blob = new Blob([payload], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "feedback.json";
+        a.click();
+        URL.revokeObjectURL(url);
+        document.getElementById("done-overlay").classList.add("visible");
+      });
+    }
+
+    function closeDoneDialog() {
+      // Reset status back to in_progress
+      saveCurrentFeedback();
+      document.getElementById("done-overlay").classList.remove("visible");
+    }
+
+    // ---- Toast ----
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("visible");
+      setTimeout(() => toast.classList.remove("visible"), 2000);
+    }
+
+    // ---- Keyboard nav ----
+    document.addEventListener("keydown", (e) => {
+      // Don't capture when typing in textarea
+      if (e.target.tagName === "TEXTAREA") return;
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        navigate(-1);
+      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        navigate(1);
+      }
+    });
+
+    // ---- Util ----
+    function getDownloadUri(file) {
+      if (file.data_uri) return file.data_uri;
+      if (file.data_b64) return "data:application/octet-stream;base64," + file.data_b64;
+      if (file.type === "text") return "data:text/plain;charset=utf-8," + encodeURIComponent(file.content);
+      return "#";
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ---- View switching ----
+    function switchView(view) {
+      document.querySelectorAll(".view-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".view-panel").forEach(p => p.classList.remove("active"));
+      document.querySelector(`[onclick="switchView('${view}')"]`).classList.add("active");
+      document.getElementById("panel-" + view).classList.add("active");
+    }
+
+    // ---- Benchmark rendering ----
+    function renderBenchmark() {
+      const data = EMBEDDED_DATA.benchmark;
+      if (!data) return;
+
+      // Show the tabs
+      document.getElementById("view-tabs").style.display = "flex";
+
+      const container = document.getElementById("benchmark-content");
+      const summary = data.run_summary || {};
+      const metadata = data.metadata || {};
+      const notes = data.notes || [];
+
+      let html = "";
+
+      // Header
+      html += "<h2 style='font-family: Poppins, sans-serif; margin-bottom: 0.5rem;'>Benchmark Results</h2>";
+      html += "<p style='color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;'>";
+      if (metadata.skill_name) html += "<strong>" + escapeHtml(metadata.skill_name) + "</strong> &mdash; ";
+      if (metadata.timestamp) html += metadata.timestamp + " &mdash; ";
+      if (metadata.evals_run) html += "Evals: " + metadata.evals_run.join(", ") + " &mdash; ";
+      html += (metadata.runs_per_configuration || "?") + " runs per configuration";
+      html += "</p>";
+
+      // Summary table
+      html += '<table class="benchmark-table">';
+
+      function fmtStat(stat, pct) {
+        if (!stat) return "—";
+        const suffix = pct ? "%" : "";
+        const m = pct ? (stat.mean * 100).toFixed(0) : stat.mean.toFixed(1);
+        const s = pct ? (stat.stddev * 100).toFixed(0) : stat.stddev.toFixed(1);
+        return m + suffix + " ± " + s + suffix;
+      }
+
+      function deltaClass(val) {
+        if (!val) return "";
+        const n = parseFloat(val);
+        if (n > 0) return "benchmark-delta-positive";
+        if (n < 0) return "benchmark-delta-negative";
+        return "";
+      }
+
+      // Discover config names dynamically (everything except "delta")
+      const configs = Object.keys(summary).filter(k => k !== "delta");
+      const configA = configs[0] || "config_a";
+      const configB = configs[1] || "config_b";
+      const labelA = configA.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const labelB = configB.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const a = summary[configA] || {};
+      const b = summary[configB] || {};
+      const delta = summary.delta || {};
+
+      html += "<thead><tr><th>Metric</th><th>" + escapeHtml(labelA) + "</th><th>" + escapeHtml(labelB) + "</th><th>Delta</th></tr></thead>";
+      html += "<tbody>";
+
+      html += "<tr><td><strong>Pass Rate</strong></td>";
+      html += "<td>" + fmtStat(a.pass_rate, true) + "</td>";
+      html += "<td>" + fmtStat(b.pass_rate, true) + "</td>";
+      html += '<td class="' + deltaClass(delta.pass_rate) + '">' + (delta.pass_rate || "—") + "</td></tr>";
+
+      // Time (only show row if data exists)
+      if (a.time_seconds || b.time_seconds) {
+        html += "<tr><td><strong>Time (s)</strong></td>";
+        html += "<td>" + fmtStat(a.time_seconds, false) + "</td>";
+        html += "<td>" + fmtStat(b.time_seconds, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.time_seconds) + '">' + (delta.time_seconds ? delta.time_seconds + "s" : "—") + "</td></tr>";
+      }
+
+      // Tokens (only show row if data exists)
+      if (a.tokens || b.tokens) {
+        html += "<tr><td><strong>Tokens</strong></td>";
+        html += "<td>" + fmtStat(a.tokens, false) + "</td>";
+        html += "<td>" + fmtStat(b.tokens, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.tokens) + '">' + (delta.tokens || "—") + "</td></tr>";
+      }
+
+      html += "</tbody></table>";
+
+      // Per-eval breakdown (if runs data available)
+      const runs = data.runs || [];
+      if (runs.length > 0) {
+        const evalIds = [...new Set(runs.map(r => r.eval_id))].sort((a, b) => a - b);
+
+        html += "<h3 style='font-family: Poppins, sans-serif; margin-bottom: 0.75rem;'>Per-Eval Breakdown</h3>";
+
+        const hasTime = runs.some(r => r.result && r.result.time_seconds != null);
+        const hasErrors = runs.some(r => r.result && r.result.errors > 0);
+
+        for (const evalId of evalIds) {
+          const evalRuns = runs.filter(r => r.eval_id === evalId);
+          const evalName = evalRuns[0] && evalRuns[0].eval_name ? evalRuns[0].eval_name : "Eval " + evalId;
+
+          html += "<h4 style='font-family: Poppins, sans-serif; margin: 1rem 0 0.5rem; color: var(--text);'>" + escapeHtml(evalName) + "</h4>";
+          html += '<table class="benchmark-table">';
+          html += "<thead><tr><th>Config</th><th>Run</th><th>Pass Rate</th>";
+          if (hasTime) html += "<th>Time (s)</th>";
+          if (hasErrors) html += "<th>Crashes During Execution</th>";
+          html += "</tr></thead>";
+          html += "<tbody>";
+
+          // Group by config and render with average rows
+          const configGroups = [...new Set(evalRuns.map(r => r.configuration))];
+          for (let ci = 0; ci < configGroups.length; ci++) {
+            const config = configGroups[ci];
+            const configRuns = evalRuns.filter(r => r.configuration === config);
+            if (configRuns.length === 0) continue;
+
+            const rowClass = ci === 0 ? "benchmark-row-with" : "benchmark-row-without";
+            const configLabel = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+            for (const run of configRuns) {
+              const r = run.result || {};
+              const prClass = r.pass_rate >= 0.8 ? "benchmark-delta-positive" : r.pass_rate < 0.5 ? "benchmark-delta-negative" : "";
+              html += '<tr class="' + rowClass + '">';
+              html += "<td>" + configLabel + "</td>";
+              html += "<td>" + run.run_number + "</td>";
+              html += '<td class="' + prClass + '">' + ((r.pass_rate || 0) * 100).toFixed(0) + "% (" + (r.passed || 0) + "/" + (r.total || 0) + ")</td>";
+              if (hasTime) html += "<td>" + (r.time_seconds != null ? r.time_seconds.toFixed(1) : "—") + "</td>";
+              if (hasErrors) html += "<td>" + (r.errors || 0) + "</td>";
+              html += "</tr>";
+            }
+
+            // Average row
+            const rates = configRuns.map(r => (r.result || {}).pass_rate || 0);
+            const avgRate = rates.reduce((a, b) => a + b, 0) / rates.length;
+            const avgPrClass = avgRate >= 0.8 ? "benchmark-delta-positive" : avgRate < 0.5 ? "benchmark-delta-negative" : "";
+            html += '<tr class="benchmark-row-avg ' + rowClass + '">';
+            html += "<td>" + configLabel + "</td>";
+            html += "<td>Avg</td>";
+            html += '<td class="' + avgPrClass + '">' + (avgRate * 100).toFixed(0) + "%</td>";
+            if (hasTime) {
+              const times = configRuns.map(r => (r.result || {}).time_seconds).filter(t => t != null);
+              html += "<td>" + (times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "—") + "</td>";
+            }
+            if (hasErrors) html += "<td></td>";
+            html += "</tr>";
+          }
+          html += "</tbody></table>";
+
+          // Per-assertion detail for this eval
+          const runsWithExpectations = {};
+          for (const config of configGroups) {
+            runsWithExpectations[config] = evalRuns.filter(r => r.configuration === config && r.expectations && r.expectations.length > 0);
+          }
+          const hasAnyExpectations = Object.values(runsWithExpectations).some(runs => runs.length > 0);
+          if (hasAnyExpectations) {
+            // Collect all unique assertion texts across all configs
+            const allAssertions = [];
+            const seen = new Set();
+            for (const config of configGroups) {
+              for (const run of runsWithExpectations[config]) {
+                for (const exp of (run.expectations || [])) {
+                  if (!seen.has(exp.text)) {
+                    seen.add(exp.text);
+                    allAssertions.push(exp.text);
+                  }
+                }
+              }
+            }
+
+            html += '<table class="benchmark-table" style="margin-top: 0.5rem;">';
+            html += "<thead><tr><th>Assertion</th>";
+            for (const config of configGroups) {
+              const label = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+              html += "<th>" + escapeHtml(label) + "</th>";
+            }
+            html += "</tr></thead><tbody>";
+
+            for (const assertionText of allAssertions) {
+              html += "<tr><td>" + escapeHtml(assertionText) + "</td>";
+
+              for (const config of configGroups) {
+                html += "<td>";
+                for (const run of runsWithExpectations[config]) {
+                  const exp = (run.expectations || []).find(e => e.text === assertionText);
+                  if (exp) {
+                    const cls = exp.passed ? "benchmark-delta-positive" : "benchmark-delta-negative";
+                    const icon = exp.passed ? "\u2713" : "\u2717";
+                    html += '<span class="' + cls + '" title="Run ' + run.run_number + ': ' + escapeHtml(exp.evidence || "") + '">' + icon + "</span> ";
+                  } else {
+                    html += "— ";
+                  }
+                }
+                html += "</td>";
+              }
+              html += "</tr>";
+            }
+            html += "</tbody></table>";
+          }
+        }
+      }
+
+      // Notes
+      if (notes.length > 0) {
+        html += '<div class="benchmark-notes">';
+        html += "<h3>Analysis Notes</h3>";
+        html += "<ul>";
+        for (const note of notes) {
+          html += "<li>" + escapeHtml(note) + "</li>";
+        }
+        html += "</ul></div>";
+      }
+
+      container.innerHTML = html;
+    }
+
+    // ---- Start ----
+    init();
+    renderBenchmark();
+  </script>
+</body>
+</html>

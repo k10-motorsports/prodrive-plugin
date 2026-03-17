@@ -57,9 +57,6 @@ if (!root) {
   throw new Error('Root element not found')
 }
 
-// Add a visible loading indicator so we know the JS is executing
-root.innerHTML = '<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:rgba(255,255,255,0.3);font:14px system-ui">K10 loading...</div>'
-
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
     <ErrorBoundary>

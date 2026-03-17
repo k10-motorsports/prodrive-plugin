@@ -12,11 +12,30 @@ const http   = require('http');
 const https  = require('https');
 const crypto = require('crypto');
 
+// ── Crash log ───────────────────────────────────────────────
+// Write a log file next to the app so crash info is visible
+const LOG_PATH = path.join(__dirname, 'k10-debug.log');
+function logToFile(msg) {
+  const ts = new Date().toISOString();
+  const line = `[${ts}] ${msg}\n`;
+  try { fs.appendFileSync(LOG_PATH, line); } catch (e) { /* non-critical */ }
+  console.log(msg);
+}
+
+// Catch crashes that would silently kill the process
+process.on('uncaughtException', (err) => {
+  logToFile(`UNCAUGHT EXCEPTION: ${err.stack || err.message}`);
+});
+process.on('unhandledRejection', (reason) => {
+  logToFile(`UNHANDLED REJECTION: ${reason}`);
+});
+
 // ── App name ──────────────────────────────────────────────────
 app.setName('K10 Media Broadcaster');
 
 // ── GPU / sandbox flags ─────────────────────────────────────
 app.commandLine.appendSwitch('disable-gpu-sandbox');
+app.commandLine.appendSwitch('ignore-gpu-blocklist');
 
 if (process.env.K10_FORCE_SOFTWARE === '1') {
   app.disableHardwareAcceleration();
@@ -58,6 +77,58 @@ function saveBounds(bounds) {
   } catch (e) { /* non-critical */ }
 }
 
+// ── Local asset server for React dashboard ──────────────────
+// Serves the app directory over HTTP so the React build can use
+// type="module", fetch(), Google Fonts, etc. without file:// issues.
+let _assetServer = null;
+let _assetServerPort = 0;
+
+function startAssetServer() {
+  return new Promise((resolve, reject) => {
+    if (_assetServer) { resolve(_assetServerPort); return; }
+
+    const MIME = {
+      '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript',
+      '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.svg': 'image/svg+xml',
+      '.webp': 'image/webp', '.ico': 'image/x-icon', '.woff2': 'font/woff2',
+      '.woff': 'font/woff', '.ttf': 'font/ttf',
+    };
+
+    _assetServer = http.createServer((req, res) => {
+      const urlPath = decodeURIComponent(req.url.split('?')[0]);
+      const safePath = path.normalize(urlPath).replace(/^(\.\.[/\\])+/, '');
+      const filePath = path.join(__dirname, safePath);
+
+      // Security: don't serve files outside __dirname
+      if (!filePath.startsWith(__dirname)) {
+        res.writeHead(403); res.end(); return;
+      }
+
+      fs.readFile(filePath, (err, data) => {
+        if (err) {
+          res.writeHead(404); res.end('Not found'); return;
+        }
+        const ext = path.extname(filePath).toLowerCase();
+        res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+        res.end(data);
+      });
+    });
+
+    // Listen on a random available port on loopback
+    _assetServer.listen(0, '127.0.0.1', () => {
+      _assetServerPort = _assetServer.address().port;
+      logToFile(`[K10] Asset server listening on http://127.0.0.1:${_assetServerPort}`);
+      resolve(_assetServerPort);
+    });
+
+    _assetServer.on('error', (err) => {
+      logToFile(`[K10] Asset server error: ${err.message}`);
+      reject(err);
+    });
+  });
+}
+
 // ── State ────────────────────────────────────────────────────
 let overlayWindow = null;
 let settingsMode = false;
@@ -68,23 +139,57 @@ function getDashboardFile() {
   return useReactDashboard ? 'dashboard-react.html' : 'dashboard.html';
 }
 
-function createOverlay() {
+async function createOverlay() {
   const primaryDisplay = screen.getPrimaryDisplay();
   const { width: screenW, height: screenH } = primaryDisplay.bounds;
 
   // Check if green screen mode is enabled in saved settings
   const settings = loadSettingsSync();
   greenScreenMode = settings.greenScreen === true;
+
   useReactDashboard = settings.useReactDashboard === true;
-  console.log(`[K10] Dashboard: ${getDashboardFile()}`);
+
+  // Verify dashboard file exists
+  const dashFile = getDashboardFile();
+  const dashPath = path.join(__dirname, dashFile);
+  if (!fs.existsSync(dashPath)) {
+    logToFile(`[K10] WARNING: ${dashFile} not found, falling back to dashboard.html`);
+    useReactDashboard = false;
+  }
+
+  logToFile(`[K10] Dashboard: ${getDashboardFile()}`);
+
+  // Start asset server for React dashboard (serves via HTTP, avoids file:// issues)
+  let assetPort = 0;
+  if (useReactDashboard) {
+    try {
+      assetPort = await startAssetServer();
+    } catch (err) {
+      logToFile(`[K10] Asset server failed, falling back to file:// — ${err.message}`);
+    }
+  }
 
   const mode = greenScreenMode ? 'green-screen' : 'transparent';
-  console.log(`[K10] Window mode: ${mode}`);
+  logToFile(`[K10] Window mode: ${mode}`);
+  logToFile(`[K10] Primary display: ${screenW}x${screenH} at (${primaryDisplay.bounds.x}, ${primaryDisplay.bounds.y})`);
+
+  /**
+   * Load the dashboard into the window.
+   * React dashboard: via local HTTP server (avoids file:// CORS / module issues).
+   * Original dashboard: via file:// (no modules, no cross-origin fetches needed).
+   */
+  function loadDashboard() {
+    if (useReactDashboard && assetPort > 0) {
+      const url = `http://127.0.0.1:${assetPort}/${getDashboardFile()}`;
+      logToFile(`[K10] Loading React dashboard via ${url}`);
+      overlayWindow.loadURL(url);
+    } else {
+      overlayWindow.loadFile(path.join(__dirname, getDashboardFile()));
+    }
+  }
 
   if (greenScreenMode) {
     // ── Green-screen mode ──
-    // Non-transparent, resizable window with chroma-key green background.
-    // Window bounds are persisted so the user can size it for their OBS source.
     const saved = loadBounds();
     const defaultW = Math.round(screenW * 0.6);
     const defaultH = Math.round(screenH * 0.5);
@@ -118,8 +223,8 @@ function createOverlay() {
     overlayWindow.on('resized', () => saveBounds(overlayWindow.getBounds()));
 
     // Green screen windows are always interactive (no click-through)
-    overlayWindow.loadFile(path.join(__dirname, getDashboardFile()));
-    overlayWindow.setAlwaysOnTop(true, 'screen-saver');
+    loadDashboard();
+    overlayWindow.setAlwaysOnTop(true, 'floating');
 
     // Inject opaque-mode class after page loads
     overlayWindow.webContents.on('did-finish-load', () => {
@@ -130,12 +235,11 @@ function createOverlay() {
 
   } else {
     // ── Transparent overlay mode ──
-    // Fullscreen, click-through, fully transparent.
     overlayWindow = new BrowserWindow({
       width:  screenW,
       height: screenH,
-      x:      0,
-      y:      0,
+      x:      primaryDisplay.bounds.x,
+      y:      primaryDisplay.bounds.y,
       icon: path.join(__dirname, 'images', 'branding', 'icon.png'),
       frame: false,
       alwaysOnTop: true,
@@ -154,27 +258,41 @@ function createOverlay() {
     });
 
     overlayWindow.setIgnoreMouseEvents(true, { forward: true });
-    overlayWindow.loadFile(path.join(__dirname, getDashboardFile()));
-    overlayWindow.setAlwaysOnTop(true, 'screen-saver');
+    loadDashboard();
+    overlayWindow.setAlwaysOnTop(true, 'floating');
   }
 
   overlayWindow.on('closed', () => { overlayWindow = null; });
 
   // ── Crash recovery ──────────────────────────────────────────
   overlayWindow.webContents.on('render-process-gone', (_event, details) => {
-    console.error('[K10] Renderer crashed:', details.reason);
+    logToFile(`[K10] Renderer crashed: ${details.reason}`);
     if (details.reason === 'crashed' || details.reason === 'killed') {
       setTimeout(() => {
         if (overlayWindow && !overlayWindow.isDestroyed()) {
-          overlayWindow.loadFile(path.join(__dirname, getDashboardFile()));
+          loadDashboard();
         }
       }, 2000);
     }
   });
 
   overlayWindow.webContents.on('unresponsive', () => {
+    logToFile('[K10] Renderer unresponsive — reloading');
     if (overlayWindow && !overlayWindow.isDestroyed()) {
-      overlayWindow.loadFile(path.join(__dirname, getDashboardFile()));
+      loadDashboard();
+    }
+  });
+
+  // ── GPU process crash handler ───────────────────────────────
+  app.on('child-process-gone', (_event, details) => {
+    logToFile(`[K10] Child process gone: type=${details.type} reason=${details.reason} exitCode=${details.exitCode}`);
+    if (details.type === 'GPU' && overlayWindow && !overlayWindow.isDestroyed()) {
+      logToFile('[K10] GPU process crashed — reloading dashboard');
+      setTimeout(() => {
+        if (overlayWindow && !overlayWindow.isDestroyed()) {
+          loadDashboard();
+        }
+      }, 2000);
     }
   });
 }
@@ -206,16 +324,19 @@ function exitSettingsMode() {
   console.log('[K10] Settings mode OFF');
 }
 
+logToFile('[K10] App starting...');
+
 app.whenReady().then(() => {
-  console.log(`[K10] Platform: ${os.platform()} ${os.arch()} | Electron ${process.versions.electron}`);
-  console.log('[K10] Hotkeys:');
-  console.log('[K10]   Ctrl+Shift+S = settings mode (interact with overlay)');
-  console.log('[K10]   Ctrl+Shift+G = toggle green-screen mode (restarts app)');
-  console.log('[K10]   Ctrl+Shift+H = hide/show overlay');
-  console.log('[K10]   Ctrl+Shift+R = reset window position/size');
-  console.log('[K10]   Ctrl+Shift+T = toggle React/original dashboard (restarts)');
-  console.log('[K10]   Ctrl+Shift+Q = quit');
-  createOverlay();
+  logToFile(`[K10] Platform: ${os.platform()} ${os.arch()} | Electron ${process.versions.electron}`);
+  logToFile('[K10] Hotkeys: Ctrl+Shift+S/H/G/T/R/D/Q');
+  try {
+    createOverlay();
+    logToFile('[K10] Overlay window created OK');
+  } catch (err) {
+    logToFile(`[K10] FATAL: createOverlay() threw: ${err.stack || err.message}`);
+    app.quit();
+    return;
+  }
 
   // ── GLOBAL HOTKEYS ──
 
@@ -549,7 +670,7 @@ ipcMain.handle('discord-connect', async () => {
 
     // Restore z-level
     if (overlayWindow && !overlayWindow.isDestroyed()) {
-      overlayWindow.setAlwaysOnTop(true, 'screen-saver');
+      overlayWindow.setAlwaysOnTop(true, 'floating');
     }
 
     if (result.error) {
@@ -591,7 +712,7 @@ ipcMain.handle('discord-connect', async () => {
     console.error('[K10] Discord connect error:', err);
     // Restore z-level if it was lowered
     if (overlayWindow && !overlayWindow.isDestroyed() && !overlayWindow.isAlwaysOnTop()) {
-      overlayWindow.setAlwaysOnTop(true, 'screen-saver');
+      overlayWindow.setAlwaysOnTop(true, 'floating');
     }
     return { success: false, error: err.message };
   }

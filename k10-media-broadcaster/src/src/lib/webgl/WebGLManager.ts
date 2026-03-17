@@ -106,49 +106,68 @@ export class WebGLManager {
   constructor() {}
 
   /**
-   * Initialize WebGL contexts and compile shaders for all effects
+   * Initialize WebGL contexts and compile shaders for all effects.
+   * Wrapped in try-catch to prevent GPU crashes from killing Electron's
+   * renderer process (transparent windows + many WebGL2 contexts can be fragile).
    */
   init(canvasMap: CanvasMap): void {
-    // Initialize each canvas context
-    Object.entries(canvasMap).forEach(([key, canvas]) => {
-      if (canvas) {
-        const ctx = this.initGL(canvas);
-        if (ctx) {
-          this.contexts.set(key, ctx);
+    try {
+      // Initialize each canvas context
+      Object.entries(canvasMap).forEach(([key, canvas]) => {
+        if (canvas) {
+          try {
+            const ctx = this.initGL(canvas);
+            if (ctx) {
+              this.contexts.set(key, ctx);
+            }
+          } catch (e) {
+            console.warn(`WebGLManager: Failed to init GL for ${key}`, e);
+          }
         }
-      }
-    });
+      });
 
-    this.initTachoEffect();
-    this.initPedalsEffect();
-    this.initFlagEffect();
-    this.initLeaderboardPlayerEffect();
-    this.initLeaderboardEventEffect();
-    this.initK10LogoEffect();
-    this.initSpotterEffect();
-    this.initCommentaryTrailEffect();
-    this.initBonkersEffect();
-    this.initIncidentsEffect();
-    this.initGridFlagEffect();
+      if (this.contexts.size === 0) {
+        console.warn('WebGLManager: No WebGL contexts could be created');
+        return;
+      }
+
+      this.initTachoEffect();
+      this.initPedalsEffect();
+      this.initFlagEffect();
+      this.initLeaderboardPlayerEffect();
+      this.initLeaderboardEventEffect();
+      this.initK10LogoEffect();
+      this.initSpotterEffect();
+      this.initCommentaryTrailEffect();
+      this.initBonkersEffect();
+      this.initIncidentsEffect();
+      this.initGridFlagEffect();
+    } catch (e) {
+      console.error('WebGLManager: init failed —', e);
+    }
   }
 
   /**
    * Render frame for all active effects
    */
   updateFrame(dt: number, _telemetry?: any): void {
-    if (dt > 0.05) dt = 0.05; // cap at 50ms
+    try {
+      if (dt > 0.05) dt = 0.05; // cap at 50ms
 
-    this.renderTachoEffect(dt);
-    this.renderPedalsEffect(dt);
-    this.renderFlagEffect(dt);
-    this.renderLeaderboardPlayerEffect(dt);
-    this.renderLeaderboardEventEffect(dt);
-    this.renderK10LogoEffect(dt);
-    this.renderSpotterEffect(dt);
-    this.renderCommentaryTrailEffect(dt);
-    this.renderBonkersEffect(dt);
-    this.renderIncidentsEffect(dt);
-    this.renderGridFlagEffect(dt);
+      this.renderTachoEffect(dt);
+      this.renderPedalsEffect(dt);
+      this.renderFlagEffect(dt);
+      this.renderLeaderboardPlayerEffect(dt);
+      this.renderLeaderboardEventEffect(dt);
+      this.renderK10LogoEffect(dt);
+      this.renderSpotterEffect(dt);
+      this.renderCommentaryTrailEffect(dt);
+      this.renderBonkersEffect(dt);
+      this.renderIncidentsEffect(dt);
+      this.renderGridFlagEffect(dt);
+    } catch (e) {
+      // Silently ignore render errors to prevent renderer crash
+    }
   }
 
   /**
@@ -170,14 +189,28 @@ export class WebGLManager {
   // ═══════════════════════════════════════════════════════════════
 
   private initGL(canvas: HTMLCanvasElement): GLContext | null {
+    // Use conservative GL options to avoid crashing Electron's renderer
+    // in transparent overlay windows (many simultaneous WebGL2 contexts).
     const gl = canvas.getContext('webgl2', {
       alpha: true,
       premultipliedAlpha: true,
-      antialias: true,
+      antialias: false, // Reduce GPU pressure — 11 contexts in transparent window
+      failIfMajorPerformanceCaveat: true, // Don't use software fallback
+      powerPreference: 'low-power',
     });
     if (!gl) {
-      console.warn('WebGL2 not available for canvas');
-      return null;
+      // Fall back to webgl1 if webgl2 is unavailable
+      const gl1 = canvas.getContext('webgl', {
+        alpha: true,
+        premultipliedAlpha: true,
+        antialias: false,
+        failIfMajorPerformanceCaveat: true,
+      });
+      if (!gl1) {
+        console.warn('WebGL not available for canvas:', canvas.id);
+        return null;
+      }
+      return { canvas, gl: gl1 as unknown as WebGL2RenderingContext };
     }
     return { canvas, gl };
   }

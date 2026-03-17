@@ -4,7 +4,7 @@
  * Uses React Context to expose WebGL control methods
  */
 
-import { createContext, useContext, useEffect, useRef, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import { useSettings } from '@hooks/useSettings';
 import { WebGLManager } from '@lib/webgl/WebGLManager';
 
@@ -28,6 +28,8 @@ export function WebGLProvider({ children }: WebGLProviderProps) {
   const managerRef = useRef<WebGLManager | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
+  // State to force re-render when manager is initialized so context consumers get the instance
+  const [managerReady, setManagerReady] = useState(false);
 
   useEffect(() => {
     // Skip if WebGL effects are disabled
@@ -36,6 +38,7 @@ export function WebGLProvider({ children }: WebGLProviderProps) {
       if (managerRef.current) {
         managerRef.current.dispose();
         managerRef.current = null;
+        setManagerReady(false);
       }
       return;
     }
@@ -77,10 +80,13 @@ export function WebGLProvider({ children }: WebGLProviderProps) {
         return;
       }
 
+      console.log(`WebGLProvider: Initialized ${validCanvasCount} canvas elements`);
+
       // Initialize WebGL manager
       const manager = new WebGLManager();
       manager.init(canvasMap);
       managerRef.current = manager;
+      setManagerReady(true);
 
       // Start RAF loop
       const animationLoop = (now: number) => {
@@ -93,7 +99,7 @@ export function WebGLProvider({ children }: WebGLProviderProps) {
       };
 
       rafRef.current = requestAnimationFrame(animationLoop);
-    }, 100);
+    }, 200); // Slightly longer delay to ensure all canvases are mounted
 
     return () => {
       clearTimeout(initTimer);
@@ -117,5 +123,9 @@ export function WebGLProvider({ children }: WebGLProviderProps) {
     };
   }, []);
 
-  return <WebGLContext.Provider value={{ manager: managerRef.current }}>{children}</WebGLContext.Provider>;
+  return (
+    <WebGLContext.Provider value={{ manager: managerReady ? managerRef.current : null }}>
+      {children}
+    </WebGLContext.Provider>
+  );
 }

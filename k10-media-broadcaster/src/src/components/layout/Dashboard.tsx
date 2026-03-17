@@ -8,6 +8,7 @@ import { useEffect } from 'react'
 import { useSettings } from '@hooks/useSettings'
 import { useTelemetry } from '@hooks/useTelemetry'
 import { useSecondaryLayout } from '@hooks/useSecondaryLayout'
+import { useWebGLEffects } from '@hooks/useWebGLEffects'
 
 // HUD components
 import { Tachometer } from '@components/hud/tachometer/Tachometer'
@@ -48,6 +49,9 @@ export default function Dashboard() {
   const { settings } = useSettings()
   const { telemetry } = useTelemetry()
   const secLayout = useSecondaryLayout(settings)
+
+  // Wire up WebGL effects to telemetry state changes
+  useWebGLEffects()
 
   const sessionNum = parseInt(telemetry.sessionState) || 0
   const isIdle = !telemetry.demoMode && (!telemetry.gameRunning || sessionNum <= 1)
@@ -162,7 +166,7 @@ export default function Dashboard() {
 
       {/* ── Overlay Components ── */}
       <RaceControlBanner />
-      <div className="idle-logo" id="idleLogo">
+      <div className={`idle-logo${isIdle ? ' idle-visible' : ''}`} id="idleLogo">
         <img src="images/branding/logomark.png" alt="K10" />
       </div>
       <PitLimiterBanner />
