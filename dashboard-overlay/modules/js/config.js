@@ -129,6 +129,8 @@ const PROP_KEYS = [
   'K10MediaBroadcaster.Plugin.DS.SectorStateS1',
   'K10MediaBroadcaster.Plugin.DS.SectorStateS2',
   'K10MediaBroadcaster.Plugin.DS.SectorStateS3',
+  'K10MediaBroadcaster.Plugin.DS.SectorS2StartPct',
+  'K10MediaBroadcaster.Plugin.DS.SectorS3StartPct',
   'K10MediaBroadcaster.Plugin.DS.CompletedLaps',
   'K10MediaBroadcaster.Plugin.DS.IsInPitLane',
   'K10MediaBroadcaster.Plugin.DS.SpeedKmh',

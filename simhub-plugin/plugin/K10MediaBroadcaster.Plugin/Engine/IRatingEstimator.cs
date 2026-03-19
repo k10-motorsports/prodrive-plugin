@@ -90,6 +90,7 @@ namespace K10MediaBroadcaster.Plugin.Engine
 
                     ParseDriverInfo(_sessionYaml);
                     ParseWeekendOptions(_sessionYaml);
+                    ParseSplitTimeInfo(_sessionYaml);
                     return true;
                 }
             }
@@ -279,6 +280,67 @@ namespace K10MediaBroadcaster.Plugin.Engine
             if (val != null)
             {
                 _isStandingStart = val.Trim() == "1";
+            }
+        }
+
+        /// <summary>
+        /// Parsed sector boundaries from iRacing SplitTimeInfo YAML.
+        /// SectorStartPct[0] = S1 start (always 0), [1] = S2 start, [2] = S3 start.
+        /// </summary>
+        public double SectorS2Start { get; private set; }
+        public double SectorS3Start { get; private set; }
+        public bool HasSectorBoundaries { get; private set; }
+
+        /// <summary>
+        /// Parse the SplitTimeInfo section from session YAML.
+        /// Format:
+        ///   SplitTimeInfo:
+        ///    Sectors:
+        ///    - SectorNum: 0
+        ///      SectorStartPct: 0.000000
+        ///    - SectorNum: 1
+        ///      SectorStartPct: 0.326471
+        ///    - SectorNum: 2
+        ///      SectorStartPct: 0.687412
+        /// </summary>
+        private void ParseSplitTimeInfo(string yaml)
+        {
+            int splitStart = yaml.IndexOf("SplitTimeInfo:", StringComparison.Ordinal);
+            if (splitStart < 0) return;
+
+            // Find all SectorStartPct values after SplitTimeInfo:
+            var pcts = new System.Collections.Generic.List<double>();
+            int searchFrom = splitStart;
+            while (true)
+            {
+                int pctIdx = yaml.IndexOf("SectorStartPct:", searchFrom, StringComparison.Ordinal);
+                if (pctIdx < 0) break;
+
+                // Don't go past the next top-level YAML section
+                int nextSection = yaml.IndexOf("\n\n", splitStart + 15, StringComparison.Ordinal);
+                if (nextSection > 0 && pctIdx > nextSection) break;
+
+                string val = FindYamlValue(yaml, "SectorStartPct:");
+                // FindYamlValue searches from the beginning, so use substring
+                int valStart = pctIdx + "SectorStartPct:".Length;
+                int valEnd = yaml.IndexOf('\n', valStart);
+                if (valEnd < 0) valEnd = yaml.Length;
+                string pctStr = yaml.Substring(valStart, valEnd - valStart).Trim();
+
+                if (double.TryParse(pctStr, System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out double pct))
+                {
+                    pcts.Add(pct);
+                }
+                searchFrom = valEnd;
+            }
+
+            // iRacing typically has 3 sectors: S0 (start=0.0), S1 (start=~0.33), S2 (start=~0.67)
+            if (pcts.Count >= 3)
+            {
+                SectorS2Start = pcts[1];
+                SectorS3Start = pcts[2];
+                HasSectorBoundaries = true;
             }
         }
 

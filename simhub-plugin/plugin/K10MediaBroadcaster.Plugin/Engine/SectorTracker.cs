@@ -3,15 +3,16 @@ using System;
 namespace K10MediaBroadcaster.Plugin.Engine
 {
     /// <summary>
-    /// Tracks F1-style 3-sector split times by dividing the track into thirds
-    /// based on LapDistPct. Computes current sector, split times, deltas to
-    /// best, and sector performance state (pb/faster/slower).
+    /// Tracks 3-sector split times using iRacing's native sector boundaries
+    /// (from SplitTimeInfo.Sectors[].SectorStartPct in the session YAML).
+    /// Falls back to equal thirds if native boundaries aren't available.
     /// </summary>
     public class SectorTracker
     {
-        // Sector boundaries: S1 = [0, 0.333), S2 = [0.333, 0.667), S3 = [0.667, 1.0)
-        private const double S1_END = 0.333;
-        private const double S2_END = 0.667;
+        // Default boundaries (equal thirds) — overridden by SetBoundaries()
+        private double _s2Start = 0.333;
+        private double _s3Start = 0.667;
+        private bool _hasNativeBoundaries;
 
         // Best sector splits for the session
         private double _bestS1, _bestS2, _bestS3;
@@ -33,33 +34,47 @@ namespace K10MediaBroadcaster.Plugin.Engine
         /// <summary>Current sector the player is in (1, 2, or 3).</summary>
         public int CurrentSector { get; private set; } = 1;
 
+        /// <summary>Sector 2 start as LapDistPct (for track map rendering).</summary>
+        public double Sector2StartPct => _s2Start;
+        /// <summary>Sector 3 start as LapDistPct (for track map rendering).</summary>
+        public double Sector3StartPct => _s3Start;
+        /// <summary>Whether native iRacing sector boundaries are loaded.</summary>
+        public bool HasNativeBoundaries => _hasNativeBoundaries;
+
         /// <summary>Last completed S1 split time (seconds).</summary>
         public double SplitS1 => _lastS1;
-        /// <summary>Last completed S2 split time (seconds).</summary>
         public double SplitS2 => _lastS2;
-        /// <summary>Last completed S3 split time (seconds).</summary>
         public double SplitS3 => _lastS3;
 
-        /// <summary>Best S1 split time this session.</summary>
         public double BestS1 => _bestS1;
-        /// <summary>Best S2 split time this session.</summary>
         public double BestS2 => _bestS2;
-        /// <summary>Best S3 split time this session.</summary>
         public double BestS3 => _bestS3;
 
-        /// <summary>Delta to best for last completed S1 (negative = faster).</summary>
         public double DeltaS1 => _deltaS1;
-        /// <summary>Delta to best for last completed S2.</summary>
         public double DeltaS2 => _deltaS2;
-        /// <summary>Delta to best for last completed S3.</summary>
         public double DeltaS3 => _deltaS3;
 
-        /// <summary>Performance state for S1: 0=none, 1=pb, 2=faster, 3=slower.</summary>
+        /// <summary>0=none, 1=pb, 2=faster, 3=slower</summary>
         public int StateS1 => _stateS1;
-        /// <summary>Performance state for S2.</summary>
         public int StateS2 => _stateS2;
-        /// <summary>Performance state for S3.</summary>
         public int StateS3 => _stateS3;
+
+        /// <summary>
+        /// Set sector boundaries from iRacing's SplitTimeInfo YAML.
+        /// iRacing defines sectors with SectorStartPct values.
+        /// Sector 1 always starts at 0.0, so we need the start of S2 and S3.
+        /// </summary>
+        public void SetBoundaries(double s2StartPct, double s3StartPct)
+        {
+            if (s2StartPct > 0 && s2StartPct < 1 && s3StartPct > s2StartPct && s3StartPct < 1)
+            {
+                _s2Start = s2StartPct;
+                _s3Start = s3StartPct;
+                _hasNativeBoundaries = true;
+                // Reset splits when boundaries change (new track)
+                Reset();
+            }
+        }
 
         /// <summary>
         /// Call every tick with the player's track position and current lap time.
@@ -68,17 +83,15 @@ namespace K10MediaBroadcaster.Plugin.Engine
         {
             if (trackPct < 0 || trackPct > 1.01) return;
 
-            int sector = trackPct < S1_END ? 1 : trackPct < S2_END ? 2 : 3;
+            int sector = trackPct < _s2Start ? 1 : trackPct < _s3Start ? 2 : 3;
 
-            // New lap detection: completed laps incremented or sector wrapped 3→1
+            // New lap detection
             if (completedLaps > _prevCompletedLaps || (sector == 1 && _prevSector == 3))
             {
-                // Complete S3 before resetting
                 if (_prevSector == 3)
                 {
                     double splitTime = currentLapTime > 0
-                        ? currentLapTime - _sectorEntryTime
-                        : 0;
+                        ? currentLapTime - _sectorEntryTime : 0;
                     if (splitTime > 0.1)
                         RecordSplit(3, splitTime);
                 }
@@ -90,12 +103,11 @@ namespace K10MediaBroadcaster.Plugin.Engine
             if (sector != _prevSector && _prevSector > 0)
             {
                 double splitTime = currentLapTime - _sectorEntryTime;
-                if (splitTime > 0.1) // reject tiny/negative glitches
+                if (splitTime > 0.1)
                     RecordSplit(_prevSector, splitTime);
                 _sectorEntryTime = currentLapTime;
             }
 
-            // Initialize entry time on first frame
             if (_prevSector == 0)
                 _sectorEntryTime = currentLapTime;
 
@@ -110,44 +122,23 @@ namespace K10MediaBroadcaster.Plugin.Engine
                 case 1:
                     _lastS1 = splitTime;
                     if (_bestS1 <= 0 || splitTime < _bestS1)
-                    {
-                        _bestS1 = splitTime;
-                        _deltaS1 = 0;
-                        _stateS1 = 1; // pb
-                    }
+                    { _bestS1 = splitTime; _deltaS1 = 0; _stateS1 = 1; }
                     else
-                    {
-                        _deltaS1 = splitTime - _bestS1;
-                        _stateS1 = _deltaS1 < 0.01 ? 1 : (_deltaS1 < 0 ? 2 : 3);
-                    }
+                    { _deltaS1 = splitTime - _bestS1; _stateS1 = _deltaS1 < 0.01 ? 1 : 3; }
                     break;
                 case 2:
                     _lastS2 = splitTime;
                     if (_bestS2 <= 0 || splitTime < _bestS2)
-                    {
-                        _bestS2 = splitTime;
-                        _deltaS2 = 0;
-                        _stateS2 = 1;
-                    }
+                    { _bestS2 = splitTime; _deltaS2 = 0; _stateS2 = 1; }
                     else
-                    {
-                        _deltaS2 = splitTime - _bestS2;
-                        _stateS2 = _deltaS2 < 0.01 ? 1 : (_deltaS2 < 0 ? 2 : 3);
-                    }
+                    { _deltaS2 = splitTime - _bestS2; _stateS2 = _deltaS2 < 0.01 ? 1 : 3; }
                     break;
                 case 3:
                     _lastS3 = splitTime;
                     if (_bestS3 <= 0 || splitTime < _bestS3)
-                    {
-                        _bestS3 = splitTime;
-                        _deltaS3 = 0;
-                        _stateS3 = 1;
-                    }
+                    { _bestS3 = splitTime; _deltaS3 = 0; _stateS3 = 1; }
                     else
-                    {
-                        _deltaS3 = splitTime - _bestS3;
-                        _stateS3 = _deltaS3 < 0.01 ? 1 : (_deltaS3 < 0 ? 2 : 3);
-                    }
+                    { _deltaS3 = splitTime - _bestS3; _stateS3 = _deltaS3 < 0.01 ? 1 : 3; }
                     break;
             }
         }

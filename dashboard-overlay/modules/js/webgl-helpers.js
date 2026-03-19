@@ -516,19 +516,24 @@
   const _sectorColors = ['transparent', 'hsl(280,60%,55%)', 'hsl(130,60%,50%)', 'hsl(0,65%,50%)'];
   const _sectorActiveColor = 'hsla(0,0%,100%,0.25)';
 
-  // Split an SVG path string into 3 roughly equal sub-paths by point count
-  function _splitPathIntoSectors(svgPath) {
-    // Extract all coordinate pairs from the path (M, L, C control points)
+  // Split an SVG path string into 3 sector sub-paths.
+  // Uses iRacing native sector boundary percentages if available (s2Pct, s3Pct),
+  // otherwise falls back to equal thirds by point count.
+  // Track map points are evenly distributed by LapDistPct, so point index ≈ pct * count.
+  function _splitPathIntoSectors(svgPath, s2Pct, s3Pct) {
     const coords = svgPath.match(/[\d.]+[,\s]+[\d.]+/g);
     if (!coords || coords.length < 6) return ['', '', ''];
-    const third = Math.floor(coords.length / 3);
-    const parts = [coords.slice(0, third), coords.slice(third, third * 2), coords.slice(third * 2)];
+
+    // Use native boundaries if provided, else thirds
+    var b1 = (s2Pct > 0 && s2Pct < 1) ? Math.round(s2Pct * coords.length) : Math.floor(coords.length / 3);
+    var b2 = (s3Pct > s2Pct && s3Pct < 1) ? Math.round(s3Pct * coords.length) : Math.floor(coords.length * 2 / 3);
+
+    var parts = [coords.slice(0, b1), coords.slice(b1, b2), coords.slice(b2)];
     return parts.map(function(pts, i) {
-      // Build an SVG path: M first point, L remaining points
-      // Include the last point of the previous segment as the start for continuity
-      let startPt = i === 0 ? pts[0] : coords[third * i - 1];
-      let d = 'M ' + startPt;
-      for (let j = (i === 0 ? 1 : 0); j < pts.length; j++) d += ' L ' + pts[j];
+      var startIdx = i === 0 ? 0 : (i === 1 ? b1 : b2);
+      var startPt = i === 0 ? pts[0] : coords[startIdx - 1];
+      var d = 'M ' + startPt;
+      for (var j = (i === 0 ? 1 : 0); j < pts.length; j++) d += ' L ' + pts[j];
       return d;
     });
   }
@@ -544,8 +549,10 @@
       if (fullTrack) fullTrack.setAttribute('d', svgPath);
       if (zoomTrack) zoomTrack.setAttribute('d', svgPath);
 
-      // Split path into 3 sector sub-paths for colored overlays
-      const sectorPaths = _splitPathIntoSectors(svgPath);
+      // Split path into 3 sector sub-paths using native iRacing boundaries if available
+      const s2p = window._sectorBoundaries ? window._sectorBoundaries.s2 : 0;
+      const s3p = window._sectorBoundaries ? window._sectorBoundaries.s3 : 0;
+      const sectorPaths = _splitPathIntoSectors(svgPath, s2p, s3p);
       for (let i = 1; i <= 3; i++) {
         const el = document.getElementById('mapSector' + i);
         if (el) el.setAttribute('d', sectorPaths[i - 1]);

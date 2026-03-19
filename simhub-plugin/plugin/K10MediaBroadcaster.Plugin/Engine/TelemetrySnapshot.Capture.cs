@@ -101,7 +101,12 @@ namespace K10MediaBroadcaster.Plugin.Engine
             s.LapDeltaToBest    = Coalesce(GetRaw<float>(pm, "LapDeltaToBestLap"),  GetNorm<float>(d, "DeltaToSessionBestLap"));
             s.SessionTimeRemain = Coalesce(GetRaw<double>(pm, "SessionTimeRemain"), GetNorm<double>(d, "SessionTimeLeft"));
 
-            // ── Sector splits (3 sectors = track thirds by LapDistPct) ──────────
+            // ── Sector splits (using iRacing native boundaries from session YAML) ──
+            // Feed iRacing's SplitTimeInfo sector boundaries to the tracker if available
+            if (_irEstimator != null && _irEstimator.HasSectorBoundaries && !_sectorTracker.HasNativeBoundaries)
+            {
+                _sectorTracker.SetBoundaries(_irEstimator.SectorS2Start, _irEstimator.SectorS3Start);
+            }
             _sectorTracker.Update(s.TrackPositionPct, s.LapCurrentTime, s.CompletedLaps);
             s.CurrentSector  = _sectorTracker.CurrentSector;
             s.SectorSplitS1  = _sectorTracker.SplitS1;
@@ -111,6 +116,8 @@ namespace K10MediaBroadcaster.Plugin.Engine
             s.SectorDeltaS2  = _sectorTracker.DeltaS2;
             s.SectorDeltaS3  = _sectorTracker.DeltaS3;
             s.SectorStateS1  = _sectorTracker.StateS1;
+            s.SectorS2StartPct = _sectorTracker.Sector2StartPct;
+            s.SectorS3StartPct = _sectorTracker.Sector3StartPct;
             s.SectorStateS2  = _sectorTracker.StateS2;
             s.SectorStateS3  = _sectorTracker.StateS3;
 

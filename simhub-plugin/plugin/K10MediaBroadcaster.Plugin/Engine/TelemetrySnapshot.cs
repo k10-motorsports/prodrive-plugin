@@ -103,6 +103,9 @@ namespace K10MediaBroadcaster.Plugin.Engine
         public double SectorDeltaS3      { get; set; }
         /// <summary>0=none, 1=pb, 2=faster, 3=slower</summary>
         public int    SectorStateS1      { get; set; }
+        // Sector boundary LapDistPct values (from iRacing SplitTimeInfo)
+        public double SectorS2StartPct   { get; set; }
+        public double SectorS3StartPct   { get; set; }
         public int    SectorStateS2      { get; set; }
         public int    SectorStateS3      { get; set; }
 

@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/* K10 Motorsports — Design tokens matching the dashboard overlay */
+:root {
+  --bg: #0a0a14;
+  --bg-surface: rgba(16, 16, 32, 0.90);
+  --bg-panel: rgba(10, 10, 20, 0.95);
+  --border: rgba(255, 255, 255, 0.14);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --text: #e8e8f0;
+  --text-secondary: rgba(255, 255, 255, 0.69);
+  --text-dim: rgba(255, 255, 255, 0.55);
+  --text-muted: rgba(255, 255, 255, 0.35);
+
+  --red: #e53935;
+  --green: #43a047;
+  --blue: #1e88e5;
+  --amber: #ffb300;
+  --purple: #6c5ce7;
+  --cyan: #00acc1;
+
+  --ff: 'Barlow Condensed', 'Corbel', 'Segoe UI', system-ui, sans-serif;
+  --ff-mono: 'JetBrains Mono', 'Consolas', 'SF Mono', monospace;
+
+  --corner-r: 12px;
+  --corner-r-sm: 6px;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ff);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* Link defaults */
+a { color: var(--purple); text-decoration: none; }
+a:hover { text-decoration: underline; }

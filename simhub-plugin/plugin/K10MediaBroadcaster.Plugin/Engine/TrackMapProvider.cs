@@ -37,7 +37,9 @@ namespace K10MediaBroadcaster.Plugin.Engine
         // ── Dead reckoning from car-local VelocityX/Z + heading ──────────
         private double _drX = 0, _drZ = 0;           // accumulated world position
         private DateTime _drLastTick = DateTime.MinValue;
+#pragma warning disable CS0414 // assigned but never read — reserved for future dead-reckoning rotation
         private double _lastYaw = double.NaN;         // heading (radians) for local→world
+#pragma warning restore CS0414
 
         // ── Finalised outline (normalised to 0–100) ───────────────────────
         private TrackPoint[] _outline = new TrackPoint[0];

@@ -934,6 +934,8 @@ namespace K10MediaBroadcaster.Plugin
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.SectorStateS1", s.SectorStateS1);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.SectorStateS2", s.SectorStateS2);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.SectorStateS3", s.SectorStateS3);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.SectorS2StartPct", s.SectorS2StartPct, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.SectorS3StartPct", s.SectorS3StartPct, ic);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.CompletedLaps", s.CompletedLaps);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.IsInPitLane", s.IsInPitLane ? 1 : 0);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.SpeedKmh", s.SpeedKmh, ic);

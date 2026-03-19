@@ -480,8 +480,11 @@
       // state: 0=none, 1=pb, 2=faster, 3=slower
       const stateClass = ['', 'sector-pb', 'sector-faster', 'sector-slower'];
 
-      // Store for track map sector coloring
+      // Store for track map sector coloring + boundaries for path splitting
       window._sectorData = { curSector, splits, deltas, states };
+      const s2Pct = +(p[dsPre + 'SectorS2StartPct']) || 0;
+      const s3Pct = +(p[dsPre + 'SectorS3StartPct']) || 0;
+      if (s2Pct > 0 && s3Pct > s2Pct) window._sectorBoundaries = { s2: s2Pct, s3: s3Pct };
 
       // Read current lap time for live sector elapsed
       const currentLapTime = _demo
@@ -497,15 +500,30 @@
         cell.classList.remove('sector-pb', 'sector-faster', 'sector-slower', 'sector-active');
 
         if (si === curSector) {
-          // Active sector: show running elapsed time, delta below
+          // Active sector: show running sector elapsed time, delta below
           cell.classList.add('sector-active');
-          // Estimate sector entry time from previous splits
+          // Calculate sector entry time from completed previous sectors
           let entryTime = 0;
-          for (let k = 0; k < si - 1; k++) entryTime += splits[k] || 0;
-          const elapsed = currentLapTime > entryTime ? currentLapTime - entryTime : currentLapTime;
-          const em = Math.floor(elapsed / 60);
-          const es = elapsed % 60;
-          timeEl.textContent = elapsed > 0 ? ((em > 0 ? em + ':' : '') + (em > 0 && es < 10 ? '0' : '') + es.toFixed(1)) : '—';
+          let hasPrevSplits = true;
+          for (let k = 0; k < si - 1; k++) {
+            if (!splits[k] || splits[k] <= 0) { hasPrevSplits = false; break; }
+            entryTime += splits[k];
+          }
+          // Only show sector elapsed if we have valid entry time data
+          // Otherwise show dash to avoid displaying the full lap time
+          if (hasPrevSplits && currentLapTime > entryTime) {
+            const elapsed = currentLapTime - entryTime;
+            const em = Math.floor(elapsed / 60);
+            const es = elapsed % 60;
+            timeEl.textContent = (em > 0 ? em + ':' : '') + (em > 0 && es < 10 ? '0' : '') + es.toFixed(1);
+          } else if (si === 1 && currentLapTime > 0 && currentLapTime < 120) {
+            // S1 is always valid since entry = lap start (time 0)
+            const em = Math.floor(currentLapTime / 60);
+            const es = currentLapTime % 60;
+            timeEl.textContent = (em > 0 ? em + ':' : '') + (em > 0 && es < 10 ? '0' : '') + es.toFixed(1);
+          } else {
+            timeEl.textContent = '—';
+          }
           if (deltaEl) {
             if (lapDelta !== 0) {
               deltaEl.textContent = (lapDelta >= 0 ? '+' : '') + lapDelta.toFixed(2);
