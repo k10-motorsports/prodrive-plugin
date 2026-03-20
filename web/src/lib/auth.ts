@@ -3,6 +3,7 @@ import Discord from 'next-auth/providers/discord'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
+  basePath: '/api/auth',
   providers: [
     Discord({
       clientId: process.env.DISCORD_CLIENT_ID,
