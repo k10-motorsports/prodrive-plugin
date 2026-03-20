@@ -1,9 +1,18 @@
 // K10 Motorsports — Shared constants
 
 export const SITE_NAME = 'K10 Motorsports'
-export const SITE_URL = 'https://k10motorsports.com'
-export const DRIVE_URL = 'https://drive.k10motorsports.com'
 export const SITE_DESCRIPTION = 'Real-time sim racing telemetry overlay with AI commentary, sector analysis, and driver performance tracking.'
+
+// Domain config — derived from environment so dev/prod URLs are automatic.
+// Production: https://k10motorsports.racing / https://drive.k10motorsports.racing
+// Dev:        http://dev.k10motorsports.racing:3000 / http://dev.drive.k10motorsports.racing:3000
+const isDev = process.env.NODE_ENV === 'development'
+const protocol = isDev ? 'http' : 'https'
+const domain = isDev ? 'dev.k10motorsports.racing' : 'k10motorsports.racing'
+const port = isDev ? ':3000' : ''
+
+export const SITE_URL = `${protocol}://${domain}${port}`
+export const DRIVE_URL = `${protocol}://drive.${domain}${port}`
 
 // iRacing license classes and their rating categories
 export const LICENSE_CLASSES = ['R', 'D', 'C', 'B', 'A', 'P'] as const

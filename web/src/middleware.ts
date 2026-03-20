@@ -3,10 +3,16 @@ import type { NextRequest } from 'next/server'
 
 /**
  * Subdomain routing middleware.
- * - drive.k10motorsports.com → /drive/* routes (K10 Pro Drive members app)
- * - k10motorsports.com → /marketing/* routes (public website)
  *
- * In local dev, use ?subdomain=drive to simulate.
+ * Production:
+ *   - k10motorsports.racing        → /marketing/* (public website)
+ *   - drive.k10motorsports.racing   → /drive/*     (K10 Pro Drive members app)
+ *
+ * Dev (via /etc/hosts):
+ *   - dev.k10motorsports.racing:3000       → /marketing/*
+ *   - dev.drive.k10motorsports.racing:3000 → /drive/*
+ *
+ * Fallback: ?subdomain=drive query param works in any environment.
  */
 export function middleware(request: NextRequest) {
   const host = request.headers.get('host') || ''
@@ -21,18 +27,18 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Detect subdomain
+  // Detect drive subdomain — matches both:
+  //   drive.k10motorsports.racing     (production)
+  //   dev.drive.k10motorsports.racing  (local dev)
   const isDrive =
-    host.startsWith('drive.') ||
+    host.includes('drive.') ||
     request.nextUrl.searchParams.get('subdomain') === 'drive'
 
   if (isDrive) {
-    // Rewrite drive.k10motorsports.com/* → /drive/*
     if (!pathname.startsWith('/drive')) {
       return NextResponse.rewrite(new URL(`/drive${pathname}`, request.url))
     }
   } else {
-    // Rewrite k10motorsports.com/* → /marketing/*
     if (!pathname.startsWith('/marketing') && !pathname.startsWith('/drive')) {
       return NextResponse.rewrite(new URL(`/marketing${pathname}`, request.url))
     }

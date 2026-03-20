@@ -1,4 +1,4 @@
-import { SITE_URL } from '@/lib/constants'
+import { SITE_URL, SITE_NAME } from '@/lib/constants'
 
 export default function DrivePage() {
   return (
@@ -26,7 +26,7 @@ export default function DrivePage() {
         Sign in with Discord
       </a>
       <p className="mt-6 text-xs text-[var(--text-muted)] relative z-10">
-        <a href={SITE_URL} className="hover:text-[var(--text-dim)] transition-colors">← Back to k10motorsports.com</a>
+        <a href={SITE_URL} className="hover:text-[var(--text-dim)] transition-colors">← Back to {SITE_NAME}</a>
       </p>
     </main>
   )

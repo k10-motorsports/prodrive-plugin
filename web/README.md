@@ -1,9 +1,9 @@
 # K10 Motorsports — Web
 
-Next.js 16 site for [k10motorsports.com](https://k10motorsports.com) with subdomain routing:
+Next.js 16 site for [k10motorsports.racing](https://k10motorsports.racing) with subdomain routing:
 
-- **k10motorsports.com** → Marketing site (public)
-- **drive.k10motorsports.com** → K10 Pro Drive members app (Discord auth)
+- **k10motorsports.racing** → Marketing site (public)
+- **drive.k10motorsports.racing** → K10 Pro Drive members app (Discord auth)
 
 Stack: Next.js 16, React 19, Tailwind CSS 4, NextAuth 5, Strapi CMS.
 
@@ -44,22 +44,24 @@ cp .env.example .env.local
 
 ### 3. Local domain setup
 
-The middleware uses subdomain routing. To test both domains locally, add these to `/etc/hosts`:
+The middleware uses subdomain routing. Dev domains use a `dev.` prefix so they never collide with production DNS. Add these to `/etc/hosts`:
 
 ```
-127.0.0.1   k10motorsports.local
-127.0.0.1   drive.k10motorsports.local
+127.0.0.1   dev.k10motorsports.racing
+127.0.0.1   dev.drive.k10motorsports.racing
 ```
 
 Then access:
 
-- `http://k10motorsports.local:3000` → marketing site
-- `http://drive.k10motorsports.local:3000` → drive members app
+- `http://dev.k10motorsports.racing:3000` → marketing site
+- `http://dev.drive.k10motorsports.racing:3000` → drive members app
 
 Alternatively, use the query parameter shortcut without hosts changes:
 
 - `http://localhost:3000` → marketing site
 - `http://localhost:3000?subdomain=drive` → drive members app
+
+> **Note:** `SITE_URL` and `DRIVE_URL` in `constants.ts` auto-switch between `http://dev.` (dev) and `https://` (production) based on `NODE_ENV`.
 
 ### 4. Start the dev server
 
@@ -149,7 +151,7 @@ In Vercel project settings → Environment Variables, add:
 ```
 YOUTUBE_API_KEY=your-key
 NEXTAUTH_SECRET=your-secret
-NEXTAUTH_URL=https://k10motorsports.com
+NEXTAUTH_URL=https://k10motorsports.racing
 DISCORD_CLIENT_ID=your-id
 DISCORD_CLIENT_SECRET=your-secret
 STRAPI_URL=https://your-strapi-instance.com
@@ -162,8 +164,8 @@ In Vercel project settings → Domains, add both:
 
 | Domain | Purpose |
 |---|---|
-| `k10motorsports.com` | Marketing site |
-| `drive.k10motorsports.com` | Pro Drive members app |
+| `k10motorsports.racing` | Marketing site |
+| `drive.k10motorsports.racing` | Pro Drive members app |
 
 Then configure DNS at your registrar:
 
@@ -179,8 +181,8 @@ Then configure DNS at your registrar:
 Update your Discord application's OAuth2 redirect URL to:
 
 ```
-https://k10motorsports.com/api/auth/callback/discord
-https://drive.k10motorsports.com/api/auth/callback/discord
+https://k10motorsports.racing/api/auth/callback/discord
+https://drive.k10motorsports.racing/api/auth/callback/discord
 ```
 
 ### 5. Deploy
@@ -209,8 +211,8 @@ web/
 ├── public/branding/       # Logomark assets (logomark.png, logomark-white.png)
 ├── src/
 │   ├── app/
-│   │   ├── marketing/     # k10motorsports.com routes
-│   │   ├── drive/         # drive.k10motorsports.com routes
+│   │   ├── marketing/     # k10motorsports.racing routes
+│   │   ├── drive/         # drive.k10motorsports.racing routes
 │   │   └── api/           # API routes (ratings, auth)
 │   ├── components/        # Shared React components
 │   ├── lib/               # Constants, YouTube API, utilities

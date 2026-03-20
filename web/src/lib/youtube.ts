@@ -1,6 +1,6 @@
 /**
  * YouTube Data API v3 integration for @k10motorsports channel.
- * Fetches videos, shorts, and livestreams for display on k10motorsports.com.
+ * Fetches videos, shorts, and livestreams for display on k10motorsports.racing.
  *
  * Requires YOUTUBE_API_KEY environment variable.
  * Channel: @k10motorsports
