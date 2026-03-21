@@ -756,7 +756,8 @@
     try { updateIncidents(p, _demo); } catch(e) { console.error('[K10] Incidents error:', e); }
 
     // ─── Leaderboard ───
-    try { updateLeaderboard(p); } catch(e) { console.error('[K10] Leaderboard error:', e); }
+    if (typeof _markLbLive === 'function') _markLbLive();
+    try { updateLeaderboard(p, _demo); } catch(e) { console.error('[K10] Leaderboard error:', e); }
 
     // ─── Pit Limiter ───
     try { updatePitLimiter(p, _demo); } catch(e) { console.error('[K10] Pit limiter error:', e); }

@@ -69,20 +69,20 @@ if %ERRORLEVEL%==0 (
 )
 
 :: -------------------------------------------------------------------
-:: 3. Determine repo root (this .bat lives in plugin-tools\)
+:: 3. Determine repo root (this .bat lives in scripts\windows\)
 :: -------------------------------------------------------------------
 
 set "TOOLS_DIR=%~dp0"
 if "%TOOLS_DIR:~-1%"=="\" set "TOOLS_DIR=%TOOLS_DIR:~0,-1%"
-:: Go up one level from plugin-tools to repo root
-for %%I in ("%TOOLS_DIR%\..") do set "REPO_DIR=%%~fI"
+:: Go up two levels from scripts\windows to repo root
+for %%I in ("%TOOLS_DIR%\..\..") do set "REPO_DIR=%%~fI"
 set "PLUGIN_DIR=%REPO_DIR%\simhub-plugin"
 
 :: -------------------------------------------------------------------
 :: 4. Copy plugin DLL
 :: -------------------------------------------------------------------
 
-echo  [1/3] Installing plugin DLL...
+echo  [1/2] Installing plugin DLL...
 
 if exist "%PLUGIN_DIR%\K10MediaBroadcaster.Plugin.dll" (
     copy /Y "%PLUGIN_DIR%\K10MediaBroadcaster.Plugin.dll" "%SIMHUB_DIR%\K10MediaBroadcaster.Plugin.dll" >NUL
@@ -107,7 +107,7 @@ if exist "%PLUGIN_DIR%\K10MediaBroadcaster.Plugin.pdb" (
 :: 5. Copy dataset folder
 :: -------------------------------------------------------------------
 
-echo  [2/3] Installing dataset files...
+echo  [2/2] Installing dataset files...
 
 if exist "%PLUGIN_DIR%\dataset" (
     xcopy /E /Y /I /Q "%PLUGIN_DIR%\dataset" "%SIMHUB_DIR%\dataset" >NUL

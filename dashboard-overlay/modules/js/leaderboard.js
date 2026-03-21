@@ -8,8 +8,51 @@
   const _sparkHistory = {};
   const SPARK_MAX = 12;
   let _lbLastJson = '';
+  let _demoLbFrame = 0;
 
-  function updateLeaderboard(p) {
+  // ── Demo leaderboard data ──
+  // Generated client-side so leaderboard settings (max rows, focus, expand)
+  // can be tested without the live plugin running.
+  // Entry format: [pos, name, irating, bestLap, lastLap, gapToPlayer, inPit, isPlayer]
+  const _DEMO_LB_DRIVERS = [
+    { name: 'M. Verstappen', ir: 8900, base: 78.2 },
+    { name: 'L. Norris',     ir: 7600, base: 78.5 },
+    { name: 'C. Leclerc',    ir: 7100, base: 78.8 },
+    { name: 'O. Piastri',    ir: 6800, base: 79.0 },
+    { name: 'L. Hamilton',   ir: 6500, base: 79.2 },
+    { name: 'C. Sainz',      ir: 6200, base: 79.4 },
+    { name: 'G. Russell',    ir: 5900, base: 79.6 },
+    { name: 'K. Conboy',     ir: 5100, base: 79.9, isPlayer: true },
+    { name: 'F. Alonso',     ir: 4800, base: 80.1 },
+    { name: 'P. Gasly',      ir: 4500, base: 80.3 },
+    { name: 'A. Albon',      ir: 4200, base: 80.6 },
+    { name: 'D. Ricciardo',  ir: 3900, base: 80.8 },
+    { name: 'V. Bottas',     ir: 3600, base: 81.0 },
+    { name: 'Y. Tsunoda',    ir: 3300, base: 81.3 },
+    { name: 'K. Magnussen',  ir: 3000, base: 81.5 },
+    { name: 'L. Stroll',     ir: 2800, base: 81.8 },
+    { name: 'Z. Guanyu',     ir: 2500, base: 82.0 },
+    { name: 'E. Ocon',       ir: 2200, base: 82.3 },
+    { name: 'N. Hulkenberg', ir: 2000, base: 82.5 },
+    { name: 'L. Sargeant',   ir: 1800, base: 82.8 },
+  ];
+
+  function _buildDemoLeaderboard() {
+    _demoLbFrame++;
+    const playerIdx = _DEMO_LB_DRIVERS.findIndex(d => d.isPlayer);
+    return _DEMO_LB_DRIVERS.map((d, i) => {
+      // Slight lap-time jitter so sparklines build up over time
+      const jitter = (Math.sin(_demoLbFrame * 0.07 + i * 1.7) * 0.4)
+                   + (Math.cos(_demoLbFrame * 0.13 + i * 2.3) * 0.2);
+      const lastLap = +(d.base + jitter).toFixed(1);
+      const bestLap = d.base;
+      const gap = playerIdx >= 0 ? +((d.base - _DEMO_LB_DRIVERS[playerIdx].base) * (2 + Math.sin(_demoLbFrame * 0.03) * 0.5)).toFixed(1) : 0;
+      const inPit = (i === 14 && (_demoLbFrame % 80 < 15)); // one driver pits periodically
+      return [i + 1, d.name, d.ir, bestLap, lastLap, d.isPlayer ? 0 : gap, inPit, !!d.isPlayer];
+    });
+  }
+
+  function updateLeaderboard(p, isDemo) {
     const lbPanel = document.getElementById('leaderboardPanel');
     if (!lbPanel || lbPanel.classList.contains('section-hidden')) return;
     // Leaderboard comes as raw JSON array from the plugin
@@ -18,11 +61,16 @@
     if (typeof raw === 'string') {
       try { raw = JSON.parse(raw); } catch(e) { console.warn('[K10 LB] Failed to parse leaderboard string:', e); return; }
     }
-    if (_pollFrame <= 3) console.log('[K10 LB] raw type:', typeof raw, 'isArray:', Array.isArray(raw), 'length:', raw ? raw.length : 0, 'sample:', raw ? JSON.stringify(raw).slice(0, 200) : 'null');
+    // In demo mode, always use the 20-driver client-side grid so all
+    // layout settings (max rows, focus, expand-to-fill) can be tested.
+    if (isDemo) {
+      raw = _buildDemoLeaderboard();
+    }
+    if (_pollFrame > 0 && _pollFrame <= 3) console.log('[K10 LB] raw type:', typeof raw, 'isArray:', Array.isArray(raw), 'length:', raw ? raw.length : 0, 'sample:', raw ? JSON.stringify(raw).slice(0, 200) : 'null');
     if (!raw || !Array.isArray(raw) || raw.length === 0) return;
 
     // Dedupe: skip render if data hasn't changed (+ settings version)
-    const settingsKey = (_settings.lbFocus || 'me') + '|' + (_settings.lbMaxRows || 5) + '|' + (_settings.lbExpandToFill ? '1' : '0');
+    const settingsKey = (_settings.lbFocus || 'me') + '|' + (_settings.lbMaxRows || 5) + '|' + (_settings.lbExpandToFill ? '1' : '0') + '|' + (window.innerHeight || 0);
     const json = JSON.stringify(raw) + '|' + settingsKey;
     if (json === _lbLastJson) return;
     _lbLastJson = json;
@@ -37,21 +85,25 @@
     // Expand to fill: calculate max rows that fit on screen
     if (_settings.lbExpandToFill) {
       const lbPanel = document.getElementById('leaderboardPanel');
-      const rowH = 22; // approximate row height in px
-      const headerH = 28; // lb-header + timeline + padding
-      const avail = (window.innerHeight || 600) - headerH - 60; // 60px margin for other modules
-      // Check for collision with incidents panel on the same vertical edge
-      const inc = document.getElementById('incidentsPanel');
-      let incReserve = 0;
-      if (inc && !inc.classList.contains('section-hidden')) {
-        const incRect = inc.getBoundingClientRect();
-        const lbRect = lbPanel ? lbPanel.getBoundingClientRect() : null;
-        // If they share similar vertical space, reduce available height
-        if (lbRect && ((incRect.top < lbRect.bottom && incRect.bottom > lbRect.top))) {
-          incReserve = 0; // no horizontal collision, don't reduce
-        }
+      const sec = document.getElementById('secContainer');
+      const zoom = parseFloat(sec ? sec.style.zoom : 1) || 1;
+      const rowH = 22; // approximate row height in px (in panel coordinates)
+      // Measure available height from the sec-container position
+      // getBoundingClientRect() returns viewport pixels; divide by zoom to get panel-space pixels
+      const vpH = window.innerHeight || 600;
+      let availH;
+      if (sec) {
+        const secRect = sec.getBoundingClientRect();
+        const isTop = sec.classList.contains('sec-top');
+        // Available height: from the container's edge toward the opposite viewport edge
+        availH = isTop ? (vpH - secRect.top) / zoom : secRect.bottom / zoom;
+      } else {
+        availH = vpH / zoom;
       }
-      maxRows = Math.max(3, Math.floor((avail - incReserve) / rowH));
+      // Reserve space for lb-header, timeline strip, padding, and a safety margin
+      const headerH = 36; // header + timeline + top/bottom padding
+      const marginH = 16; // breathing room at the edge
+      maxRows = Math.max(3, Math.min(raw.length, Math.floor((availH - headerH - marginH) / rowH)));
     }
 
     // Entry format: [pos, name, irating, bestLap, lastLap, gapToPlayer, inPit, isPlayer]
@@ -192,3 +244,27 @@
   }
 
   function escHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  // ── Offline demo: keep leaderboard alive when plugin server is unreachable ──
+  // This lets you test layout settings (max rows, focus, expand-to-fill)
+  // by opening dashboard.html directly in a browser — no server needed.
+  let _offlineLbTimer = null;
+  let _lbHasLiveData = false;
+
+  // Called by pollUpdate when we get real data — suppresses offline demo
+  function _markLbLive() { _lbHasLiveData = true; }
+
+  function _startOfflineLbDemo() {
+    if (_offlineLbTimer) return;
+    _offlineLbTimer = setInterval(() => {
+      if (_lbHasLiveData) return; // live data came in, stay quiet
+      const lbPanel = document.getElementById('leaderboardPanel');
+      if (!lbPanel || lbPanel.classList.contains('section-hidden')) return;
+      const raw = _buildDemoLeaderboard();
+      // Forge a minimal props object and call the renderer directly
+      updateLeaderboard({ 'K10MediaBroadcaster.Plugin.Leaderboard': raw }, true);
+    }, 250);
+  }
+
+  // Auto-start after a brief delay to give the server a chance to connect
+  setTimeout(_startOfflineLbDemo, 3000);

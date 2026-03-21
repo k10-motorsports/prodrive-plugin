@@ -17,7 +17,7 @@
 
   /* Vertical edge — uses --edge-z (zoom-compensated) for consistent visual margins */
   .sec-container.sec-top    { top: var(--edge-z, var(--edge)); }
-  .sec-container.sec-bottom { bottom: calc(var(--edge-z, var(--edge)) + 50px); align-items: flex-end; }
+  .sec-container.sec-bottom { bottom: var(--edge-z, var(--edge)); align-items: flex-end; }
 
   /* Horizontal edge — right positions use row-reverse so
      the first child (leaderboard) stays at the screen edge */

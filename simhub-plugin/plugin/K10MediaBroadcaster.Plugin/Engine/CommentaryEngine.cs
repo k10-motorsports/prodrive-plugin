@@ -674,8 +674,8 @@ namespace K10MediaBroadcaster.Plugin.Engine
 
         /// <summary>
         /// Resolves car-specific placeholders: {car}, {manufacturer}, {class}.
-        /// {car} → full car model name (e.g., "the McLaren 570S")
-        /// {manufacturer} → brand only (e.g., "the McLaren")
+        /// {car} → full car model name (e.g., "McLaren 570S")
+        /// {manufacturer} → brand only (e.g., "McLaren")
         /// {class} → car class (e.g., "the GT3 car")
         /// </summary>
         private string ResolveCar(string placeholder, TelemetrySnapshot context)
@@ -687,22 +687,17 @@ namespace K10MediaBroadcaster.Plugin.Engine
 
             if (placeholder == "{car}")
             {
-                // Return full car model with "the" prefix if not already present
-                if (!carModel.StartsWith("the ", System.StringComparison.OrdinalIgnoreCase))
-                    return "the " + carModel;
+                // Return full car model name as-is (brand names are proper nouns)
                 return carModel;
             }
 
             if (placeholder == "{manufacturer}")
             {
-                // Extract first word as manufacturer (e.g., "the McLaren" from "McLaren 570S")
+                // Extract first word as manufacturer (e.g., "McLaren" from "McLaren 570S")
                 string[] parts = carModel.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length > 0)
                 {
-                    string mfg = parts[0];
-                    if (!mfg.StartsWith("the ", System.StringComparison.OrdinalIgnoreCase))
-                        return "the " + mfg;
-                    return mfg;
+                    return parts[0];
                 }
                 return "the car";
             }
