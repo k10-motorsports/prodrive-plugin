@@ -432,7 +432,9 @@ function detectMfr(model) {
 // CAR ADJUSTABILITY — cars that truly lack BB/ABS/TC systems
 // These cars physically don't have the system, so we HIDE the module.
 // Cars not listed here that report 0 are assumed FIXED (setup-locked).
-// Each entry: substring match → { noBB, noABS, noTC }
+// Each entry: substring match → { noBB, noABS, noTC, absNoAdjust }
+// absNoAdjust: true = ABS exists but isn't adjustable by driver (show when active)
+// noABS: true = no ABS system at all (hide completely)
 // ═══════════════════════════════════════════════════════════════
 const _carNoAdjust = [
   // Formula / Open-wheel (no ABS, no TC in almost all)
@@ -467,11 +469,12 @@ const _carNoAdjust = [
   { match: 'spec racer',       noBB: false, noABS: true, noTC: true },
   { match: 'legends',          noBB: true,  noABS: true, noTC: true },
   { match: '34 ford',          noBB: true,  noABS: true, noTC: true },
-  // Production-based (no ABS, no TC in iRacing implementation)
-  { match: 'mx-5 cup',         noBB: false, noABS: true, noTC: true },
-  { match: 'mx-5 roadster',    noBB: false, noABS: true, noTC: true },
-  { match: 'gr86',             noBB: false, noABS: true, noTC: true },
-  { match: 'solstice',         noBB: false, noABS: true, noTC: true },
+  // Production-based (ABS exists but not adjustable, no TC in iRacing implementation)
+  { match: 'mx-5 cup',         noBB: false, noABS: false, absNoAdjust: true, noTC: true },
+  { match: 'mx-5 roadster',    noBB: false, noABS: false, absNoAdjust: true, noTC: true },
+  { match: 'mx-5',             noBB: false, noABS: false, absNoAdjust: true, noTC: true },
+  { match: 'gr86',             noBB: false, noABS: false, absNoAdjust: true, noTC: true },
+  { match: 'solstice',         noBB: false, noABS: false, absNoAdjust: true, noTC: true },
   // NASCAR / Oval (no ABS, no TC)
   { match: 'nascar',           noBB: false, noABS: true, noTC: true },
   { match: 'gen 6',            noBB: false, noABS: true, noTC: true },

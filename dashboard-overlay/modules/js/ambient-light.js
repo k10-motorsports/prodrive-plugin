@@ -1,18 +1,17 @@
 // ═══════════════════════════════════════════════════════════════
-//  AMBIENT LIGHT — WebGL screen-reactive glow beneath panels
+//  AMBIENT LIGHT — Per-panel glow + glass reflections
 // ═══════════════════════════════════════════════════════════════
 //
-//  Receives the average screen color from the main process
-//  (Electron desktopCapturer, 8 fps, 24×24 thumbnails) and
-//  renders a soft radial glow emanating from the center of
-//  the viewport that spills beneath each dashboard module.
+//  No WebGL canvas — all glow/reflection is done via CSS pseudo-
+//  elements (::before = radial glow, ::after = glass highlight).
 //
-//  The effect is intentionally subtle — the glow should feel
-//  like the game's light is bleeding through the transparent
-//  overlay and reflecting off the panel surfaces.
+//  This JS module handles:
+//    • Smooth LERP interpolation of the ambient color
+//    • Updating --ambient-r / --ambient-g / --ambient-b on :root
+//    • Receiving color from Electron screen capturer (IPC)
+//    • Falling back to polled flag-state color
 //
-//  Depends on: preload.js (k10.onAmbientColor, k10.ambientStart/Stop)
-//              config.js  (_settings.showAmbientLight)
+//  The CSS breathing animation runs independently in ambient.css.
 // ═══════════════════════════════════════════════════════════════
 
 (function initAmbientLight() {
@@ -20,288 +19,160 @@
 
   // ── State ──
   let _enabled = false;
-  let _glCtx = null;
-  let _program = null;
-  let _uniforms = {};
-  let _canvas = null;
   let _rafId = null;
-  let _time = 0;
   let _hasReceivedColor = false;
+  let _usePolledColor = false;
 
-  // Current + target color (smooth interpolation)
+  // Current + target color (smooth interpolation, 0-1 range)
   let _curR = 0, _curG = 0, _curB = 0;
   let _tgtR = 0, _tgtG = 0, _tgtB = 0;
 
-  // Lerp speed — lower = smoother (0.08 = ~12 frame blend at 60fps)
-  const LERP = 0.08;
+  const LERP = 0.30;
 
-  // ── GL helpers ──
-  function createShader(gl, type, src) {
-    const s = gl.createShader(type);
-    gl.shaderSource(s, src);
-    gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-      console.warn('[Ambient] Shader compile:', gl.getShaderInfoLog(s));
-      gl.deleteShader(s);
-      return null;
+  // ── Flag-to-color mapping ──
+  const FLAG_AMBIENT = {
+    green:     { r: 0.35, g: 0.85, b: 0.45 },
+    yellow:    { r: 0.95, g: 0.82, b: 0.25 },
+    red:       { r: 0.90, g: 0.20, b: 0.15 },
+    blue:      { r: 0.30, g: 0.50, b: 0.95 },
+    white:     { r: 0.85, g: 0.85, b: 0.90 },
+    black:     { r: 0.25, g: 0.25, b: 0.25 },
+    checkered: { r: 0.80, g: 0.80, b: 0.82 },
+    meatball:  { r: 0.90, g: 0.35, b: 0.20 },
+    orange:    { r: 0.95, g: 0.60, b: 0.15 },
+    debris:    { r: 0.85, g: 0.72, b: 0.25 },
+    none:      { r: 0.45, g: 0.55, b: 0.75 },
+  };
+
+  // ── Boost dark colors so glow is always visible ──
+  function boostColor(r, g, b) {
+    const maxC = Math.max(r, g, b, 0.001);
+    const MIN_BRIGHTNESS = 0.5;
+    if (maxC < MIN_BRIGHTNESS) {
+      const scale = MIN_BRIGHTNESS / maxC;
+      return {
+        r: Math.min(r * scale, 1),
+        g: Math.min(g * scale, 1),
+        b: Math.min(b * scale, 1)
+      };
     }
-    return s;
+    return { r, g, b };
   }
 
-  function createProgram(gl, vs, fs) {
-    const p = gl.createProgram();
-    gl.attachShader(p, vs);
-    gl.attachShader(p, fs);
-    gl.linkProgram(p);
-    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
-      console.warn('[Ambient] Program link:', gl.getProgramInfoLog(p));
-      return null;
-    }
-    return p;
-  }
-
-  // ── Shaders ──
-
-  const VERT_SRC = `#version 300 es
-    in vec2 aPos;
-    out vec2 vUV;
-    void main() {
-      vUV = aPos * 0.5 + 0.5;
-      gl_Position = vec4(aPos, 0.0, 1.0);
-    }`;
-
-  // Fragment shader:
-  //   - Soft radial glow from screen center, colored by ambient RGB
-  //   - Gaussian-ish falloff (wider glow matches widescreen)
-  //   - Subtle pulsing breath to keep it alive
-  const FRAG_SRC = `#version 300 es
-    precision highp float;
-    in  vec2 vUV;
-    out vec4 fragColor;
-
-    uniform vec3  uColor;      // ambient RGB (0-1)
-    uniform float uTime;       // seconds
-    uniform vec2  uRes;        // canvas pixel size
-    uniform float uIntensity;  // master intensity (0-1)
-
-    void main() {
-      // Aspect-corrected coordinates centered at (0.5, 0.5)
-      vec2 center = vUV - 0.5;
-      float aspect = uRes.x / uRes.y;
-      center.x *= aspect;
-
-      // Distance from center
-      float d = length(center);
-
-      // Soft gaussian falloff (σ ≈ 0.38)
-      float glow = exp(-d * d / (2.0 * 0.38 * 0.38));
-
-      // Outer haze (much wider, much dimmer)
-      float haze = exp(-d * d / (2.0 * 0.7 * 0.7)) * 0.3;
-
-      // Gentle breathing pulse
-      float breath = 1.0 + 0.06 * sin(uTime * 0.7);
-
-      // Combine
-      float alpha = (glow + haze) * breath * uIntensity;
-
-      // Boost color brightness slightly so dark scenes still show something
-      vec3 col = uColor + 0.04;
-
-      // Clamp alpha to keep it subtle
-      alpha = clamp(alpha, 0.0, 0.25);
-
-      fragColor = vec4(col * alpha, alpha);
-    }`;
-
-  // ── Init WebGL ──
-  function initGL() {
-    _canvas = document.getElementById('ambientGlCanvas');
-    if (!_canvas) {
-      console.warn('[Ambient] Canvas #ambientGlCanvas not found');
-      return false;
-    }
-
-    const gl = _canvas.getContext('webgl2', {
-      alpha: true,
-      premultipliedAlpha: true,
-      antialias: false,
-      powerPreference: 'low-power'
-    });
-    if (!gl) {
-      console.warn('[Ambient] WebGL2 not available');
-      return false;
-    }
-
-    const vs = createShader(gl, gl.VERTEX_SHADER, VERT_SRC);
-    const fs = createShader(gl, gl.FRAGMENT_SHADER, FRAG_SRC);
-    if (!vs || !fs) return false;
-
-    _program = createProgram(gl, vs, fs);
-    if (!_program) return false;
-
-    // Full-screen quad
-    const quad = new Float32Array([-1,-1, 1,-1, -1,1, 1,1]);
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, quad, gl.STATIC_DRAW);
-
-    const aPos = gl.getAttribLocation(_program, 'aPos');
-    gl.enableVertexAttribArray(aPos);
-    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
-
-    // Cache uniform locations
-    _uniforms = {
-      uColor:     gl.getUniformLocation(_program, 'uColor'),
-      uTime:      gl.getUniformLocation(_program, 'uTime'),
-      uRes:       gl.getUniformLocation(_program, 'uRes'),
-      uIntensity: gl.getUniformLocation(_program, 'uIntensity'),
-    };
-
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); // premultiplied alpha
-
-    _glCtx = gl;
-    console.log('[Ambient] WebGL2 initialized');
-    return true;
-  }
-
-  // ── Resize ──
-  function resize() {
-    if (!_canvas || !_glCtx) return;
-    // Render at half resolution for performance
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-    const w = Math.round(window.innerWidth  * dpr * 0.5);
-    const h = Math.round(window.innerHeight * dpr * 0.5);
-    if (_canvas.width !== w || _canvas.height !== h) {
-      _canvas.width = w;
-      _canvas.height = h;
-      _glCtx.viewport(0, 0, w, h);
-    }
-  }
-
-  // ── Update CSS shadow vars ──
-  // Compose full box-shadow values so CSS doesn't need rgba(var()) syntax
-  function updateCSSShadows(r, g, b) {
+  // ── Update CSS vars that drive glow + reflection tint on panels ──
+  function updateReflectionColor(r, g, b) {
+    const boosted = boostColor(r, g, b);
     const root = document.documentElement.style;
-    const rgba = (a) => `rgba(${r}, ${g}, ${b}, ${a})`;
-
-    root.setProperty('--ambient-shadow',       `0 0 18px 4px ${rgba(0.14)}`);
-    root.setProperty('--ambient-shadow-lg',    `0 0 40px 8px ${rgba(0.07)}`);
-    root.setProperty('--ambient-shadow-tacho',    `0 0 24px 6px ${rgba(0.18)}`);
-    root.setProperty('--ambient-shadow-tacho-lg', `0 0 50px 12px ${rgba(0.09)}`);
+    root.setProperty('--ambient-r', String(Math.round(boosted.r * 255)));
+    root.setProperty('--ambient-g', String(Math.round(boosted.g * 255)));
+    root.setProperty('--ambient-b', String(Math.round(boosted.b * 255)));
   }
 
-  function clearCSSShadows() {
+  function clearReflectionColor() {
     const root = document.documentElement.style;
-    root.setProperty('--ambient-shadow',       '0 0 0 transparent');
-    root.setProperty('--ambient-shadow-lg',    '0 0 0 transparent');
-    root.setProperty('--ambient-shadow-tacho',    '0 0 0 transparent');
-    root.setProperty('--ambient-shadow-tacho-lg', '0 0 0 transparent');
+    root.setProperty('--ambient-r', '80');
+    root.setProperty('--ambient-g', '100');
+    root.setProperty('--ambient-b', '140');
   }
 
-  // ── Render loop ──
-  let _lastFrame = 0;
+  // ── Polled color from flag state ──
+  function pollFlagColor() {
+    const flag = window._currentFlagState || 'none';
+    const c = FLAG_AMBIENT[flag] || FLAG_AMBIENT.none;
+    _tgtR = c.r;
+    _tgtG = c.g;
+    _tgtB = c.b;
+  }
 
+  // ── Render loop — LERP + push CSS vars each frame ──
+  let _logTimer = 0;
   function render(timestamp) {
     if (!_enabled) return;
     _rafId = requestAnimationFrame(render);
 
-    // Throttle to ~30fps
-    if (timestamp - _lastFrame < 32) return;
-    _lastFrame = timestamp;
+    if (_usePolledColor) pollFlagColor();
 
-    const gl = _glCtx;
-    if (!gl || !_program) return;
-
-    resize();
-
-    // Smooth color interpolation
+    // Smooth interpolation
     _curR += (_tgtR - _curR) * LERP;
     _curG += (_tgtG - _curG) * LERP;
     _curB += (_tgtB - _curB) * LERP;
 
-    _time += 0.033;
+    // Push to CSS vars (drives both ::before glow and ::after reflection)
+    updateReflectionColor(_curR, _curG, _curB);
 
-    // Perceived brightness modulates intensity (brighter scenes = stronger glow)
-    const luma = 0.299 * _curR + 0.587 * _curG + 0.114 * _curB;
-    const intensity = 0.4 + luma * 0.6;
-
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.useProgram(_program);
-    gl.uniform3f(_uniforms.uColor, _curR, _curG, _curB);
-    gl.uniform1f(_uniforms.uTime, _time);
-    gl.uniform2f(_uniforms.uRes, _canvas.width, _canvas.height);
-    gl.uniform1f(_uniforms.uIntensity, intensity);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-    // Update per-panel CSS box-shadow glow
-    const r8 = Math.round(_curR * 255);
-    const g8 = Math.round(_curG * 255);
-    const b8 = Math.round(_curB * 255);
-    updateCSSShadows(r8, g8, b8);
+    // Diagnostic log every 5s
+    const t = timestamp * 0.001;
+    const sec = Math.floor(t);
+    if (sec % 5 === 0 && sec !== _logTimer) {
+      _logTimer = sec;
+      console.log(`[Ambient] color=(${_curR.toFixed(2)}, ${_curG.toFixed(2)}, ${_curB.toFixed(2)}) polled=${_usePolledColor} received=${_hasReceivedColor}`);
+    }
   }
 
-  // ── Receive color from main process ──
+  // ── Receive color from Electron main process ──
   function onColorUpdate(color) {
+    if (!_hasReceivedColor) {
+      console.log('[Ambient] First color received from Electron:', JSON.stringify(color));
+    }
     _hasReceivedColor = true;
-    // Normalize 0-255 → 0-1
+    _usePolledColor = false;
     _tgtR = color.r / 255;
     _tgtG = color.g / 255;
     _tgtB = color.b / 255;
+
+    // Auto-enable if we get color data but the glow isn't on yet
+    if (!_enabled) {
+      console.log('[Ambient] Auto-enabling from IPC color data');
+      _enabled = true;
+      _curR = _tgtR; _curG = _tgtG; _curB = _tgtB;
+      _rafId = requestAnimationFrame(render);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════
+  //  REGISTER IPC LISTENER IMMEDIATELY — don't wait for
+  //  startAmbientLight(). The main process auto-starts
+  //  capture 3s after window load, and we need to be
+  //  listening when that data arrives.
+  // ══════════════════════════════════════════════════════════
+  if (window.k10 && window.k10.onAmbientColor) {
+    window.k10.onAmbientColor(onColorUpdate);
+    console.log('[Ambient] IPC listener registered on load (immediate)');
   }
 
   // ── Public API ──
-  // Register color listener once (idempotent — IPC .on is additive)
-  let _listenerRegistered = false;
 
   window.startAmbientLight = function() {
     if (_enabled) return;
-    if (!_glCtx && !initGL()) return;
+
     _enabled = true;
-    _lastFrame = 0;
     _rafId = requestAnimationFrame(render);
 
-    // Tell main process to start screen capture
+    // Also tell main process to start capturing
     if (window.k10 && window.k10.ambientStart) {
       window.k10.ambientStart();
     }
 
-    // Listen for color updates (register once)
-    if (!_listenerRegistered && window.k10 && window.k10.onAmbientColor) {
-      window.k10.onAmbientColor(onColorUpdate);
-      _listenerRegistered = true;
-    }
+    _usePolledColor = true;
+    console.log('[Ambient] Started (polled until capture data arrives)');
+  };
 
-    // If no screen capture data arrives within 2s, use a dim warm fallback
-    // so the user can at least see the effect is working
-    setTimeout(() => {
-      if (_enabled && !_hasReceivedColor) {
-        console.warn('[Ambient] No screen capture data — using fallback color. Grant Screen Recording permission if on macOS.');
-        _tgtR = 0.15;
-        _tgtG = 0.10;
-        _tgtB = 0.20;
-      }
-    }, 2000);
-
-    console.log('[Ambient] Started');
+  // External color push
+  window.setAmbientColor = function(r, g, b) {
+    _hasReceivedColor = true;
+    _usePolledColor = false;
+    _tgtR = r;
+    _tgtG = g;
+    _tgtB = b;
   };
 
   window.stopAmbientLight = function() {
     _enabled = false;
-    if (_rafId) {
-      cancelAnimationFrame(_rafId);
-      _rafId = null;
-    }
-    // Tell main process to stop capture
-    if (window.k10 && window.k10.ambientStop) {
-      window.k10.ambientStop();
-    }
-    // Clear the canvas
-    if (_glCtx) {
-      _glCtx.clear(_glCtx.COLOR_BUFFER_BIT);
-    }
-    clearCSSShadows();
+    if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
+    if (window.k10 && window.k10.ambientStop) window.k10.ambientStop();
+    clearReflectionColor();
+    _usePolledColor = false;
+    _hasReceivedColor = false;
     console.log('[Ambient] Stopped');
   };
 
@@ -309,8 +180,15 @@
     return _enabled;
   };
 
-  // Note: startup is handled by applySettings() in settings.js
-  // which calls startAmbientLight() / stopAmbientLight() based on
-  // the persisted showAmbientLight setting.
+  // Expose color state for the settings preview
+  window.getAmbientColor = function() {
+    return {
+      r: _curR, g: _curG, b: _curB,
+      tr: _tgtR, tg: _tgtG, tb: _tgtB,
+      enabled: _enabled,
+      hasData: _hasReceivedColor,
+      polled: _usePolledColor,
+    };
+  };
 
 })();

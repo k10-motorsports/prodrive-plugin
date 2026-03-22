@@ -4,7 +4,7 @@
 // that renders the HTML dashboard over the sim
 // ═══════════════════════════════════════════════════════════════
 
-const { app, BrowserWindow, ipcMain, screen, globalShortcut, shell, desktopCapturer } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, globalShortcut, shell, desktopCapturer, systemPreferences } = require('electron');
 const path   = require('path');
 const fs     = require('fs');
 const os     = require('os');
@@ -217,6 +217,18 @@ async function createOverlay() {
     overlayWindow.setIgnoreMouseEvents(true, { forward: true });
     loadDashboard();
     overlayWindow.setAlwaysOnTop(true, 'screen-saver');
+
+    // Auto-start ambient capture once the page has loaded.
+    // The renderer SHOULD request this via IPC, but as a fallback
+    // we start it here after a short delay to ensure the page is ready.
+    overlayWindow.webContents.on('did-finish-load', () => {
+      setTimeout(() => {
+        if (!_ambientTimer) {
+          logToFile('[K10] Auto-starting ambient capture (fallback — renderer did not request it)');
+          startAmbientCapture();
+        }
+      }, 3000);
+    });
   }
 
   overlayWindow.on('closed', () => { overlayWindow = null; });
@@ -775,62 +787,112 @@ ipcMain.handle('stop-remote-server', async () => {
 
 // ═══════════════════════════════════════════════════════════════
 // AMBIENT LIGHT — Screen Color Capture
-// Captures a tiny thumbnail of the primary display at ~8 fps,
-// computes the average RGB from the center region, and sends
-// it to the renderer for the WebGL ambient glow effect.
+//
+// Two modes:
+//   COLOR ONLY (default)  — 24×24 thumbnail at ~8fps, averages
+//       the user's capture rect (or center 60%) for ambient RGB.
+//   PREVIEW (settings open) — 320×180 thumbnail at ~15fps, sends
+//       a JPEG data-URL to the renderer for the settings preview
+//       canvas, PLUS the averaged color from the capture rect.
+//
+// The capture rect is stored in _ambientCaptureRect as viewport
+// ratios { x, y, w, h } (0-1).  Updated via IPC from renderer.
 // ═══════════════════════════════════════════════════════════════
 
 let _ambientTimer = null;
 let _ambientEnabled = false;
+let _ambientPreviewMode = false;   // true when settings panel is open
+let _ambientCaptureRect = null;    // { x, y, w, h } ratios or null
 
-async function captureAmbientColor() {
+// Restore saved capture rect from settings so it persists across restarts
+try {
+  const saved = loadSettingsSync();
+  if (saved && saved.ambientCaptureRect) {
+    _ambientCaptureRect = saved.ambientCaptureRect;
+    logToFile(`[K10] Restored ambient capture rect from settings: ${JSON.stringify(_ambientCaptureRect)}`);
+  }
+} catch (e) { /* non-critical */ }
+
+// Compute average color from a bitmap region.
+// Returns null if no capture rect is set — we only sample a user-defined region.
+function averageColorFromBitmap(bitmap, size, rect) {
+  if (!rect) return null;  // No region selected — don't sample anything
+
+  const w = size.width, h = size.height;
+  const x0 = Math.max(0, Math.floor(rect.x * w));
+  const y0 = Math.max(0, Math.floor(rect.y * h));
+  const x1 = Math.min(w, Math.ceil((rect.x + rect.w) * w));
+  const y1 = Math.min(h, Math.ceil((rect.y + rect.h) * h));
+
+  let rSum = 0, gSum = 0, bSum = 0, count = 0;
+  // Electron toBitmap() returns BGRA on ALL platforms
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
+      const offset = (y * w + x) * 4;
+      bSum += bitmap[offset];
+      gSum += bitmap[offset + 1];
+      rSum += bitmap[offset + 2];
+      count++;
+    }
+  }
+
+  if (count === 0) return null;
+  return {
+    r: Math.round(rSum / count),
+    g: Math.round(gSum / count),
+    b: Math.round(bSum / count)
+  };
+}
+
+let _ambientFrameCount = 0;
+
+async function captureAmbientFrame() {
   try {
+    // Use larger thumbnail when preview is active for a usable image
+    const thumbSize = _ambientPreviewMode
+      ? { width: 320, height: 180 }
+      : { width: 48, height: 48 };
+
     const sources = await desktopCapturer.getSources({
       types: ['screen'],
-      thumbnailSize: { width: 24, height: 24 }
+      thumbnailSize: thumbSize
     });
 
+    if (!sources || sources.length === 0) {
+      if (_ambientFrameCount % 50 === 0) logToFile('[K10] Ambient: no screen sources returned!');
+      _ambientFrameCount++;
+      return null;
+    }
+
     const primary = sources[0];
-    if (!primary) return null;
-
     const thumbnail = primary.thumbnail;
-    const bitmap = thumbnail.toBitmap();
     const size = thumbnail.getSize();
-    if (size.width === 0 || size.height === 0) return null;
 
-    // Sample center 60% of the thumbnail (avoids panel regions in corners)
-    let rSum = 0, gSum = 0, bSum = 0, count = 0;
-    const x0 = Math.floor(size.width  * 0.2);
-    const x1 = Math.ceil (size.width  * 0.8);
-    const y0 = Math.floor(size.height * 0.2);
-    const y1 = Math.ceil (size.height * 0.8);
-
-    for (let y = y0; y < y1; y++) {
-      for (let x = x0; x < x1; x++) {
-        // Electron toBitmap() returns BGRA on Windows, RGBA on macOS/Linux
-        const offset = (y * size.width + x) * 4;
-        if (process.platform === 'win32') {
-          bSum += bitmap[offset];
-          gSum += bitmap[offset + 1];
-          rSum += bitmap[offset + 2];
-        } else {
-          rSum += bitmap[offset];
-          gSum += bitmap[offset + 1];
-          bSum += bitmap[offset + 2];
-        }
-        count++;
-      }
+    if (size.width === 0 || size.height === 0) {
+      if (_ambientFrameCount % 50 === 0) logToFile('[K10] Ambient: thumbnail size is 0x0');
+      _ambientFrameCount++;
+      return null;
     }
 
-    if (count > 0) {
-      return {
-        r: Math.round(rSum / count),
-        g: Math.round(gSum / count),
-        b: Math.round(bSum / count)
-      };
+    // Average color from bitmap (uses capture rect if set)
+    const bitmap = thumbnail.toBitmap();
+    const color = averageColorFromBitmap(bitmap, size, _ambientCaptureRect);
+
+    // Log first few frames + every 50th so we can see the data
+    if (_ambientFrameCount < 5 || _ambientFrameCount % 50 === 0) {
+      logToFile(`[K10] Ambient frame #${_ambientFrameCount}: size=${size.width}x${size.height} color=${JSON.stringify(color)} rect=${JSON.stringify(_ambientCaptureRect)} bitmapLen=${bitmap.length}`);
     }
+    _ambientFrameCount++;
+
+    // Preview JPEG (only when settings are open)
+    let previewDataUrl = null;
+    if (_ambientPreviewMode) {
+      previewDataUrl = thumbnail.toDataURL();
+    }
+
+    return { color, previewDataUrl };
   } catch (e) {
-    // Silent — screen capture can fail briefly when display changes
+    logToFile(`[K10] Ambient capture error: ${e.message}`);
   }
   return null;
 }
@@ -838,15 +900,26 @@ async function captureAmbientColor() {
 function startAmbientCapture() {
   if (_ambientTimer) return;
   _ambientEnabled = true;
-  logToFile('[K10] Ambient light capture started (8 fps, 24×24 thumbnails)');
+  logToFile(`[K10] Ambient light capture started (preview=${_ambientPreviewMode})`);
 
-  _ambientTimer = setInterval(async () => {
+  const tick = async () => {
     if (!overlayWindow || overlayWindow.isDestroyed() || !_ambientEnabled) return;
-    const color = await captureAmbientColor();
-    if (color) {
-      overlayWindow.webContents.send('ambient-color', color);
+    const result = await captureAmbientFrame();
+    if (result) {
+      if (result.color) {
+        overlayWindow.webContents.send('ambient-color', result.color);
+      }
+      if (result.previewDataUrl) {
+        overlayWindow.webContents.send('ambient-preview-frame', result.previewDataUrl);
+      }
     }
-  }, 125); // ~8 fps
+  };
+
+  // ~30fps for responsive color changes (was 8fps/15fps)
+  const interval = 33;
+  _ambientTimer = setInterval(tick, interval);
+  // Fire immediately so the first frame appears without delay
+  tick();
 }
 
 function stopAmbientCapture() {
@@ -858,6 +931,96 @@ function stopAmbientCapture() {
   }
 }
 
+// Restart capture with updated interval when preview mode changes
+function restartAmbientCapture() {
+  if (!_ambientEnabled) return;
+  stopAmbientCapture();
+  _ambientEnabled = true;
+  startAmbientCapture();
+}
+
 // IPC: renderer can toggle ambient capture on/off
-ipcMain.handle('ambient-start', async () => { startAmbientCapture(); });
-ipcMain.handle('ambient-stop',  async () => { stopAmbientCapture();  });
+ipcMain.handle('ambient-start', async () => {
+  logToFile('[K10] IPC ambient-start received — starting capture');
+  startAmbientCapture();
+});
+ipcMain.handle('ambient-stop',  async () => {
+  logToFile('[K10] IPC ambient-stop received');
+  stopAmbientCapture();
+});
+
+// IPC: renderer tells us when settings panel opens/closes
+ipcMain.handle('ambient-preview-start', async () => {
+  _ambientPreviewMode = true;
+  restartAmbientCapture();
+});
+ipcMain.handle('ambient-preview-stop', async () => {
+  _ambientPreviewMode = false;
+  restartAmbientCapture();
+});
+
+// IPC: renderer sends updated capture rect
+ipcMain.handle('ambient-set-rect', async (_event, rect) => {
+  _ambientCaptureRect = rect;
+  logToFile(`[K10] Ambient capture rect updated: ${JSON.stringify(rect)}`);
+
+  // Persist to settings so it survives app restarts
+  try {
+    const settings = loadSettingsSync();
+    settings.ambientCaptureRect = rect;
+    saveSettingsSync(settings);
+    logToFile('[K10] Ambient capture rect saved to settings');
+  } catch (e) {
+    logToFile(`[K10] Failed to save capture rect: ${e.message}`);
+  }
+
+  // If capture isn't running yet, start it now — user clearly wants it
+  if (!_ambientTimer) {
+    logToFile('[K10] Capture not running — auto-starting from set-rect');
+    startAmbientCapture();
+  }
+});
+
+// IPC: check and request screen recording permission
+// macOS requires explicit user permission for screen capture.
+// Windows doesn't need special permissions.
+ipcMain.handle('ambient-request-permission', async () => {
+  if (process.platform === 'darwin') {
+    // Check current screen capture permission status
+    const status = systemPreferences.getMediaAccessStatus('screen');
+    logToFile(`[K10] Screen recording permission status: ${status}`);
+
+    if (status === 'granted') {
+      return { granted: true, platform: 'darwin' };
+    }
+
+    // On macOS, we can't programmatically request screen recording permission.
+    // The best we can do is:
+    // 1) Attempt a capture (which triggers the OS permission prompt on first use)
+    // 2) If denied, open System Preferences to the right pane
+    try {
+      // Trigger the OS permission dialog by attempting a capture
+      await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 1, height: 1 } });
+      // Re-check after the attempt
+      const newStatus = systemPreferences.getMediaAccessStatus('screen');
+      if (newStatus === 'granted') {
+        return { granted: true, platform: 'darwin' };
+      }
+    } catch (e) {
+      logToFile(`[K10] Screen capture permission attempt failed: ${e && e.stack || e}`);
+    }
+
+    // Still not granted — open System Preferences to the Screen Recording pane
+    logToFile('[K10] Opening System Preferences > Privacy > Screen Recording');
+    shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture');
+    return { granted: false, platform: 'darwin', openedSettings: true };
+
+  } else if (process.platform === 'win32') {
+    // Windows doesn't require special permissions for desktopCapturer
+    return { granted: true, platform: 'win32' };
+
+  } else {
+    // Linux — typically no permission needed
+    return { granted: true, platform: 'linux' };
+  }
+});

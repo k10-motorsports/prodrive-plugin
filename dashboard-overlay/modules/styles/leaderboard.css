@@ -6,6 +6,7 @@
     flex-direction: column;
     gap: var(--gap);
     flex-shrink: 0;
+    width: 240px;
   }
 
   .car-controls {
@@ -70,6 +71,7 @@
     z-index: 1;
     line-height: 1;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
 
   /* Per-control bar colors */

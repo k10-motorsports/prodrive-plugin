@@ -43,12 +43,15 @@
       c.style.display = webglOn ? '' : 'none';
     });
 
-    // Ambient light toggle — start/stop screen capture + glow
+    // Ambient light toggle — start/stop screen capture + glow + glass reflections
+    document.body.classList.toggle('ambient-off', _settings.showAmbientLight === false);
     if (_settings.showAmbientLight !== false) {
       if (typeof window.startAmbientLight === 'function') window.startAmbientLight();
     } else {
       if (typeof window.stopAmbientLight === 'function') window.stopAmbientLight();
     }
+    // Restore saved capture region and send to main process
+    if (typeof window.restoreAmbientCapture === 'function') window.restoreAmbientCapture();
 
     // Bonkers pit limiter toggle
     document.body.classList.toggle('bonkers-off', _settings.showBonkers === false);

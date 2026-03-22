@@ -54,7 +54,14 @@ contextBridge.exposeInMainWorld('k10', {
   // Ambient light screen capture
   ambientStart: () => ipcRenderer.invoke('ambient-start'),
   ambientStop:  () => ipcRenderer.invoke('ambient-stop'),
+  ambientRequestPermission: () => ipcRenderer.invoke('ambient-request-permission'),
+  ambientPreviewStart: () => ipcRenderer.invoke('ambient-preview-start'),
+  ambientPreviewStop:  () => ipcRenderer.invoke('ambient-preview-stop'),
+  ambientSetRect: (rect) => ipcRenderer.invoke('ambient-set-rect', rect),
   onAmbientColor: (callback) => {
     ipcRenderer.on('ambient-color', (_event, color) => callback(color));
+  },
+  onAmbientPreviewFrame: (callback) => {
+    ipcRenderer.on('ambient-preview-frame', (_event, dataUrl) => callback(dataUrl));
   },
 });

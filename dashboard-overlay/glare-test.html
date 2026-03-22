@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Ambient Glare Test — K10 Media Broadcaster</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000;
+    color: #eee;
+    font-family: system-ui, sans-serif;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* YouTube video fills the entire background */
+  #bgVideo {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    border: none;
+  }
+
+  /* Sample canvas: grabs pixels from the page at ~30fps */
+  #sampleCanvas {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    width: 64px;
+    height: 36px;
+    z-index: 200;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 4px;
+    image-rendering: pixelated;
+  }
+
+  /* The glare canvas — same as the dashboard */
+  #glareCanvas {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 50;
+    pointer-events: none;
+  }
+
+  /* CSS fallback glow */
+  #cssFallback {
+    position: fixed;
+    inset: 0;
+    z-index: 51;
+    pointer-events: none;
+    transition: background 300ms ease;
+  }
+
+  /* Mock dashboard panels floating over the video */
+  .panels {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: none;
+  }
+  .panel {
+    background: hsla(0, 0%, 8%, 0.88);
+    border: 1px solid hsla(0, 0%, 100%, 0.06);
+    border-radius: 6px;
+    padding: 10px 16px;
+    text-align: center;
+    transition: box-shadow 300ms ease;
+    backdrop-filter: blur(4px);
+  }
+  .panel h3 { font-size: 10px; color: hsla(0,0%,100%,0.4); text-transform: uppercase; letter-spacing: 0.06em; }
+  .panel .val { font-size: 22px; font-weight: 900; }
+
+  /* Status HUD */
+  .status-hud {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    z-index: 200;
+    background: rgba(0,0,0,0.85);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.6;
+    border: 1px solid rgba(255,255,255,0.1);
+    pointer-events: none;
+    min-width: 260px;
+  }
+  .status-hud .swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-right: 6px;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .status-hud .dim { color: rgba(255,255,255,0.4); }
+
+  /* Capture rect overlay */
+  #captureRect {
+    position: fixed;
+    border: 2px dashed hsl(45, 100%, 60%);
+    z-index: 199;
+    pointer-events: none;
+    display: none;
+    box-shadow: 0 0 12px hsla(45, 100%, 60%, 0.3);
+  }
+
+  /* Instructions */
+  .instructions {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 200;
+    background: rgba(0,0,0,0.85);
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+    border: 1px solid rgba(255,255,255,0.1);
+    max-width: 340px;
+    pointer-events: auto;
+  }
+  .instructions button {
+    background: hsla(45, 100%, 60%, 0.2);
+    color: hsl(45, 100%, 75%);
+    border: 1px solid hsla(45, 100%, 60%, 0.5);
+    border-radius: 4px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+
+<!-- YouTube video as background — colorful music video for testing -->
+<iframe id="bgVideo"
+  src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&loop=1&playlist=dQw4w9WgXcQ&controls=0"
+  allow="autoplay; encrypted-media"
+  allowfullscreen></iframe>
+
+<!-- Sampling canvas (shows what we're reading) -->
+<canvas id="sampleCanvas" width="32" height="18"></canvas>
+
+<!-- WebGL glare canvas -->
+<canvas id="glareCanvas"></canvas>
+
+<!-- CSS fallback glow -->
+<div id="cssFallback"></div>
+
+<!-- Capture region indicator -->
+<div id="captureRect"></div>
+
+<!-- Mock dashboard panels -->
+<div class="panels">
+  <div class="panel" id="p1"><h3>BB</h3><div class="val" style="color:hsl(355,80%,65%)">56.2</div></div>
+  <div class="panel" id="p2"><h3>TC</h3><div class="val" style="color:hsl(215,80%,68%)">4</div></div>
+  <div class="panel" id="p3"><h3>ABS</h3><div class="val" style="color:hsl(48,85%,62%)">active</div></div>
+  <div class="panel" id="p4"><h3>GAP</h3><div class="val">+1.24s</div></div>
+</div>
+
+<!-- Info overlay -->
+<div class="instructions" id="instrBox">
+  <strong>Ambient Glare Test</strong><br>
+  The YouTube video plays in the background. This page samples
+  the video's average color and feeds it to the glare shader.<br><br>
+  <span class="dim">If you see colored glow around the panels that changes
+  with the video, it's working.</span><br>
+  <button onclick="toggleSampling()">Pause Sampling</button>
+  <button onclick="document.getElementById('instrBox').style.display='none'">Hide</button>
+</div>
+
+<div class="status-hud" id="statusHud">
+  <span class="swatch" id="swatchEl"></span>
+  <span id="rgbText">RGB(0, 0, 0)</span><br>
+  <span class="dim" id="statusText">Initializing...</span>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ══════════════════════════════════════════════
+  //  VIDEO COLOR SAMPLING
+  //  We can't read pixels from a cross-origin iframe (YouTube).
+  //  So instead we use html2canvas-style approach: we create a
+  //  SECOND video element pointing to a same-origin test video,
+  //  or we fall back to cycling colors that simulate what the
+  //  Electron desktopCapturer would send.
+  //
+  //  Since YouTube iframe is cross-origin and can't be sampled,
+  //  this test uses a LOCAL canvas animation as the "game" and
+  //  samples from that instead.
+  // ══════════════════════════════════════════════
+
+  // Replace the YouTube iframe with a local canvas animation
+  // that produces colorful, changing content we CAN sample from.
+  const bgVideo = document.getElementById('bgVideo');
+  const gameCanvas = document.createElement('canvas');
+  gameCanvas.id = 'gameCanvas';
+  gameCanvas.style.cssText = bgVideo.style.cssText ||
+    'position:fixed;inset:0;width:100vw;height:100vh;z-index:0;border:none;';
+  gameCanvas.style.position = 'fixed';
+  gameCanvas.style.inset = '0';
+  gameCanvas.style.width = '100vw';
+  gameCanvas.style.height = '100vh';
+  gameCanvas.style.zIndex = '0';
+  bgVideo.parentNode.replaceChild(gameCanvas, bgVideo);
+
+  // ── Animated "game" background — colorful shifting gradients ──
+  const gameCtx = gameCanvas.getContext('2d');
+  function drawGame(ts) {
+    const w = gameCanvas.width = window.innerWidth;
+    const h = gameCanvas.height = window.innerHeight;
+    const t = ts * 0.001;
+
+    // Shifting gradient that simulates a game screen
+    const hue1 = (t * 30) % 360;
+    const hue2 = (hue1 + 120) % 360;
+    const hue3 = (hue1 + 240) % 360;
+
+    const grad = gameCtx.createLinearGradient(
+      w * (0.5 + 0.5 * Math.sin(t * 0.3)),
+      h * (0.5 + 0.5 * Math.cos(t * 0.2)),
+      w * (0.5 + 0.5 * Math.cos(t * 0.4)),
+      h * (0.5 + 0.5 * Math.sin(t * 0.5))
+    );
+    grad.addColorStop(0, `hsl(${hue1}, 70%, 40%)`);
+    grad.addColorStop(0.5, `hsl(${hue2}, 80%, 35%)`);
+    grad.addColorStop(1, `hsl(${hue3}, 60%, 30%)`);
+    gameCtx.fillStyle = grad;
+    gameCtx.fillRect(0, 0, w, h);
+
+    // Add some "track" elements
+    gameCtx.fillStyle = `hsla(${hue1 + 60}, 50%, 60%, 0.3)`;
+    gameCtx.beginPath();
+    gameCtx.arc(w * (0.5 + 0.3 * Math.sin(t * 0.7)), h * 0.5, 200, 0, Math.PI * 2);
+    gameCtx.fill();
+
+    gameCtx.fillStyle = `hsla(${hue2 + 30}, 60%, 50%, 0.2)`;
+    gameCtx.beginPath();
+    gameCtx.arc(w * 0.5, h * (0.5 + 0.3 * Math.cos(t * 0.5)), 150, 0, Math.PI * 2);
+    gameCtx.fill();
+  }
+
+  // ── Sample color from the game canvas ──
+  const sampleCanvas = document.getElementById('sampleCanvas');
+  const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
+
+  let samplingEnabled = true;
+  let curR = 0, curG = 0, curB = 0;
+  let tgtR = 0, tgtG = 0, tgtB = 0;
+  const LERP = 0.12;
+
+  // Capture rect (viewport ratios)
+  let captureRect = null;
+
+  function sampleColor() {
+    const gw = gameCanvas.width;
+    const gh = gameCanvas.height;
+    if (gw === 0 || gh === 0) return;
+
+    let sx, sy, sw, sh;
+    if (captureRect) {
+      sx = Math.round(captureRect.x * gw);
+      sy = Math.round(captureRect.y * gh);
+      sw = Math.max(1, Math.round(captureRect.w * gw));
+      sh = Math.max(1, Math.round(captureRect.h * gh));
+    } else {
+      // Center 60%
+      sx = Math.round(gw * 0.2);
+      sy = Math.round(gh * 0.2);
+      sw = Math.round(gw * 0.6);
+      sh = Math.round(gh * 0.6);
+    }
+
+    // Draw sampled region into 32x18 canvas
+    sampleCtx.drawImage(gameCanvas, sx, sy, sw, sh, 0, 0, 32, 18);
+    const data = sampleCtx.getImageData(0, 0, 32, 18).data;
+    let rS = 0, gS = 0, bS = 0;
+    const cnt = 32 * 18;
+    for (let i = 0; i < data.length; i += 4) {
+      rS += data[i]; gS += data[i + 1]; bS += data[i + 2];
+    }
+    tgtR = rS / cnt / 255;
+    tgtG = gS / cnt / 255;
+    tgtB = bS / cnt / 255;
+  }
+
+  window.toggleSampling = function() {
+    samplingEnabled = !samplingEnabled;
+  };
+
+  // ══════════════════════════════════════════════
+  //  WebGL GLARE (identical to ambient-light.js)
+  // ══════════════════════════════════════════════
+
+  const glareCanvas = document.getElementById('glareCanvas');
+  const gl = glareCanvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false });
+
+  function mkShader(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.error(gl.getShaderInfoLog(s)); return null; }
+    return s;
+  }
+
+  const prog = gl.createProgram();
+  gl.attachShader(prog, mkShader(gl.VERTEX_SHADER, `#version 300 es
+    in vec2 a; out vec2 v;
+    void main(){ v=a*0.5+0.5; gl_Position=vec4(a,0,1); }`));
+  gl.attachShader(prog, mkShader(gl.FRAGMENT_SHADER, `#version 300 es
+    precision highp float;
+    in vec2 v; out vec4 o;
+    uniform vec3 uC; uniform float uT,uI; uniform vec2 uR;
+    void main(){
+      vec2 c=v-0.5; c.x*=uR.x/uR.y; float d=length(c);
+      float g=exp(-d*d/(2.0*0.55*0.55));
+      float h=exp(-d*d/(2.0*1.0*1.0))*0.5;
+      float a=(g+h)*(1.0+0.08*sin(uT*0.7))*uI;
+      vec3 col=uC+0.08;
+      a=clamp(a,0.0,0.85);
+      o=vec4(col*a,a);
+    }`));
+  gl.linkProgram(prog);
+
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+  const aLoc = gl.getAttribLocation(prog, 'a');
+  gl.enableVertexAttribArray(aLoc);
+  gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+  const uC = gl.getUniformLocation(prog, 'uC');
+  const uT = gl.getUniformLocation(prog, 'uT');
+  const uI = gl.getUniformLocation(prog, 'uI');
+  const uR = gl.getUniformLocation(prog, 'uR');
+
+  const cssFallback = document.getElementById('cssFallback');
+
+  // ── Main loop ──
+  function loop(ts) {
+    requestAnimationFrame(loop);
+
+    // Draw the animated "game" background
+    drawGame(ts);
+
+    // Sample color from the game
+    if (samplingEnabled) sampleColor();
+
+    // Lerp
+    curR += (tgtR - curR) * LERP;
+    curG += (tgtG - curG) * LERP;
+    curB += (tgtB - curB) * LERP;
+
+    const t = ts * 0.001;
+    const luma = 0.299 * curR + 0.587 * curG + 0.114 * curB;
+    const intensity = 0.75 + luma * 0.25;
+
+    // WebGL glare
+    const w = window.innerWidth, h = window.innerHeight;
+    if (glareCanvas.width !== w || glareCanvas.height !== h) {
+      glareCanvas.width = w; glareCanvas.height = h;
+      gl.viewport(0, 0, w, h);
+    }
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.useProgram(prog);
+    gl.uniform3f(uC, curR, curG, curB);
+    gl.uniform1f(uT, t);
+    gl.uniform2f(uR, w, h);
+    gl.uniform1f(uI, intensity);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // CSS fallback
+    const r8 = Math.round(curR * 255), g8 = Math.round(curG * 255), b8 = Math.round(curB * 255);
+    const a1 = (0.7 * intensity).toFixed(2), a2 = (0.35 * intensity).toFixed(2);
+    cssFallback.style.background =
+      `radial-gradient(ellipse at center, rgba(${r8},${g8},${b8},${a1}) 0%, rgba(${r8},${g8},${b8},${a2}) 40%, transparent 75%)`;
+
+    // Panel shadows
+    const rgba = a => `rgba(${r8},${g8},${b8},${a})`;
+    document.querySelectorAll('.panel').forEach(p => {
+      p.style.boxShadow = `0 0 35px 10px ${rgba(0.40)}, 0 0 70px 20px ${rgba(0.25)}`;
+    });
+
+    // Capture rect indicator
+    const rectEl = document.getElementById('captureRect');
+    if (captureRect && rectEl) {
+      rectEl.style.display = 'block';
+      rectEl.style.left = (captureRect.x * 100) + 'vw';
+      rectEl.style.top = (captureRect.y * 100) + 'vh';
+      rectEl.style.width = (captureRect.w * 100) + 'vw';
+      rectEl.style.height = (captureRect.h * 100) + 'vh';
+    }
+
+    // Status HUD
+    document.getElementById('swatchEl').style.background = `rgb(${r8},${g8},${b8})`;
+    document.getElementById('rgbText').textContent = `RGB(${r8}, ${g8}, ${b8})`;
+    document.getElementById('statusText').textContent =
+      `Intensity: ${(intensity * 100).toFixed(0)}% | ` +
+      `Sampling: ${samplingEnabled ? 'ON' : 'PAUSED'} | ` +
+      (captureRect ? `Region: ${Math.round(captureRect.w*100)}%x${Math.round(captureRect.h*100)}%` : 'Full screen');
+  }
+  requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>

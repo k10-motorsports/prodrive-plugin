@@ -70,7 +70,8 @@
     if (!raw || !Array.isArray(raw) || raw.length === 0) return;
 
     // Dedupe: skip render if data hasn't changed (+ settings version)
-    const settingsKey = (_settings.lbFocus || 'me') + '|' + (_settings.lbMaxRows || 5) + '|' + (_settings.lbExpandToFill ? '1' : '0') + '|' + (window.innerHeight || 0);
+    const expandToFill = _settings.lbExpandToFill === true; // Ensure boolean with default false
+    const settingsKey = (_settings.lbFocus || 'me') + '|' + (_settings.lbMaxRows || 5) + '|' + (expandToFill ? '1' : '0') + '|' + (window.innerHeight || 0);
     const json = JSON.stringify(raw) + '|' + settingsKey;
     if (json === _lbLastJson) return;
     _lbLastJson = json;
@@ -83,7 +84,7 @@
     let maxRows = _settings.lbMaxRows || 5;
 
     // Expand to fill: calculate max rows that fit on screen
-    if (_settings.lbExpandToFill) {
+    if (expandToFill) {
       const lbPanel = document.getElementById('leaderboardPanel');
       const sec = document.getElementById('secContainer');
       const zoom = parseFloat(sec ? sec.style.zoom : 1) || 1;
@@ -92,18 +93,33 @@
       // getBoundingClientRect() returns viewport pixels; divide by zoom to get panel-space pixels
       const vpH = window.innerHeight || 600;
       let availH;
-      if (sec) {
+      if (sec && sec.offsetHeight > 0) {
         const secRect = sec.getBoundingClientRect();
         const isTop = sec.classList.contains('sec-top');
         // Available height: from the container's edge toward the opposite viewport edge
         availH = isTop ? (vpH - secRect.top) / zoom : secRect.bottom / zoom;
+        // Fallback if getBoundingClientRect returned 0 (not laid out yet)
+        if (availH <= 0) {
+          availH = vpH / zoom;
+        }
+      } else if (lbPanel && lbPanel.offsetHeight > 0) {
+        // Fallback: use lbPanel's own height if available
+        availH = lbPanel.offsetHeight / zoom;
       } else {
+        // Last resort: use viewport height
         availH = vpH / zoom;
       }
       // Reserve space for lb-header, timeline strip, padding, and a safety margin
       const headerH = 36; // header + timeline + top/bottom padding
       const marginH = 16; // breathing room at the edge
-      maxRows = Math.max(3, Math.min(raw.length, Math.floor((availH - headerH - marginH) / rowH)));
+      const calculatedMaxRows = Math.max(3, Math.min(raw.length, Math.floor((availH - headerH - marginH) / rowH)));
+      // Warn if calculated maxRows is suspiciously small when expand-to-fill is enabled
+      if (calculatedMaxRows < 6 && raw.length >= 6) {
+        if (_pollFrame > 0 && _pollFrame % 20 === 0) {
+          console.warn('[K10 LB] expand-to-fill calculated suspiciously small maxRows:', calculatedMaxRows, 'availH:', availH, 'lbPanel.offsetHeight:', lbPanel ? lbPanel.offsetHeight : 'N/A', 'sec.offsetHeight:', sec ? sec.offsetHeight : 'N/A');
+        }
+      }
+      maxRows = calculatedMaxRows;
     }
 
     // Entry format: [pos, name, irating, bestLap, lastLap, gapToPlayer, inPit, isPlayer]
@@ -163,7 +179,7 @@
         gapStr = '+' + gap.toFixed(1) + 's';
         gapClass = 'gap-behind';
       } else {
-        gapStr = '0.0s';
+        gapStr = '—';
       }
 
       // iRating shorthand

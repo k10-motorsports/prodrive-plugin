@@ -55,12 +55,22 @@
     const penEl = document.getElementById('incToPen');
     const dqEl  = document.getElementById('incToDQ');
     if (penEl) {
-      penEl.textContent = toPen > 0 ? toPen : 'PENALTY';
-      penEl.className = 'inc-thresh-val' + (toPen === 0 ? ' thresh-hit' : toPen <= 3 ? ' thresh-crit' : toPen <= 6 ? ' thresh-near' : '');
+      // Display ∞ when penLimit is Infinity, otherwise show number or PENALTY
+      if (penLimit === Infinity) {
+        penEl.textContent = '\u221E';
+      } else {
+        penEl.textContent = toPen > 0 ? toPen : 'PENALTY';
+      }
+      penEl.className = 'inc-thresh-val' + (toPen === 0 && penLimit !== Infinity ? ' thresh-hit' : toPen <= 3 && penLimit !== Infinity ? ' thresh-crit' : toPen <= 6 && penLimit !== Infinity ? ' thresh-near' : '');
     }
     if (dqEl) {
-      dqEl.textContent = toDQ > 0 ? toDQ : 'DQ';
-      dqEl.className = 'inc-thresh-val' + (toDQ === 0 ? ' thresh-hit' : toDQ <= 3 ? ' thresh-crit' : toDQ <= 6 ? ' thresh-near' : '');
+      // Display ∞ when dqLimit is Infinity, otherwise show number or DQ
+      if (dqLimit === Infinity) {
+        dqEl.textContent = '\u221E';
+      } else {
+        dqEl.textContent = toDQ > 0 ? toDQ : 'DQ';
+      }
+      dqEl.className = 'inc-thresh-val' + (toDQ === 0 && dqLimit !== Infinity ? ' thresh-hit' : toDQ <= 3 && dqLimit !== Infinity ? ' thresh-crit' : toDQ <= 6 && dqLimit !== Infinity ? ' thresh-near' : '');
     }
 
     // ── Progress bar: accrued fill + penalty / DQ markers ──
@@ -68,18 +78,27 @@
     const markerPen = document.getElementById('incMarkerPen');
     const markerDQ = document.getElementById('incMarkerDQ');
     if (barFill && markerPen && markerDQ) {
-      // Bar represents 0 → dqLimit, fill shows accrued
-      const fillPct = Math.min(100, (incidentCount / dqLimit) * 100);
-      barFill.style.width = fillPct + '%';
+      // When dqLimit is Infinity (non-race sessions), set fill to 0% and hide markers
+      if (dqLimit === Infinity) {
+        barFill.style.width = '0%';
+        markerPen.style.display = 'none';
+        markerDQ.style.display = 'none';
+      } else {
+        // Bar represents 0 → dqLimit, fill shows accrued
+        const fillPct = Math.min(100, (incidentCount / dqLimit) * 100);
+        barFill.style.width = fillPct + '%';
 
-      // Penalty marker position along the bar
-      const penPct = Math.min(100, (penLimit / dqLimit) * 100);
-      markerPen.style.left = penPct + '%';
-      // DQ marker is always at the end
-      markerDQ.style.left = '100%';
+        // Penalty marker position along the bar
+        const penPct = Math.min(100, (penLimit / dqLimit) * 100);
+        markerPen.style.left = penPct + '%';
+        markerPen.style.display = 'block';
+        // DQ marker is always at the end
+        markerDQ.style.left = '100%';
+        markerDQ.style.display = 'block';
 
-      // Hide penalty marker if already past it
-      markerPen.style.opacity = incidentCount >= penLimit ? '0.3' : '0.7';
+        // Hide penalty marker if already past it
+        markerPen.style.opacity = incidentCount >= penLimit ? '0.3' : '0.7';
+      }
     }
 
     // ── WebGL fire effect at thresholds ──

@@ -3,7 +3,7 @@
 //  and current in-car adjustment values
 // ═══════════════════════════════════════════════════════════════
 //
-//  Two tabs:
+//  Two sections displayed side-by-side:
 //    • Pit Stop — fuel, tires, fast repair, tearoff
 //    • Car Setup — BB, TC, ABS, ARB, engine, fuel mix, wings
 //      (rows auto-hide based on car-specific availability)
@@ -70,15 +70,7 @@
     };
   }
 
-  // ── Tab switching ──
-  window.switchPitBoxTab = function(tabId) {
-    document.querySelectorAll('.pb-tab').forEach(t => {
-      t.classList.toggle('active', t.getAttribute('data-pb-tab') === tabId);
-    });
-    document.querySelectorAll('.pb-tab-content').forEach(c => {
-      c.classList.toggle('active', c.id === 'pbTab' + tabId.charAt(0).toUpperCase() + tabId.slice(1));
-    });
-  };
+  // ── Tab switching removed — sections are now always visible side-by-side ──
 
   // ── Flash animation (matches flashElement pattern from webgl-helpers.js) ──
   function flash(el) {

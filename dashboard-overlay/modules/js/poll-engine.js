@@ -81,7 +81,9 @@
       return;
     }
 
-    const nowIdle = !_demo && (!gameRunning || sessNum <= 1);
+    // Idle detection: only idle when no session (sessNum === 0) or game not running
+    // Pre-race states (sessNum 1=GetInCar, 2=Warmup, 3=ParadeLaps) should stay active
+    const nowIdle = !_demo && (!gameRunning || sessNum === 0);
     const idleLogo = document.getElementById('idleLogo');
     if (nowIdle !== _isIdle) {
       _isIdle = nowIdle;
@@ -214,6 +216,7 @@
     const bb = _demo ? +v('K10MediaBroadcaster.Plugin.Demo.BrakeBias') : (+v('DataCorePlugin.GameRawData.Telemetry.dcBrakeBias') || 0);
     const tc = _demo ? +v('K10MediaBroadcaster.Plugin.Demo.TC') : p['DataCorePlugin.GameRawData.Telemetry.dcTractionControl'];
     const abs = _demo ? +v('K10MediaBroadcaster.Plugin.Demo.ABS') : p['DataCorePlugin.GameRawData.Telemetry.dcABS'];
+    const absActive = +v(dsPre + 'AbsActive') || 0; // Track ABS activation even if not adjustable
     const carModel = ds('DataCorePlugin.GameData.CarModel', 'Demo.CarModel');
     if (carModel !== _lastCarModel) {
       _tcSeen = false; _absSeen = false;
@@ -231,8 +234,9 @@
     }
     // If car is in the no-adjust list, hide the module entirely for absent systems
     // Otherwise: show if we've seen the value (even 0 → "FIXED")
+    // For cars with absNoAdjust (ABS exists but not adjustable), show if ABS is active OR we've seen dcABS
     const tcOk = _demo || (_carAdj && _carAdj.noTC ? false : _tcSeen);
-    const absOk = _demo || (_carAdj && _carAdj.noABS ? false : _absSeen);
+    const absOk = _demo || (_carAdj && _carAdj.noABS ? false : (_absSeen || (_carAdj && _carAdj.absNoAdjust && absActive > 0)));
     const bbOk = _demo || (_carAdj && _carAdj.noBB ? false : (bb > 0));
     setCtrlVisibility(bbOk, tcOk, absOk);
 
@@ -257,7 +261,18 @@
       const el = document.querySelector('#ctrlABS .ctrl-value');
       const absBox = document.getElementById('ctrlABS');
       if (el) {
-        if (+abs === 0) {
+        // For cars with absNoAdjust (ABS exists but not adjustable), show "active" when engaging
+        if (_carAdj && _carAdj.absNoAdjust) {
+          if (absActive > 0) {
+            el.textContent = 'active';
+            el.classList.remove('ctrl-value-fixed');
+            absBox.style.setProperty('--ctrl-pct', '100%');
+          } else {
+            el.textContent = 'standby';
+            el.classList.add('ctrl-value-fixed');
+            absBox.style.setProperty('--ctrl-pct', '0%');
+          }
+        } else if (+abs === 0) {
           el.textContent = 'fixed';
           el.classList.add('ctrl-value-fixed');
           absBox.style.setProperty('--ctrl-pct', '0%');
@@ -579,7 +594,7 @@
       const dBehind = _demo ? vs('K10MediaBroadcaster.Plugin.Demo.DriverBehind') : vs('IRacingExtraProperties.iRacing_Opponent_Behind_Name');
       const irA     = _demo ? (+v('K10MediaBroadcaster.Plugin.Demo.IRAhead') || 0)   : (+v('IRacingExtraProperties.iRacing_Opponent_Ahead_IRating') || 0);
       const irB     = _demo ? (+v('K10MediaBroadcaster.Plugin.Demo.IRBehind') || 0)  : (+v('IRacingExtraProperties.iRacing_Opponent_Behind_IRating') || 0);
-      if (gapTimes.length >= 2) { gapTimes[0].textContent = gAhead ? fmtGap(-Math.abs(gAhead)) : '—'; gapTimes[1].textContent = gBehind ? fmtGap(Math.abs(gBehind)) : '—'; }
+      if (gapTimes.length >= 2) { gapTimes[0].textContent = (gAhead && Math.abs(gAhead) >= 0.05) ? fmtGap(-Math.abs(gAhead)) : '—'; gapTimes[1].textContent = (gBehind && Math.abs(gBehind) >= 0.05) ? fmtGap(Math.abs(gBehind)) : '—'; }
       if (gapDrivers.length >= 2) { gapDrivers[0].textContent = dAhead || '—'; gapDrivers[1].textContent = dBehind || '—'; }
       if (gapIRs.length >= 2) { gapIRs[0].textContent = irA > 0 ? irA + ' iR' : ''; gapIRs[1].textContent = irB > 0 ? irB + ' iR' : ''; }
       if (gapItems.length >= 2) {
@@ -672,6 +687,8 @@
         }
       }
       _lastFlagState = flagState;
+      // Expose for ambient-light.js polled color source
+      window._currentFlagState = flagState;
     }
 
     // ─── Commentary ───

@@ -297,6 +297,8 @@
     const newVal = !isOn;
     el.classList.toggle('on', newVal);
     _settings.showAmbientLight = newVal;
+    // Toggle body class — hides glare canvas + glass reflections via CSS
+    document.body.classList.toggle('ambient-off', !newVal);
     if (newVal) {
       if (typeof window.startAmbientLight === 'function') window.startAmbientLight();
     } else {
@@ -541,11 +543,15 @@
       document.body.classList.remove('settings-active');
       document.body.classList.remove('settings-drag');
       if (window.k10?.releaseInteractive) window.k10.releaseInteractive();
+      // Stop ambient preview when settings close
+      if (typeof window.stopAmbientPreview === 'function') window.stopAmbientPreview();
     } else {
       // Opening — also enter settings mode
       overlay.classList.add('open');
       document.body.classList.add('settings-active');
       if (window.k10?.requestInteractive) window.k10.requestInteractive();
+      // Start ambient preview when settings open
+      if (typeof window.startAmbientPreview === 'function') window.startAmbientPreview();
     }
   }
 

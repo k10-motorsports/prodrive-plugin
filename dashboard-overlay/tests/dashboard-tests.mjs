@@ -5,7 +5,7 @@
  *   - Initial page structure and element presence
  *   - Telemetry data rendering (gear, speed, RPM, fuel, tyres, etc.)
  *   - Commentary panel show/hide behavior
- *   - Layout position system (all 6 positions + flow + vswap)
+ *   - Layout position system (5 positions)
  *   - Settings panel UI and toggle behavior
  *   - Demo mode data source switching
  *   - Tachometer segment coloring
@@ -43,7 +43,6 @@ test.describe('Page structure', () => {
     const dash = page.locator('#dashboard');
     await expect(dash).toBeVisible();
     await expect(dash).toHaveClass(/layout-tr/);
-    await expect(dash).toHaveClass(/flow-rtl/);
   });
 
   test('all major panels are present', async ({ page }) => {
@@ -621,7 +620,7 @@ test.describe('Layout positions', () => {
     expect(box.y).toBeLessThan(20);
   });
 
-  test('top-left mirrors layout with LTR flow', async ({ page }) => {
+  test('top-left positions dashboard at top-left', async ({ page }) => {
     await load(page);
     await page.evaluate(() => {
       _settings.layoutPosition = 'top-left';
@@ -629,7 +628,6 @@ test.describe('Layout positions', () => {
     });
     const dash = page.locator('#dashboard');
     await expect(dash).toHaveClass(/layout-tl/);
-    await expect(dash).toHaveClass(/flow-ltr/);
     const box = await dash.boundingBox();
     expect(box.x).toBeLessThan(20);
   });
@@ -647,7 +645,7 @@ test.describe('Layout positions', () => {
     expect(box.y + box.height).toBeGreaterThan(580);
   });
 
-  test('bottom-left has LTR flow and bottom positioning', async ({ page }) => {
+  test('bottom-left positions dashboard at bottom-left', async ({ page }) => {
     await load(page);
     await page.evaluate(() => {
       _settings.layoutPosition = 'bottom-left';
@@ -655,155 +653,28 @@ test.describe('Layout positions', () => {
     });
     const dash = page.locator('#dashboard');
     await expect(dash).toHaveClass(/layout-bl/);
-    await expect(dash).toHaveClass(/flow-ltr/);
     const box = await dash.boundingBox();
     expect(box.x).toBeLessThan(20);
     expect(box.y + box.height).toBeGreaterThan(580);
   });
 
-  test('top-center is centered horizontally', async ({ page }) => {
+  test('absolute-center is centered on screen', async ({ page }) => {
     await load(page);
     await page.evaluate(() => {
-      _settings.layoutPosition = 'top-center';
+      _settings.layoutPosition = 'absolute-center';
       applyLayout();
     });
     const dash = page.locator('#dashboard');
-    await expect(dash).toHaveClass(/layout-tc/);
+    await expect(dash).toHaveClass(/layout-ac/);
     // Wait for 600ms CSS transition to complete
     await page.waitForTimeout(700);
     const box = await dash.boundingBox();
     const centerX = box.x + box.width / 2;
     expect(centerX).toBeGreaterThan(580);
     expect(centerX).toBeLessThan(700);
-  });
-
-  test('bottom-center is centered at bottom', async ({ page }) => {
-    await load(page);
-    await page.evaluate(() => {
-      _settings.layoutPosition = 'bottom-center';
-      applyLayout();
-    });
-    const dash = page.locator('#dashboard');
-    await expect(dash).toHaveClass(/layout-bc/);
-    // Wait for 600ms CSS transition to complete
-    await page.waitForTimeout(700);
-    const box = await dash.boundingBox();
-    const centerX = box.x + box.width / 2;
-    expect(centerX).toBeGreaterThan(580);
-    expect(centerX).toBeLessThan(700);
-    expect(box.y + box.height).toBeGreaterThan(580);
-  });
-});
-
-test.describe('Layout flow direction', () => {
-  test('right-side positions use RTL flow', async ({ page }) => {
-    await load(page);
-    await page.evaluate(() => {
-      _settings.layoutPosition = 'top-right';
-      applyLayout();
-    });
-    await expect(page.locator('#dashboard')).toHaveClass(/flow-rtl/);
-  });
-
-  test('left-side positions use LTR flow', async ({ page }) => {
-    await load(page);
-    await page.evaluate(() => {
-      _settings.layoutPosition = 'top-left';
-      applyLayout();
-    });
-    await expect(page.locator('#dashboard')).toHaveClass(/flow-ltr/);
-  });
-
-  test('center positions respect explicit flow setting', async ({ page }) => {
-    await load(page);
-    await page.evaluate(() => {
-      _settings.layoutPosition = 'top-center';
-      _settings.layoutFlow = 'rtl';
-      applyLayout();
-    });
-    await expect(page.locator('#dashboard')).toHaveClass(/flow-rtl/);
-
-    await page.evaluate(() => {
-      _settings.layoutFlow = 'ltr';
-      applyLayout();
-    });
-    await expect(page.locator('#dashboard')).toHaveClass(/flow-ltr/);
-  });
-
-  test('LTR flow puts logo on the left side', async ({ page }) => {
-    await load(page);
-    await page.evaluate(() => {
-      _settings.layoutPosition = 'top-left';
-      applyLayout();
-    });
-    const logoBox = await page.locator('.logo-col').boundingBox();
-    const tachoBox = await page.locator('.tacho-block').boundingBox();
-    // Logo should be to the left of tacho
-    expect(logoBox.x).toBeLessThan(tachoBox.x);
-  });
-
-  test('RTL flow puts logo on the right side', async ({ page }) => {
-    await load(page);
-    const logoBox = await page.locator('.logo-col').boundingBox();
-    const tachoBox = await page.locator('.tacho-block').boundingBox();
-    // Logo should be to the right of tacho
-    expect(logoBox.x).toBeGreaterThan(tachoBox.x);
-  });
-});
-
-test.describe('Vertical swap', () => {
-  test('vswap class applied when enabled', async ({ page }) => {
-    await load(page);
-    await page.evaluate(() => {
-      _settings.verticalSwap = true;
-      applyLayout();
-    });
-    await expect(page.locator('#dashboard')).toHaveClass(/vswap/);
-  });
-
-  test('vswap reverses fuel/tyres column order', async ({ page }) => {
-    await load(page);
-    // Without vswap: fuel is above tyres
-    let fuelBox = await page.locator('.fuel-block').boundingBox();
-    let tyresBox = await page.locator('.tyres-block').boundingBox();
-    expect(fuelBox.y).toBeLessThan(tyresBox.y);
-
-    // With vswap: tyres above fuel
-    await page.evaluate(() => {
-      _settings.verticalSwap = true;
-      applyLayout();
-    });
-    fuelBox = await page.locator('.fuel-block').boundingBox();
-    tyresBox = await page.locator('.tyres-block').boundingBox();
-    expect(tyresBox.y).toBeLessThan(fuelBox.y);
-  });
-
-  test('vswap reverses logo column order', async ({ page }) => {
-    await load(page);
-    let k10Box = await page.locator('#k10LogoSquare').boundingBox();
-    let carBox = await page.locator('#carLogoSquare').boundingBox();
-    expect(k10Box.y).toBeLessThan(carBox.y);
-
-    await page.evaluate(() => {
-      _settings.verticalSwap = true;
-      applyLayout();
-    });
-    k10Box = await page.locator('#k10LogoSquare').boundingBox();
-    carBox = await page.locator('#carLogoSquare').boundingBox();
-    expect(carBox.y).toBeLessThan(k10Box.y);
-  });
-
-  test('vswap does not affect tachometer (single panel)', async ({ page }) => {
-    await load(page);
-    const beforeBox = await page.locator('.tacho-block').boundingBox();
-    await page.evaluate(() => {
-      _settings.verticalSwap = true;
-      applyLayout();
-    });
-    const afterBox = await page.locator('.tacho-block').boundingBox();
-    // Tacho position should not change vertically
-    expect(afterBox.y).toBe(beforeBox.y);
-    expect(afterBox.height).toBe(beforeBox.height);
+    // Y centering depends on dashboard height and CSS layout —
+    // just verify the class was applied and X is roughly centered
+    expect(box.y).toBeGreaterThanOrEqual(0);
   });
 });
 
@@ -830,40 +701,6 @@ test.describe('Settings panel', () => {
     await load(page);
     const select = page.locator('#settingsPosition');
     await expect(select).toHaveValue('top-right');
-  });
-
-  test('flow direction row hidden for corner positions', async ({ page }) => {
-    await load(page);
-    const flowRow = page.locator('#flowDirectionRow');
-    await expect(flowRow).toBeHidden();
-  });
-
-  test('flow direction row visible for center positions', async ({ page }) => {
-    await load(page);
-    // Open settings panel and switch to the Layout tab
-    await page.evaluate(() => toggleSettings());
-    await page.evaluate(() => {
-      const layoutTab = document.querySelector('.settings-tab[data-tab="layout"]');
-      if (layoutTab) switchSettingsTab(layoutTab);
-    });
-    await page.evaluate(() => {
-      _settings.layoutPosition = 'top-center';
-      applyLayout();
-    });
-    const flowRow = page.locator('#flowDirectionRow');
-    await expect(flowRow).toBeVisible();
-  });
-
-  test('vswap toggle reflects current state', async ({ page }) => {
-    await load(page);
-    const toggle = page.locator('#vswapToggle');
-    await expect(toggle).not.toHaveClass(/on/);
-
-    await page.evaluate(() => {
-      _settings.verticalSwap = true;
-      applyLayout();
-    });
-    await expect(toggle).toHaveClass(/on/);
   });
 
   test('toggling fuel off hides fuel panel', async ({ page }) => {

@@ -169,16 +169,60 @@
     _dsTrailCount++;
 
     // Current G dot
-    const dotX = cx + (latG / maxG) * r;
-    const dotY = cy - (longG / maxG) * r;
+    let dotX = cx + (latG / maxG) * r;
+    let dotY = cy - (longG / maxG) * r;
     const totalG = Math.sqrt(latG * latG + longG * longG);
+
+    // Check if dot is within diamond boundary
+    // Diamond boundary: |dotX - cx|/r + |dotY - cy|/r <= 1
+    const dx = Math.abs(dotX - cx);
+    const dy = Math.abs(dotY - cy);
+    const distanceFactor = dx / r + dy / r;
+    let isClamped = false;
+    let clampRatio = 0;
+
+    if (distanceFactor > 1) {
+      isClamped = true;
+      // How far past the boundary (0 to infinity, where 1 = at boundary)
+      clampRatio = Math.min((distanceFactor - 1) / (distanceFactor - 1), 1);
+
+      // Project to nearest point on diamond edge
+      // Scale the vector from center toward the dot to land on the boundary
+      const signX = dotX >= cx ? 1 : -1;
+      const signY = dotY >= cy ? 1 : -1;
+      dotX = cx + signX * (r * Math.abs(dotX - cx)) / (dx + dy);
+      dotY = cy - signY * (r * Math.abs(dotY - cy)) / (dx + dy);
+
+      // Clamp to actual boundary more precisely
+      // Recalculate to ensure we're exactly on the edge
+      const newDx = Math.abs(dotX - cx);
+      const newDy = Math.abs(dotY - cy);
+      const scale = 1 / ((newDx + newDy) / r);
+      if (scale < 1) {
+        dotX = cx + (dotX - cx) * scale;
+        dotY = cy + (dotY - cy) * scale;
+      }
+    }
 
     // Dot color: blue at low G, shifts toward red/orange at high G
     const hue = Math.max(0, 210 - totalG * 50);
-    const lum = 55 + totalG * 5;
+    let lum = 55 + totalG * 5;
+
+    // When clamped, boost luminosity by up to 20%
+    if (isClamped) {
+      lum = Math.min(lum + 20, 95);
+    }
+
     ctx.fillStyle = `hsl(${hue},70%,${lum}%)`;
     ctx.beginPath();
-    ctx.arc(dotX, dotY, 2.5, 0, Math.PI * 2);
+
+    // Dot radius: 2.5 base, up to 5.0 when clamped
+    let dotRadius = 2.5;
+    if (isClamped) {
+      dotRadius = 2.5 + (5.0 - 2.5) * clampRatio;
+    }
+
+    ctx.arc(dotX, dotY, dotRadius, 0, Math.PI * 2);
     ctx.fill();
 
     // Glow

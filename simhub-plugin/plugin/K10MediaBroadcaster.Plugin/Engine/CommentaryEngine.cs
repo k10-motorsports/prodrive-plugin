@@ -84,6 +84,16 @@ namespace K10MediaBroadcaster.Plugin.Engine
         private DateTime _lastPromptFireTime = DateTime.MinValue;
         private const double AntiSpamSeconds = 8.0;
 
+        // Topics that bypass cooldowns and fire immediately (incidents, crashes, contacts)
+        private static readonly HashSet<string> ImmediateTopics = new HashSet<string>
+        {
+            "incident_spike",
+            "wall_contact",
+            "spin_catch",
+            "off_track",
+            "car_contact"
+        };
+
         // Current displayed prompt
         private volatile string _currentText           = "";
         private volatile string _currentCategory       = "";
@@ -484,6 +494,10 @@ namespace K10MediaBroadcaster.Plugin.Engine
 
         private bool IsTopicCooledDown(CommentaryTopic topic)
         {
+            // Incident and crash topics bypass cooldowns entirely
+            if (ImmediateTopics.Contains(topic.Id))
+                return true;
+
             if (!_topicLastTrigger.TryGetValue(topic.Id, out DateTime last))
                 return true;
             double multiplier = GetCooldownMultiplier(topic.Id);

@@ -19,13 +19,21 @@
     const griddedCars  = +(p[pre + 'GriddedCars']) || 0;
     const totalCars    = +(p[pre + 'TotalCars']) || 0;
     const paceMode     = +(p[pre + 'PaceMode']) || 0;
-    const lightsPhase  = +(p[pre + 'LightsPhase']) || 0;
+    let lightsPhase    = +(p[pre + 'LightsPhase']) || 0;
     const startType    = (p[pre + 'StartType'] || 'rolling').toLowerCase();
 
     const mod  = document.getElementById('gridModule');
     const info = document.getElementById('gridInfo');
     const lights = document.getElementById('startLights');
     if (!mod || !info || !lights) return;
+
+    // Detect transition from ParadeLaps (3) to Racing (4): this is when lights should show
+    // If plugin doesn't send LightsPhase, we trigger a simulated sequence
+    const transitioningToRace = _gridPrevSessionState === 3 && sessionState === 4;
+    if (transitioningToRace && lightsPhase === 0) {
+      // Plugin hasn't sent lightsPhase, so simulate a quick green light sequence
+      lightsPhase = 7; // Jump straight to green (GO!) for rolling starts
+    }
 
     // SessionState 3 = ParadeLaps (formation), or lights sequence active
     // Phase 8 = post-green holdover — keep module visible while it fades naturally
@@ -34,6 +42,7 @@
     const shouldShow = isFormation || isLightsActive;
 
     // Detect transition: was showing → no longer showing → start fadeout
+    // But extend the fade window if we just transitioned to Racing (lights sequence might still play)
     if (!shouldShow && _gridActive) {
       mod.classList.remove('grid-visible');
       mod.classList.add('grid-fadeout');
@@ -41,13 +50,15 @@
       _gridActive = false;
       if (window.setGridFlagGL) window.setGridFlagGL(false);
       clearTimeout(_gridFadeTimer);
+      // Extend fade timer from 4s to 6s to allow lights to fully display during race start transition
+      const fadeDelay = transitioningToRace ? 6000 : 4000;
       _gridFadeTimer = setTimeout(() => {
         mod.classList.remove('grid-fadeout');
         // Reset lights
         resetLightBulbs();
         const flagElReset = document.getElementById('gridFlag');
         if (flagElReset) flagElReset.classList.remove('flag-active');
-      }, 4000);
+      }, fadeDelay);
       return;
     }
 
@@ -106,14 +117,25 @@
         flagEl.classList.remove('flag-active');
       }
 
-      // Countdown: pace mode progression
+      // Countdown: display time to green or pace mode
       const countdownEl = document.getElementById('gridCountdown');
+      const timeToGreen = isDemo
+        ? +(p['K10MediaBroadcaster.Plugin.Demo.Grid.TimeToGreen']) || 0
+        : +(p['K10MediaBroadcaster.Plugin.Grid.TimeToGreen']) || 0;
+
+      // During lights sequence (paceMode 1-3), show pace mode status
+      // Otherwise, show countdown timer if available
       if (paceMode === 1) {
         countdownEl.textContent = 'GRID';
       } else if (paceMode === 2) {
         countdownEl.textContent = 'PACE';
       } else if (paceMode === 3) {
         countdownEl.textContent = 'READY';
+      } else if (timeToGreen > 0) {
+        // Show MM:SS countdown
+        const minutes = Math.floor(timeToGreen / 60);
+        const seconds = Math.floor(timeToGreen % 60);
+        countdownEl.textContent = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
       } else if (sessionState === 1) {
         countdownEl.textContent = 'PIT';
       } else if (sessionState === 2) {

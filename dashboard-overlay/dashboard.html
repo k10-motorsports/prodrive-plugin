@@ -60,6 +60,12 @@
 <!-- Ambient light glow — full viewport WebGL canvas behind all panels -->
 <canvas class="ambient-canvas" id="ambientGlCanvas"></canvas>
 
+<!-- Capture area selection overlay — shown when user clicks "Draw Region" -->
+<div id="captureAreaOverlay" class="capture-area-overlay" style="display:none;">
+  <div class="capture-area-instructions">Click and drag to select the screen region for ambient color sampling. Press Escape to cancel.</div>
+  <div id="captureAreaRect" class="capture-area-rect"></div>
+</div>
+
 <!-- COMPONENT: Drive Mode (Ctrl+Shift+F or auto on remote) -->
 <div class="drive-hud" id="driveHud" style="display:none;">
 
@@ -143,8 +149,8 @@
     <!-- COL: Controls + Layered Pedals -->
     <div class="controls-pedals-block">
       <div class="panel car-controls">
-        <div class="ctrl-item" id="ctrlBB" style="--ctrl-pct:0%;"><div class="ctrl-label">BIAS</div><div class="ctrl-value">—</div></div>
-        <div class="ctrl-item" id="ctrlTC" style="--ctrl-pct:0%;"><div class="ctrl-label">TRACTION</div><div class="ctrl-value">—</div></div>
+        <div class="ctrl-item" id="ctrlBB" style="--ctrl-pct:0%;"><div class="ctrl-label">BB</div><div class="ctrl-value">—</div></div>
+        <div class="ctrl-item" id="ctrlTC" style="--ctrl-pct:0%;"><div class="ctrl-label">TC</div><div class="ctrl-value">—</div></div>
         <div class="ctrl-item" id="ctrlABS" style="--ctrl-pct:0%;"><div class="ctrl-label">ABS</div><div class="ctrl-value">—</div></div>
         <div class="ctrl-no-adj" id="ctrlNoAdj">NO ADJUSTMENTS</div>
       </div>
@@ -247,7 +253,7 @@
               </div>
             </div>
             <div class="rating-item">
-              <div class="panel-label">Safety</div>
+              <div class="panel-label">SR</div>
               <div class="rating-value" style="font-size:14px;">—</div>
               <div class="rating-delta">—</div>
               <div class="sr-pie-container">
@@ -477,16 +483,9 @@
 
     <div class="pb-no-data" id="pbNoData" style="display:none;">iRacing only</div>
 
-    <div id="pbContent">
-      <!-- Tab bar -->
-      <div class="pb-tabs">
-        <div class="pb-tab active" data-pb-tab="pit" onclick="switchPitBoxTab('pit')">Pit Stop</div>
-        <div class="pb-tab" data-pb-tab="setup" onclick="switchPitBoxTab('setup')">Car Setup</div>
-      </div>
-
-      <!-- TAB: Pit Stop -->
-      <div class="pb-tab-content active" id="pbTabPit">
-        <!-- Fuel -->
+    <div id="pbContent" class="pb-content-side-by-side">
+      <!-- Pit Stop Section -->
+      <div class="pb-section-container" id="pbTabPit">
         <div class="pb-section">
           <div class="pb-section-label">Fuel</div>
           <div class="pb-row">
@@ -536,8 +535,8 @@
         </div>
       </div>
 
-      <!-- TAB: Car Setup -->
-      <div class="pb-tab-content" id="pbTabSetup">
+      <!-- Car Setup Section -->
+      <div class="pb-section-container" id="pbTabSetup">
         <div class="pb-section">
           <div class="pb-adj-grid" id="pbAdjGrid">
             <div class="pb-adj-item" id="pbRowBB"><span class="pb-adj-label">BB</span><span class="pb-adj-val zero" id="pbAdjBB">—</span></div>
@@ -824,7 +823,14 @@
       <div class="settings-row"><span class="settings-label">Game Logo</span><div class="settings-toggle on" data-key="showGameLogo" onclick="toggleGameLogo(this)"></div></div>
       <div class="settings-row"><span class="settings-label">WebGL Effects</span><div class="settings-toggle on" data-key="showWebGL" onclick="toggleWebGL(this)"></div></div>
       <div class="settings-row"><span class="settings-label">Ambient Light</span><div class="settings-toggle on" data-key="showAmbientLight" id="ambientLightToggle" onclick="toggleAmbientLight(this)"></div></div>
-      <div class="settings-hint">Screen-reactive glow beneath panels (uses screen capture)</div>
+      <div class="settings-hint">Ambient glare + glass reflections on panels</div>
+      <div class="settings-row"><span class="settings-label">Capture Area</span><button class="settings-btn" id="btnSetCaptureArea" onclick="startCaptureAreaSelection()">Draw Region</button></div>
+      <div class="settings-hint">Draw a screen region to sample ambient color from</div>
+      <div class="ambient-preview-container" id="ambientPreviewContainer">
+        <div class="ambient-preview-label">Ambient Color</div>
+        <div id="ambientPreviewSwatch" style="width:100%;height:40px;border-radius:4px;background:#111;border:1px solid hsla(0,0%,100%,0.1);"></div>
+        <div class="ambient-preview-info" id="ambientPreviewInfo">No capture active</div>
+      </div>
 
       </div><!-- /settings-two-col -->
     </div>
@@ -1093,6 +1099,7 @@
 <script src="modules/js/fps.js"></script>
 <script src="modules/js/webgl.js"></script>
 <script src="modules/js/ambient-light.js"></script>
+<script src="modules/js/ambient-capture.js"></script>
 <script src="modules/js/commentary-viz.js"></script>
 <script src="modules/js/game-logo.js"></script>
 <!-- drive-mode.js removed — iPad drive mode no longer active -->

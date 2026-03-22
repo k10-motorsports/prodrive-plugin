@@ -1,93 +1,261 @@
 /* ═══════════════════════════════════════════════════════════════
-   AMBIENT LIGHT — Screen-reactive glow layer
+   AMBIENT LIGHT — Per-panel glow + glass reflections
    ═══════════════════════════════════════════════════════════════
+   Every panel/module gets TWO pseudo-element layers:
+     ::before — radial ambient glow (illumination wash)
+     ::after  — glass reflection highlight (diagonal streak)
 
-   Full-viewport WebGL canvas sits behind all panels.
-   The WebGL shader paints a radial glow from center, colored by
-   the live screen capture (desktopCapturer, 8 fps).
+   Both are tinted by --ambient-r / --ambient-g / --ambient-b
+   (0-255) set on :root from JS.  A CSS breathing animation
+   pulses the glow subtly.
 
-   Each .panel also gets a subtle box-shadow driven by the same
-   color via --ambient-shadow-* CSS custom properties set from
-   ambient-light.js.
+   Toggled off via body.ambient-off or body.opaque-mode.
    ═══════════════════════════════════════════════════════════════ */
 
-/* ── Full-viewport glow canvas ──
-   z-index: 0 (not -1!) because transparent Electron windows
-   clip negative z-index elements behind the window itself. */
-.ambient-canvas {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 0;
-  pointer-events: none;
-}
+/* Hide legacy elements */
+.ambient-canvas { display: none; }
+#ambientGlowDiv { display: none; }
+#ambientGlowCanvas { display: none; }
 
-/* Dashboard content must layer above the ambient canvas
-   and above incidents (z:50) / spotter (z:52) so commentary
-   slides out visibly.  pointer-events:none lets clicks pass
-   through transparent grid gaps to panels underneath. */
-/* z-index and pointer-events are set here to layer dashboard above
-   ambient canvas and incidents/spotter panels. position:fixed is
-   already set in base.css — do NOT override it to relative. */
+/* Dashboard positioning */
 .dashboard {
   z-index: 55;
   pointer-events: none;
 }
 
-/* ── Per-panel ambient reflection ──
-   ambient-light.js sets these as pre-composed rgba() strings
-   so we avoid the rgba(var(--r), var(--g), var(--b), a) pitfall. */
+/* ── Ambient color vars (set by JS) ── */
 :root {
-  --ambient-shadow:      0 0 0 transparent;
-  --ambient-shadow-lg:   0 0 0 transparent;
-  --ambient-shadow-tacho: 0 0 0 transparent;
-  --ambient-shadow-tacho-lg: 0 0 0 transparent;
+  --ambient-r: 80;
+  --ambient-g: 100;
+  --ambient-b: 140;
 }
 
-.panel {
-  box-shadow: var(--ambient-shadow), var(--ambient-shadow-lg);
-  transition: box-shadow 300ms ease;
+/* ── Selector list for ALL panel/module types ── */
+.panel,
+.tacho-block,
+.commentary-inner,
+.leaderboard-panel,
+.datastream-panel,
+.pitbox-panel,
+.incidents-panel,
+.spotter-panel {
+  position: relative;
 }
 
-/* Stronger glow on the tacho block (larger surface, center of attention) */
-.tacho-block {
-  box-shadow: var(--ambient-shadow-tacho), var(--ambient-shadow-tacho-lg);
+/* ── ::before — Radial ambient glow (illumination) ──
+   Soft radial wash of the sampled ambient color.
+   Breathing animation for a living, organic feel.  */
+.panel::before,
+.commentary-inner::before,
+.leaderboard-panel::before,
+.datastream-panel::before,
+.pitbox-panel::before,
+.incidents-panel::before,
+.spotter-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    radial-gradient(
+      ellipse at 50% 30%,
+      rgba(var(--ambient-r), var(--ambient-g), var(--ambient-b), 0.35) 0%,
+      rgba(var(--ambient-r), var(--ambient-g), var(--ambient-b), 0.12) 50%,
+      transparent 85%
+    );
+  animation: ambient-breathe 4s ease-in-out infinite;
 }
 
-/* Commentary panel */
-.commentary-inner {
-  box-shadow: var(--ambient-shadow), var(--ambient-shadow-lg);
-  transition: box-shadow 300ms ease;
+/* Tacho gets its own ::before (bigger panel, stronger glow) */
+.tacho-block::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    radial-gradient(
+      ellipse at 50% 40%,
+      rgba(var(--ambient-r), var(--ambient-g), var(--ambient-b), 0.40) 0%,
+      rgba(var(--ambient-r), var(--ambient-g), var(--ambient-b), 0.15) 45%,
+      transparent 80%
+    );
+  animation: ambient-breathe 4s ease-in-out infinite;
 }
 
-/* Leaderboard panel */
-.leaderboard-panel {
-  box-shadow: var(--ambient-shadow), var(--ambient-shadow-lg);
-  transition: box-shadow 300ms ease;
+@keyframes ambient-breathe {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.75; }
 }
 
-/* Datastream panel */
-.datastream-panel {
-  box-shadow: var(--ambient-shadow);
-  transition: box-shadow 300ms ease;
+/* ── ::after — Glass reflection (highlight streak) ── */
+.panel::after,
+.tacho-block::after,
+.commentary-inner::after,
+.leaderboard-panel::after,
+.datastream-panel::after,
+.pitbox-panel::after,
+.incidents-panel::after,
+.spotter-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      168deg,
+      rgba(255, 255, 255, 0.20) 0%,
+      rgba(255, 255, 255, 0.07) 18%,
+      rgba(var(--ambient-r), var(--ambient-g), var(--ambient-b), 0.14) 45%,
+      rgba(var(--ambient-r), var(--ambient-g), var(--ambient-b), 0.06) 70%,
+      transparent 100%
+    );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: opacity 400ms ease;
 }
 
-/* Pit box panel */
-.pitbox-panel {
-  box-shadow: var(--ambient-shadow);
-  transition: box-shadow 300ms ease;
+/* ── Kill glow + reflections when ambient is off ── */
+body.ambient-off .panel::before,
+body.ambient-off .tacho-block::before,
+body.ambient-off .commentary-inner::before,
+body.ambient-off .leaderboard-panel::before,
+body.ambient-off .datastream-panel::before,
+body.ambient-off .pitbox-panel::before,
+body.ambient-off .incidents-panel::before,
+body.ambient-off .spotter-panel::before,
+body.ambient-off .panel::after,
+body.ambient-off .tacho-block::after,
+body.ambient-off .commentary-inner::after,
+body.ambient-off .leaderboard-panel::after,
+body.ambient-off .datastream-panel::after,
+body.ambient-off .pitbox-panel::after,
+body.ambient-off .incidents-panel::after,
+body.ambient-off .spotter-panel::after {
+  display: none !important;
 }
 
-/* ── Green-screen mode: disable ambient (would key poorly) ── */
-body.opaque-mode .ambient-canvas {
+/* ── Green-screen mode: also disable ambient ── */
+body.opaque-mode .panel::before,
+body.opaque-mode .tacho-block::before,
+body.opaque-mode .commentary-inner::before,
+body.opaque-mode .leaderboard-panel::before,
+body.opaque-mode .datastream-panel::before,
+body.opaque-mode .pitbox-panel::before,
+body.opaque-mode .incidents-panel::before,
+body.opaque-mode .spotter-panel::before,
+body.opaque-mode .panel::after,
+body.opaque-mode .tacho-block::after,
+body.opaque-mode .commentary-inner::after,
+body.opaque-mode .leaderboard-panel::after,
+body.opaque-mode .datastream-panel::after,
+body.opaque-mode .pitbox-panel::after,
+body.opaque-mode .incidents-panel::after,
+body.opaque-mode .spotter-panel::after {
+  display: none !important;
+}
+
+/* ═══════════════════════════════════════════════
+   CAPTURE AREA SELECTION OVERLAY
+   ═══════════════════════════════════════════════ */
+.capture-area-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.35);
+  cursor: crosshair;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.capture-area-instructions {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.capture-area-rect {
+  position: absolute;
+  border: 2px solid hsl(45, 100%, 60%);
+  background: hsla(45, 100%, 60%, 0.12);
+  border-radius: 3px;
+  pointer-events: none;
   display: none;
+  box-shadow: 0 0 12px hsla(45, 100%, 60%, 0.3);
 }
-body.opaque-mode .panel,
-body.opaque-mode .tacho-block,
-body.opaque-mode .commentary-inner,
-body.opaque-mode .leaderboard-panel,
-body.opaque-mode .datastream-panel,
-body.opaque-mode .pitbox-panel {
-  box-shadow: none !important;
+
+/* Settings button style */
+.settings-btn {
+  background: hsla(0, 0%, 100%, 0.08);
+  color: var(--text-primary, #eee);
+  border: 1px solid hsla(0, 0%, 100%, 0.15);
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease;
+}
+.settings-btn:hover {
+  background: hsla(0, 0%, 100%, 0.15);
+  border-color: hsla(45, 100%, 60%, 0.5);
+}
+.settings-btn.active {
+  background: hsla(45, 100%, 60%, 0.2);
+  border-color: hsla(45, 100%, 60%, 0.7);
+  color: hsl(45, 100%, 75%);
+}
+
+/* ═══════════════════════════════════════════════
+   AMBIENT CAPTURE PREVIEW (in settings panel)
+   ═══════════════════════════════════════════════ */
+.ambient-preview-container {
+  margin-top: 8px;
+  padding: 8px;
+  background: hsla(0, 0%, 0%, 0.35);
+  border-radius: 6px;
+  border: 1px solid hsla(0, 0%, 100%, 0.08);
+}
+.ambient-preview-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: hsla(0, 0%, 100%, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+.ambient-preview-canvas {
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  background: #111;
+  display: block;
+}
+.ambient-preview-info {
+  font-size: 11px;
+  color: hsla(0, 0%, 100%, 0.4);
+  margin-top: 4px;
+  text-align: center;
+}
+.ambient-preview-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-right: 4px;
+  border: 1px solid hsla(0, 0%, 100%, 0.2);
 }

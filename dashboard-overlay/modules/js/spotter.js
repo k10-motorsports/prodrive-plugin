@@ -104,7 +104,7 @@
   // Recent-message memo: pattern → expiry timestamp
   // Prevents any message of the same pattern from repeating within the cooldown
   const _spotterMemo = new Map();
-  const _spotterMemoCooldown = 8000;  // ms — suppress same pattern for 8s
+  const _spotterMemoCooldown = 4000;  // ms — suppress same pattern for 4s (was 8s, too aggressive)
 
   function _showSpotterMsg(msg, severity, headerOverride) {
     if (!msg) return;
@@ -113,11 +113,17 @@
 
     // Check memo — suppress if same pattern fired recently
     const expiry = _spotterMemo.get(pattern);
-    if (expiry && now < expiry) return;
+    if (expiry && now < expiry) {
+      console.debug('[K10 Spotter] Suppressed by pattern memo (in cooldown):', pattern, 'expires in', Math.round((expiry - now) / 100) / 10, 's');
+      return;
+    }
 
     // Also suppress exact duplicate text within a shorter window
     const exactExpiry = _spotterMemo.get(msg);
-    if (exactExpiry && now < exactExpiry) return;
+    if (exactExpiry && now < exactExpiry) {
+      console.debug('[K10 Spotter] Suppressed by exact match memo (in cooldown):', msg, 'expires in', Math.round((exactExpiry - now) / 100) / 10, 's');
+      return;
+    }
 
     // Record both pattern and exact text
     _spotterMemo.set(pattern, now + _spotterMemoCooldown);
@@ -130,6 +136,7 @@
       }
     }
 
+    console.debug('[K10 Spotter] Showing message:', msg, 'severity:', severity);
     _pushSpotterMsg(msg, severity, headerOverride);
   }
 
@@ -150,49 +157,80 @@
     let msg = '';
     let severity = '';
 
-    // ═ Threat behind — car closing on us ═
-    if (gBehind > 0 && gBehind <= 0.8) {
-      msg = 'Car alongside — ' + gBehind.toFixed(1) + 's';
-      severity = 'sp-danger';
-    } else if (gBehind > 0 && gBehind <= 2.0) {
-      if (deltaB < -0.03) {
-        msg = 'Car closing — ' + gBehind.toFixed(1) + 's';
+    // ═ FIRST READING: when we first detect a car nearby (previous was 0, now > 0) ═
+    // Show basic proximity alert without requiring delta change
+    const isFirstReadingAhead = _spotterLastGapA === 0 && gAhead > 0 && gAhead <= 4.0;
+    const isFirstReadingBehind = _spotterLastGapB === 0 && gBehind > 0 && gBehind <= 4.0;
+
+    if (isFirstReadingAhead && !msg) {
+      if (gAhead <= 0.8) {
+        msg = 'Car right there — ' + gAhead.toFixed(1) + 's';
+        severity = 'sp-danger';
+      } else if (gAhead <= 2.0) {
+        msg = 'Car ahead — ' + gAhead.toFixed(1) + 's';
+        severity = 'sp-clear';
+      } else {
+        msg = 'Car ahead — ' + gAhead.toFixed(1) + 's';
+        severity = 'sp-warn';
+      }
+    }
+
+    if (isFirstReadingBehind && !msg) {
+      if (gBehind <= 0.8) {
+        msg = 'Car alongside — ' + gBehind.toFixed(1) + 's';
+        severity = 'sp-danger';
+      } else if (gBehind <= 2.0) {
+        msg = 'Car behind — ' + gBehind.toFixed(1) + 's';
         severity = 'sp-warn';
       } else {
         msg = 'Car behind — ' + gBehind.toFixed(1) + 's';
         severity = 'sp-warn';
       }
-    } else if (gBehind > 0 && gBehind <= 4.0 && deltaB < -0.03) {
+    }
+
+    // ═ Threat behind — car closing on us ═
+    if (!msg && gBehind > 0 && gBehind <= 0.8) {
+      msg = 'Car alongside — ' + gBehind.toFixed(1) + 's';
+      severity = 'sp-danger';
+    } else if (!msg && gBehind > 0 && gBehind <= 2.0) {
+      if (deltaB < -0.03) {
+        msg = 'Car closing — ' + gBehind.toFixed(1) + 's';
+        severity = 'sp-warn';
+      } else if (_spotterLastGapB > 0) {  // Only show "car behind" if we've seen the gap before
+        msg = 'Car behind — ' + gBehind.toFixed(1) + 's';
+        severity = 'sp-warn';
+      }
+    } else if (!msg && gBehind > 0 && gBehind <= 4.0 && deltaB < -0.03) {
       msg = 'Car reeling in — ' + gBehind.toFixed(1) + 's';
       severity = 'sp-warn';
     }
 
     // ═ Opportunity ahead — we're closing on the car ahead ═
-    if (gAhead > 0 && gAhead <= 0.8) {
+    if (!msg && gAhead > 0 && gAhead <= 0.8) {
       msg = 'Car right there — ' + gAhead.toFixed(1) + 's';
       severity = 'sp-danger';
-    } else if (gAhead > 0 && gAhead <= 2.0 && !msg) {
+    } else if (!msg && gAhead > 0 && gAhead <= 2.0) {
       if (deltaA < -0.03) {
         msg = 'Closing on car ahead — ' + gAhead.toFixed(1) + 's';
         severity = 'sp-clear';
       } else if (deltaA > 0.03) {
         msg = 'Car ahead pulling away — ' + gAhead.toFixed(1) + 's';
         severity = 'sp-warn';
-      } else {
+      } else if (_spotterLastGapA > 0) {  // Only show "car ahead" if we've seen the gap before
         msg = 'Car ahead — ' + gAhead.toFixed(1) + 's';
         severity = 'sp-clear';
       }
-    } else if (gAhead > 0 && gAhead <= 4.0 && deltaA < -0.03 && !msg) {
+    } else if (!msg && gAhead > 0 && gAhead <= 4.0 && deltaA < -0.03) {
       msg = 'Gaining on car ahead — ' + gAhead.toFixed(1) + 's';
       severity = 'sp-clear';
     }
 
     // ═ Pass events — position swaps ═
-    if (_spotterLastGapA > 0 && _spotterLastGapA < 3.0 && gAhead > _spotterLastGapA + 2.0 && gBehind > 0 && gBehind < 3.0) {
+    if (!msg && _spotterLastGapA > 0 && _spotterLastGapA < 3.0 && gAhead > _spotterLastGapA + 2.0 && gBehind > 0 && gBehind < 3.0) {
       msg = 'Clear — position gained';
       severity = 'sp-clear';
     }
-    if (_spotterLastGapB > 0 && _spotterLastGapB < 3.0 && gBehind > _spotterLastGapB + 2.0 && gAhead > 0 && gAhead < 3.0) {
+    if (!msg && _spotterLastGapB > 0 && _spotterLastGapB < 3.0 && gBehind > _spotterLastGapB + 2.0 && gAhead > 0 && gAhead < 3.0) {
       msg = 'Position lost';
       severity = 'sp-danger';
     }

@@ -316,12 +316,19 @@
   }
 
   /* ── Stacked column blocks ── */
-  .fuel-tyres-col,
+  .fuel-tyres-col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+    flex-shrink: 0;
+  }
   .controls-pedals-block {
     display: flex;
     flex-direction: column;
     gap: var(--gap);
     flex-shrink: 0;
+    /* 50% wider than fuel-tyres-col (160px) */
+    width: 240px;
   }
 
   /* ── CYCLING ── */
