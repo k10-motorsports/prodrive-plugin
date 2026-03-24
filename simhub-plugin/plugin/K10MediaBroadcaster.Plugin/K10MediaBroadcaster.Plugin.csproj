@@ -20,7 +20,8 @@
     <OutputPath>$(SimHubPath)</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <!-- true: copies IRSDKSharper + YamlDotNet DLLs into SimHub folder -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -30,6 +31,11 @@
   <!-- Plugin sidebar icon — embedded in the assembly -->
   <ItemGroup>
     <Resource Include="icon.png" />
+  </ItemGroup>
+
+  <!-- NuGet packages -->
+  <ItemGroup>
+    <PackageReference Include="IRSDKSharper" Version="1.1.4" />
   </ItemGroup>
 
   <!-- WinForms — needed for FolderBrowserDialog in settings panel -->

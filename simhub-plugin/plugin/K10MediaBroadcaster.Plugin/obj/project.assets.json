@@ -2,6 +2,18 @@
   "version": 3,
   "targets": {
     ".NETFramework,Version=v4.8": {
+      "IRSDKSharper/1.1.4": {
+        "type": "package",
+        "dependencies": {
+          "YamlDotNet": "16.3.0"
+        },
+        "compile": {
+          "lib/net471/IRSDKSharper.dll": {}
+        },
+        "runtime": {
+          "lib/net471/IRSDKSharper.dll": {}
+        }
+      },
       "Microsoft.NETFramework.ReferenceAssemblies/1.0.3": {
         "type": "package",
         "dependencies": {
@@ -13,10 +25,39 @@
         "build": {
           "build/Microsoft.NETFramework.ReferenceAssemblies.net48.targets": {}
         }
+      },
+      "YamlDotNet/16.3.0": {
+        "type": "package",
+        "compile": {
+          "lib/net47/YamlDotNet.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net47/YamlDotNet.dll": {
+            "related": ".xml"
+          }
+        }
       }
     }
   },
   "libraries": {
+    "IRSDKSharper/1.1.4": {
+      "sha512": "jjbJWfWlqL0i9WwbLIC9zv9lBmdcZBldyg0IfLYc0gsgeaNRTRfxpfjHGQFsVu9LKPjXmpAQ2J7/WJ3d3Kx8SA==",
+      "type": "package",
+      "path": "irsdksharper/1.1.4",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "README.md",
+        "irsdksharper.1.1.4.nupkg.sha512",
+        "irsdksharper.nuspec",
+        "lib/net471/IRSDKSharper.dll",
+        "lib/net6.0-windows7.0/IRSDKSharper.dll",
+        "lib/net7.0-windows7.0/IRSDKSharper.dll"
+      ]
+    },
     "Microsoft.NETFramework.ReferenceAssemblies/1.0.3": {
       "sha512": "vUc9Npcs14QsyOD01tnv/m8sQUnGTGOw1BCmKcv77LBJY7OxhJ+zJF7UD/sCL3lYNFuqmQEVlkfS4Quif6FyYg==",
       "type": "package",
@@ -407,10 +448,34 @@
         "microsoft.netframework.referenceassemblies.net48.1.0.3.nupkg.sha512",
         "microsoft.netframework.referenceassemblies.net48.nuspec"
       ]
+    },
+    "YamlDotNet/16.3.0": {
+      "sha512": "SgMOdxbz8X65z8hraIs6hOEdnkH6hESTAIUa7viEngHOYaH+6q5XJmwr1+yb9vJpNQ19hCQY69xbFsLtXpobQA==",
+      "type": "package",
+      "path": "yamldotnet/16.3.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "images/yamldotnet.png",
+        "lib/net47/YamlDotNet.dll",
+        "lib/net47/YamlDotNet.xml",
+        "lib/net6.0/YamlDotNet.dll",
+        "lib/net6.0/YamlDotNet.xml",
+        "lib/net8.0/YamlDotNet.dll",
+        "lib/net8.0/YamlDotNet.xml",
+        "lib/netstandard2.0/YamlDotNet.dll",
+        "lib/netstandard2.0/YamlDotNet.xml",
+        "lib/netstandard2.1/YamlDotNet.dll",
+        "lib/netstandard2.1/YamlDotNet.xml",
+        "yamldotnet.16.3.0.nupkg.sha512",
+        "yamldotnet.nuspec"
+      ]
     }
   },
   "projectFileDependencyGroups": {
     ".NETFramework,Version=v4.8": [
+      "IRSDKSharper >= 1.1.4",
       "Microsoft.NETFramework.ReferenceAssemblies >= 1.0.3"
     ]
   },
@@ -457,6 +522,10 @@
       "net48": {
         "targetAlias": "net48",
         "dependencies": {
+          "IRSDKSharper": {
+            "target": "Package",
+            "version": "[1.1.4, )"
+          },
           "Microsoft.NETFramework.ReferenceAssemblies": {
             "suppressParent": "All",
             "target": "Package",

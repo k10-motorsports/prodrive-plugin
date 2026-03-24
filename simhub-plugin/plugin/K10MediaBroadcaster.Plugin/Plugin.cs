@@ -35,6 +35,7 @@ namespace K10MediaBroadcaster.Plugin
         private readonly CommentaryEngine  _engine   = new CommentaryEngine();
         private readonly TelemetryRecorder _recorder = new TelemetryRecorder();
         private readonly TrackMapProvider  _trackMap = new TrackMapProvider();
+        private readonly Engine.IRacingSdkBridge _sdkBridge = new Engine.IRacingSdkBridge();
         private FeedbackEngine _feedback;
 
         // Telemetry frames (current + previous for delta calculations)
@@ -118,6 +119,10 @@ namespace K10MediaBroadcaster.Plugin
             // Load commentary fragments (for sentence composition)
             string fragmentsPath = ResolveDatasetFile("commentary_fragments.json");
             _engine.LoadFragments(fragmentsPath);
+
+            // Initialise iRacing SDK bridge (direct shared memory via IRSDKSharper)
+            TelemetrySnapshot._sdkBridge = _sdkBridge;
+            _sdkBridge.Start();
 
             // Initialise track map provider
             // The DLL is output directly into the SimHub root folder (not a Plugins\ subfolder),
@@ -458,6 +463,7 @@ namespace K10MediaBroadcaster.Plugin
 
         public void End(PluginManager pluginManager)
         {
+            _sdkBridge.Stop();
             StopHttpServer();
             _recorder.StopRecording();
             this.SaveCommonSettings("GeneralSettings", Settings);
@@ -960,6 +966,9 @@ namespace K10MediaBroadcaster.Plugin
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.SteerTorque", s.SteeringWheelTorque, ic);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.TrackTemp", s.TrackTemp, ic);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.IncidentCount", s.IncidentCount);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.IncidentLimitPenalty", s.IncidentLimitPenalty);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.IncidentLimitDQ", s.IncidentLimitDQ);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.LicenseString", Escape(s.LicenseString ?? ""));
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.AbsActive", s.AbsActive ? 1 : 0);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.TcActive", s.TcActive ? 1 : 0);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.TrackPct", s.TrackPositionPct, ic);

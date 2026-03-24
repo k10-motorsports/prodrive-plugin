@@ -81,6 +81,12 @@ namespace K10MediaBroadcaster.Plugin.Engine
         public double FrameRate           { get; set; } // game render FPS
         public int    SessionFlags        { get; set; } // yellow/black/etc. bitmask
         public int    IncidentCount       { get; set; } // iRacing incident points
+        /// <summary>Incident count at which a slowdown/drivethrough penalty is issued. 0 = unknown.</summary>
+        public int    IncidentLimitPenalty { get; set; }
+        /// <summary>Incident count at which the driver is disqualified. 0 = unknown.</summary>
+        public int    IncidentLimitDQ     { get; set; }
+        /// <summary>Player's license class string from iRacing (e.g. "A 3.41").</summary>
+        public string LicenseString       { get; set; } = "";
         public int    DrsStatus           { get; set; }
         public double ErsBattery          { get; set; }
         public double MgukPower           { get; set; }

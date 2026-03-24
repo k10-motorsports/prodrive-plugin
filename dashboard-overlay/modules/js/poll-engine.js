@@ -729,6 +729,8 @@
         startPosition: _startPosition || 0,
         totalCars: +(v(sessionPre + 'TotalCars')) || 0,
         incidents: +(v(dsPre + 'IncidentCount') || 0),
+        incidentLimitPenalty: +(v(dsPre + 'IncidentLimitPenalty') || 0),
+        incidentLimitDQ: +(v(dsPre + 'IncidentLimitDQ') || 0),
         lap: lap,
         sessionTime: vs('DataCorePlugin.GameData.RemainingTime') || '',
         trackTemp: +(v(dsPre + 'TrackTemp') || 0),

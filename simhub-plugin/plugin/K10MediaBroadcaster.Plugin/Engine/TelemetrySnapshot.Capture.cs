@@ -44,7 +44,10 @@ namespace K10MediaBroadcaster.Plugin.Engine
         private static bool _hasWJL = false, _hasWJR = false;
         private static bool _hasWingF = false, _hasWingR = false;
 
-        // ── iRating estimator (reads directly from iRacing shared memory) ────
+        // ── iRacing SDK bridge (set by Plugin.Init, used as primary data source) ──
+        internal static IRacingSdkBridge _sdkBridge;
+
+        // ── iRating estimator (legacy shared memory reader, kept as fallback) ────
         private static IRatingEstimator _irEstimator;
         private static SectorTracker _sectorTracker = new SectorTracker();
 
@@ -326,20 +329,48 @@ namespace K10MediaBroadcaster.Plugin.Engine
 
             // ── iRating / Safety Rating ─────────────────────────────────────
             // Priority chain:
-            // 1. Direct iRacing shared memory (IRatingEstimator reads YAML)
+            // 1. IRacingSdkBridge (IRSDKSharper — direct SDK with proper YAML parsing)
             // 2. IRacingExtraProperties plugin properties
             // 3. SimHub normalized properties
-            // 4. iRacing raw telemetry
+            // 4. iRacing raw telemetry via SimHub
             // 5. Opponents collection fallback
 
-            // Try direct shared memory first (most reliable, no plugin dependency)
-            if (_irEstimator == null) _irEstimator = new IRatingEstimator();
-            _irEstimator.TryReadSessionInfo();
+            // Try SDK bridge first (most reliable — proper SDK with parsed YAML)
+            if (_sdkBridge != null && _sdkBridge.IsConnected)
+            {
+                s.IRating = _sdkBridge.PlayerIRating;
+                s.SafetyRating = _sdkBridge.PlayerSafetyRating;
+                s.LicenseString = _sdkBridge.PlayerLicenseString ?? "";
+                s.IsStandingStart = _sdkBridge.IsStandingStart;
+                s.IncidentLimitPenalty = _sdkBridge.IncidentLimitPenalty;
+                s.IncidentLimitDQ = _sdkBridge.IncidentLimitDQ;
+                s.IRatingFieldSize = _sdkBridge.FieldSize;
 
-            // Standing start detection (from iRacing WeekendOptions YAML)
-            s.IsStandingStart = _irEstimator.IsStandingStart;
+                // Sector boundaries from SDK
+                if (_sdkBridge.HasSectorBoundaries)
+                {
+                    s.SectorS2StartPct = _sdkBridge.SectorS2StartPct;
+                    s.SectorS3StartPct = _sdkBridge.SectorS3StartPct;
+                }
 
-            s.IRating = _irEstimator.PlayerIRating;
+                // Track country from SDK
+                if (!string.IsNullOrEmpty(_sdkBridge.TrackCountry))
+                    s.TrackCountry = _sdkBridge.TrackCountry;
+            }
+
+            // Fallback: legacy IRatingEstimator (hand-rolled shared memory reader)
+            if (s.IRating == 0)
+            {
+                if (_irEstimator == null) _irEstimator = new IRatingEstimator();
+                _irEstimator.TryReadSessionInfo();
+                s.IRating = _irEstimator.PlayerIRating;
+                if (s.IsStandingStart == false)
+                    s.IsStandingStart = _irEstimator.IsStandingStart;
+            }
+            if (s.SafetyRating == 0 && _irEstimator != null)
+                s.SafetyRating = _irEstimator.PlayerSafetyRating;
+
+            // Fallback: IRacingExtraProperties plugin
             if (s.IRating == 0)
                 s.IRating = GetPluginProp<int>(pm, "IRacingExtraProperties.iRacing_DriverInfo_IRating");
             if (s.IRating == 0)
@@ -349,7 +380,6 @@ namespace K10MediaBroadcaster.Plugin.Engine
             if (s.IRating == 0)
                 s.IRating = _fallbackIRating;
 
-            s.SafetyRating = _irEstimator.PlayerSafetyRating;
             if (s.SafetyRating == 0)
                 s.SafetyRating = GetPluginProp<double>(pm, "IRacingExtraProperties.iRacing_DriverInfo_SafetyRating");
             if (s.SafetyRating == 0)
@@ -360,9 +390,17 @@ namespace K10MediaBroadcaster.Plugin.Engine
             // Estimated iRating change (updates with current position)
             if (s.Position > 0 && s.IRating > 0)
             {
-                _irEstimator.Update(s.Position, s.TotalCars > 0 ? s.TotalCars : _irEstimator.FieldSize);
-                s.EstimatedIRatingDelta = _irEstimator.EstimatedDelta;
-                s.IRatingFieldSize = _irEstimator.FieldSize;
+                if (_sdkBridge != null && _sdkBridge.IsConnected)
+                {
+                    s.EstimatedIRatingDelta = _sdkBridge.EstimateIRatingDelta(s.Position);
+                    s.IRatingFieldSize = _sdkBridge.FieldSize;
+                }
+                else if (_irEstimator != null)
+                {
+                    _irEstimator.Update(s.Position, s.TotalCars > 0 ? s.TotalCars : _irEstimator.FieldSize);
+                    s.EstimatedIRatingDelta = _irEstimator.EstimatedDelta;
+                    s.IRatingFieldSize = _irEstimator.FieldSize;
+                }
             }
 
             // ── Gap times ───────────────────────────────────────────────────

@@ -34,20 +34,22 @@
     for (let i = 0; i <= 5; i++) panel.classList.toggle('inc-level-' + i, i === level);
 
     // Threshold counters — remaining incidents to penalty / DQ
-    // Try to read from plugin first; fall back to hardcoded iRacing standards
-    // In non-race sessions, set thresholds to Infinity so they never trigger
+    // Read from the iRacing SDK via the plugin (parsed from session YAML WeekendOptions).
+    // Falls back to config defaults if the plugin hasn't provided values yet.
+    // In non-race sessions, set thresholds to Infinity so they never trigger.
     let penLimit, dqLimit;
 
     // Check if we're in a non-race session (practice, qualifying, etc.)
     const isNonRaceSession = !p['K10MediaBroadcaster.Plugin.DS.IsRaceSession'];
     if (isNonRaceSession) {
-      // In practice/qualifying, don't enforce incident limits
       penLimit = Infinity;
       dqLimit = Infinity;
     } else {
-      // In race sessions, use standard iRacing incident limits
-      penLimit = 17;
-      dqLimit = 25;
+      // Read real limits from the iRacing SDK (0 = not available yet)
+      const sdkPen = +(p[pre + 'IncidentLimitPenalty']) || 0;
+      const sdkDQ  = +(p[pre + 'IncidentLimitDQ']) || 0;
+      penLimit = sdkPen > 0 ? sdkPen : ((typeof _settings !== 'undefined' && _settings.incPenalty) || 17);
+      dqLimit  = sdkDQ  > 0 ? sdkDQ  : ((typeof _settings !== 'undefined' && _settings.incDQ)      || 25);
     }
     const toPen = Math.max(0, penLimit - incidentCount);
     const toDQ  = Math.max(0, dqLimit - incidentCount);

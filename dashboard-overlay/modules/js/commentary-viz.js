@@ -135,6 +135,8 @@
       case 'startPosition': return t.startPosition || 0;
       case 'totalCars':   return t.totalCars || 0;
       case 'incidents':   return t.incidents || 0;
+      case 'incidentLimitPenalty': return t.incidentLimitPenalty || 0;
+      case 'incidentLimitDQ':     return t.incidentLimitDQ || 0;
       case 'laps':        return t.lap || 0;
       case 'sessionTime': return t.sessionTime || '';
       case 'trackTemp':   return t.trackTemp || 0;
@@ -704,8 +706,11 @@
 
   function _renderIncident(cfg) {
     const count = Math.round(_getVizValue('incidents')) || 0;
-    const penLimit = (typeof _settings !== 'undefined' && _settings.incPenalty) || 17;
-    const dqLimit  = (typeof _settings !== 'undefined' && _settings.incDQ) || 25;
+    // Read real incident limits from SDK; fall back to settings / defaults
+    const sdkPen = Math.round(_getVizValue('incidentLimitPenalty')) || 0;
+    const sdkDQ  = Math.round(_getVizValue('incidentLimitDQ')) || 0;
+    const penLimit = sdkPen > 0 ? sdkPen : ((typeof _settings !== 'undefined' && _settings.incPenalty) || 17);
+    const dqLimit  = sdkDQ  > 0 ? sdkDQ  : ((typeof _settings !== 'undefined' && _settings.incDQ)      || 25);
     const toPen = Math.max(0, penLimit - count);
     const toDQ  = Math.max(0, dqLimit - count);
 

@@ -123,7 +123,10 @@
     if (incEl) incEl.innerHTML = incCount + '<span class="dh-inc-x">x</span>';
     var penEl = document.getElementById('dhIncToPen');
     var dqEl = document.getElementById('dhIncToDQ');
-    var penLimit = 17, dqLimit = 25;
+    var sdkPen = +(p[dsPre + 'IncidentLimitPenalty']) || 0;
+    var sdkDQ  = +(p[dsPre + 'IncidentLimitDQ']) || 0;
+    var penLimit = sdkPen > 0 ? sdkPen : ((typeof _settings !== 'undefined' && _settings.incPenalty) || 17);
+    var dqLimit  = sdkDQ  > 0 ? sdkDQ  : ((typeof _settings !== 'undefined' && _settings.incDQ)      || 25);
     if (penEl) penEl.textContent = Math.max(0, penLimit - incCount);
     if (dqEl) dqEl.textContent = Math.max(0, dqLimit - incCount);
 
