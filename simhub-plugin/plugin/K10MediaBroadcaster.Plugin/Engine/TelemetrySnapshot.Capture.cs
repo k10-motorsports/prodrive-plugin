@@ -51,6 +51,18 @@ namespace K10MediaBroadcaster.Plugin.Engine
         private static IRatingEstimator _irEstimator;
         private static SectorTracker _sectorTracker = new SectorTracker();
 
+        // ── Fix #2: Caching for iRating / SR / license string ──────────────────
+        // iRating and SR don't change mid-session, so caching last non-zero is safe.
+        // Prevents intermittent "—" flashes when the priority chain returns 0.
+        private static int    _lastKnownIRating = 0;
+        private static double _lastKnownSR = 0;
+        private static string _lastKnownLicense = "";
+
+        // ── Fix #15: Gap driver name caching ────────────────────────────────────
+        // Opponents list takes 2-3s to populate. Cache last known names.
+        private static string _lastAheadName = "";
+        private static string _lastBehindName = "";
+
         public static TelemetrySnapshot Capture(PluginManager pm, ref GameData data)
         {
             var s = new TelemetrySnapshot();
@@ -86,9 +98,16 @@ namespace K10MediaBroadcaster.Plugin.Engine
             s.TyreWearRR       = d.TyreWearRearRight;
 
             // ── Physics: iRacing raw → normalized fallback ───────────────────
-            s.LatAccel  = Coalesce(GetRaw<float>(pm, "LatAccel"),  GetNorm<float>(d, "AccelerationSway"));
-            s.LongAccel = Coalesce(GetRaw<float>(pm, "LongAccel"), GetNorm<float>(d, "AccelerationSurge"));
-            s.VertAccel = Coalesce(GetRaw<float>(pm, "VertAccel"), GetNorm<float>(d, "AccelerationHeave"));
+            // Fix #14: iRacing reports acceleration in m/s²; dashboard expects G.
+            // SimHub normalized values are already in G, so only convert iRacing raw.
+            const float MsToG = 1f / 9.80665f;
+            float rawLat  = GetRaw<float>(pm, "LatAccel");
+            float rawLong = GetRaw<float>(pm, "LongAccel");
+            float rawVert = GetRaw<float>(pm, "VertAccel");
+            // If raw values are present (non-zero), they're from iRacing in m/s² → convert to G
+            s.LatAccel  = rawLat  != 0 ? rawLat  * MsToG : GetNorm<float>(d, "AccelerationSway");
+            s.LongAccel = rawLong != 0 ? rawLong * MsToG : GetNorm<float>(d, "AccelerationSurge");
+            s.VertAccel = rawVert != 0 ? rawVert * MsToG : GetNorm<float>(d, "AccelerationHeave");
             s.YawRate   = Coalesce(GetRaw<float>(pm, "YawRate"),   GetNorm<float>(d, "YawVelocity"));
 
             // ── Driver aids ──────────────────────────────────────────────────
@@ -113,6 +132,10 @@ namespace K10MediaBroadcaster.Plugin.Engine
             s.LapBestTime       = Coalesce(GetRaw<float>(pm, "LapBestLapTime"),     GetNorm<float>(d, "BestLapTime"));
             s.LapDeltaToBest    = Coalesce(GetRaw<float>(pm, "LapDeltaToBestLap"),  GetNorm<float>(d, "DeltaToSessionBestLap"));
             s.SessionTimeRemain = Coalesce(GetRaw<double>(pm, "SessionTimeRemain"), GetNorm<double>(d, "SessionTimeLeft"));
+            // Fix #13: Session laps remaining — use SessionLapsRemainEx (avoids off-by-one)
+            s.SessionLapsRemaining = GetRaw<int>(pm, "SessionLapsRemainEx");
+            if (s.SessionLapsRemaining == 0)
+                s.SessionLapsRemaining = (int)GetPluginProp<double>(pm, "DataCorePlugin.GameData.RemainingLaps");
 
             // ── Sector splits (using iRacing native boundaries from session YAML) ──
             // Feed iRacing's SplitTimeInfo sector boundaries to the tracker if available
@@ -276,11 +299,22 @@ namespace K10MediaBroadcaster.Plugin.Engine
             s.TractionControlSetting = GetGameTC(pm, detectedGame);
             s.AbsSetting = GetGameABS(pm, detectedGame);
 
-            // Steering torque (iRacing-only)
-            s.SteeringWheelTorque = GetRaw<float>(pm, "SteeringWheelTorque");
+            // Fix #12: Steering torque — cross-game
+            if (detectedGame == GameId.ACC || detectedGame == GameId.AC || detectedGame == GameId.ACEvo || detectedGame == GameId.ACRally)
+                s.SteeringWheelTorque = GetRaw<float>(pm, "Physics.WheelsTorque", "DataCorePlugin.GameRawData.");
+            else if (detectedGame == GameId.LMU)
+            {
+                float steerRaw = GetRaw<float>(pm, "Telemetry.mFilteredSteering", "DataCorePlugin.GameRawData.");
+                float torqueFactor = GetRaw<float>(pm, "Telemetry.mSteeringArmForce", "DataCorePlugin.GameRawData.");
+                s.SteeringWheelTorque = torqueFactor != 0 ? torqueFactor : steerRaw;
+            }
+            else
+                s.SteeringWheelTorque = GetRaw<float>(pm, "SteeringWheelTorque");
 
-            // Frame rate (iRacing-only)
+            // Fix #6: Frame rate — cross-game via SimHub's universal property
             s.FrameRate = GetRaw<float>(pm, "FrameRate");
+            if (s.FrameRate == 0)
+                s.FrameRate = GetPluginProp<double>(pm, "DataCorePlugin.GameData.FramesPerSecond");
 
             // Session flags: game-aware
             s.SessionFlags = GetGameSessionFlags(pm, detectedGame);
@@ -288,8 +322,20 @@ namespace K10MediaBroadcaster.Plugin.Engine
             // Incident count
             s.IncidentCount = GetGameIncidentCount(pm, detectedGame);
 
-            // DRS status (iRacing-only)
-            s.DrsStatus = GetRaw<int>(pm, "DrsStatus");
+            // Fix #12: DRS status — cross-game
+            if (detectedGame == GameId.ACC || detectedGame == GameId.AC || detectedGame == GameId.ACEvo || detectedGame == GameId.ACRally)
+            {
+                bool drsAvail = GetRaw<bool>(pm, "Graphics.DrsAvailable", "DataCorePlugin.GameRawData.");
+                bool drsOn    = GetRaw<bool>(pm, "Graphics.DrsEnabled", "DataCorePlugin.GameRawData.");
+                s.DrsStatus = drsOn ? 2 : drsAvail ? 1 : 0; // 0=none, 1=available, 2=active
+            }
+            else if (detectedGame == GameId.LMU)
+            {
+                int flapStatus = GetRaw<int>(pm, "Telemetry.mRearFlapLegalStatus", "DataCorePlugin.GameRawData.");
+                s.DrsStatus = flapStatus > 0 ? flapStatus : 0;
+            }
+            else
+                s.DrsStatus = GetRaw<int>(pm, "DrsStatus");
 
             // ERS / Hybrid energy (game-aware)
             s.ErsBattery = GetGameErsBattery(pm, detectedGame);
@@ -297,8 +343,23 @@ namespace K10MediaBroadcaster.Plugin.Engine
 
             // Pit limiter (game-aware)
             s.PitLimiterOn = GetGamePitLimiter(pm, detectedGame);
-            double pitLimitMs = GetRaw<float>(pm, "PitSpeedLimit");
-            s.PitSpeedLimitKmh = pitLimitMs > 0 ? pitLimitMs * 3.6 : 0;
+            // Fix #12: Pit speed limit — cross-game
+            double pitLimitMs = GetRaw<float>(pm, "PitSpeedLimit"); // iRacing: m/s
+            if (pitLimitMs > 0)
+            {
+                s.PitSpeedLimitKmh = pitLimitMs * 3.6;
+            }
+            else if (detectedGame == GameId.ACC || detectedGame == GameId.AC || detectedGame == GameId.ACEvo || detectedGame == GameId.ACRally)
+            {
+                // ACC StaticInfo.PitSpeedLimit is already in km/h
+                s.PitSpeedLimitKmh = GetRaw<float>(pm, "StaticInfo.PitSpeedLimit", "DataCorePlugin.GameRawData.");
+            }
+            else if (detectedGame == GameId.RaceRoom)
+            {
+                // R3E: SessionPitSpeedLimit in m/s
+                float r3ePitLimit = GetRaw<float>(pm, "SessionPitSpeedLimit", "DataCorePlugin.GameRawData.");
+                s.PitSpeedLimitKmh = r3ePitLimit > 0 ? r3ePitLimit * 3.6 : 0;
+            }
 
             // Track whether this car actually has an ERS system.
             // Non-hybrid cars report 0.0 permanently; reset detection on car change.
@@ -387,18 +448,42 @@ namespace K10MediaBroadcaster.Plugin.Engine
             if (s.SafetyRating == 0)
                 s.SafetyRating = _fallbackSR;
 
-            // Estimated iRating change (updates with current position)
+            // Fix #2: Cache last known iRating / SR / license to prevent intermittent "—"
+            // iRating and SR don't change mid-session, so caching the last non-zero value is safe.
+            if (s.IRating > 0)
+                _lastKnownIRating = s.IRating;
+            else if (_lastKnownIRating > 0)
+                s.IRating = _lastKnownIRating;
+
+            if (s.SafetyRating > 0)
+                _lastKnownSR = s.SafetyRating;
+            else if (_lastKnownSR > 0)
+                s.SafetyRating = _lastKnownSR;
+
+            if (!string.IsNullOrEmpty(s.LicenseString))
+                _lastKnownLicense = s.LicenseString;
+            else if (!string.IsNullOrEmpty(_lastKnownLicense))
+                s.LicenseString = _lastKnownLicense;
+
+            // Fix #3: Estimated iRating change — use int.MinValue as sentinel for "no data"
+            // so that JS can distinguish "delta is 0" (valid) from "no data yet" (show —)
+            s.EstimatedIRatingDelta = int.MinValue; // sentinel: no data
             if (s.Position > 0 && s.IRating > 0)
             {
                 if (_sdkBridge != null && _sdkBridge.IsConnected)
                 {
-                    s.EstimatedIRatingDelta = _sdkBridge.EstimateIRatingDelta(s.Position);
+                    int delta = _sdkBridge.EstimateIRatingDelta(s.Position);
+                    // EstimateIRatingDelta returns 0 for both "no data" and "actual zero"
+                    // — if we have field data (FieldSize >= 2), treat 0 as a valid result
+                    if (_sdkBridge.FieldSize >= 2)
+                        s.EstimatedIRatingDelta = delta;
                     s.IRatingFieldSize = _sdkBridge.FieldSize;
                 }
                 else if (_irEstimator != null)
                 {
                     _irEstimator.Update(s.Position, s.TotalCars > 0 ? s.TotalCars : _irEstimator.FieldSize);
-                    s.EstimatedIRatingDelta = _irEstimator.EstimatedDelta;
+                    if (_irEstimator.FieldSize >= 2)
+                        s.EstimatedIRatingDelta = _irEstimator.EstimatedDelta;
                     s.IRatingFieldSize = _irEstimator.FieldSize;
                 }
             }
@@ -406,6 +491,7 @@ namespace K10MediaBroadcaster.Plugin.Engine
             // ── Gap times ───────────────────────────────────────────────────
             // Primary: IRacingExtraProperties plugin
             // Fallback: gap-to-player from the Opponents collection
+            // Fix #7: When gap is 0 and CarIdxLapDistPct available, compute from track position
             s.GapAhead = GetPluginProp<double>(pm, "IRacingExtraProperties.iRacing_Opponent_Ahead_Gap");
             if (s.GapAhead == 0 && _fallbackGapAhead > 0)
                 s.GapAhead = _fallbackGapAhead;
@@ -413,6 +499,43 @@ namespace K10MediaBroadcaster.Plugin.Engine
             s.GapBehind = GetPluginProp<double>(pm, "IRacingExtraProperties.iRacing_Opponent_Behind_Gap");
             if (s.GapBehind == 0 && _fallbackGapBehind > 0)
                 s.GapBehind = _fallbackGapBehind;
+
+            // Fix #7: When gap is still 0 (caution, pace laps), estimate from track position delta.
+            // Uses: (playerDistPct - otherDistPct) × estimatedLapTime
+            if (s.GapAhead <= 0 && s.CarIdxLapDistPct != null && s.CarIdxLapDistPct.Length > 0 && s.Position > 1)
+            {
+                double estLap = s.LapBestTime > 0 ? s.LapBestTime : (s.LapLastTime > 0 ? s.LapLastTime : 0);
+                if (estLap > 0)
+                {
+                    // Find the car ahead by looking at Opponents already identified
+                    // Use NearestAheadRating as a proxy — if we have a name, we had their position
+                    // We scan CarIdxLapDistPct for the closest car ahead on track
+                    double myPct = s.TrackPositionPct;
+                    double bestDelta = double.MaxValue;
+                    for (int i = 0; i < s.CarIdxLapDistPct.Length; i++)
+                    {
+                        if (i == s.PlayerCarIdx || s.CarIdxLapDistPct[i] <= 0) continue;
+                        double otherPct = s.CarIdxLapDistPct[i];
+                        double delta = otherPct - myPct;
+                        if (delta < 0) delta += 1.0; // wrap around s/f line
+                        if (delta > 0 && delta < bestDelta)
+                            bestDelta = delta;
+                    }
+                    if (bestDelta < 1.0)
+                        s.GapAhead = bestDelta * estLap;
+                }
+            }
+
+            // Fix #15: Cache gap driver names — Opponents list takes 2-3s to populate
+            if (!string.IsNullOrEmpty(s.NearestAheadName))
+                _lastAheadName = s.NearestAheadName;
+            else if (!string.IsNullOrEmpty(_lastAheadName))
+                s.NearestAheadName = _lastAheadName;
+
+            if (!string.IsNullOrEmpty(s.NearestBehindName))
+                _lastBehindName = s.NearestBehindName;
+            else if (!string.IsNullOrEmpty(_lastBehindName))
+                s.NearestBehindName = _lastBehindName;
 
             // ── Fuel computation (from SimHub computed properties) ───────────
             s.FuelPerLap    = GetPluginProp<double>(pm, "DataCorePlugin.Computed.Fuel_LitersPerLap");
@@ -489,13 +612,21 @@ namespace K10MediaBroadcaster.Plugin.Engine
             if (s.WingFront != 0)              _hasWingF = true;
             if (s.WingRear != 0)               _hasWingR = true;
 
+            // Fix #16: ACC cars always have TC and ABS — the iRacing dc* detection
+            // never triggers for ACC because ACC uses different property paths (Graphics.TC/ABS).
+            if (detectedGame == GameId.ACC || detectedGame == GameId.ACEvo || detectedGame == GameId.AC || detectedGame == GameId.ACRally)
+            {
+                _hasTC = true;
+                _hasABS = true;
+            }
+
             s.HasTC = _hasTC;       s.HasABS = _hasABS;
             s.HasARBFront = _hasARBF; s.HasARBRear = _hasARBR;
             s.HasEnginePower = _hasEng; s.HasFuelMixture = _hasFuelMix;
             s.HasWeightJackerL = _hasWJL; s.HasWeightJackerR = _hasWJR;
             s.HasWingFront = _hasWingF; s.HasWingRear = _hasWingR;
 
-            // ── Pit stop selections (iRacing-only, read-only) ─────────────
+            // ── Pit stop selections ─────────────────────────────────────────
             if (detectedGame == GameId.IRacing)
             {
                 s.PitSvFlags             = GetRaw<int>(pm, "PitSvFlags");
@@ -507,6 +638,26 @@ namespace K10MediaBroadcaster.Plugin.Engine
                 s.PitSvTireCompound      = GetRaw<int>(pm, "PitSvTireCompound");
                 s.PitSvFastRepair        = GetRaw<int>(pm, "dpFastRepair");
                 s.PitSvWindshieldTearoff = GetRaw<int>(pm, "dpWindshieldTearoff");
+            }
+            // Fix #5: ACC pit menu selections from Graphics.Mfd* properties
+            else if (detectedGame == GameId.ACC || detectedGame == GameId.ACEvo)
+            {
+                float accFuel = GetRaw<float>(pm, "Graphics.MfdFuelToAdd", "DataCorePlugin.GameRawData.");
+                s.PitSvFuel = accFuel;
+                s.PitSvLFP  = GetRaw<float>(pm, "Graphics.MfdTyrePressureLF", "DataCorePlugin.GameRawData.");
+                s.PitSvRFP  = GetRaw<float>(pm, "Graphics.MfdTyrePressureRF", "DataCorePlugin.GameRawData.");
+                s.PitSvLRP  = GetRaw<float>(pm, "Graphics.MfdTyrePressureLR", "DataCorePlugin.GameRawData.");
+                s.PitSvRRP  = GetRaw<float>(pm, "Graphics.MfdTyrePressureRR", "DataCorePlugin.GameRawData.");
+                s.PitSvTireCompound = GetRaw<int>(pm, "Graphics.MfdTyreSet", "DataCorePlugin.GameRawData.");
+                // Synthesise PitSvFlags bitmask from non-zero values
+                int accPitFlags = 0;
+                if (accFuel > 0) accPitFlags |= 0x10; // PIT_SV_FUEL
+                if (s.PitSvLFP > 0) accPitFlags |= 0x01;
+                if (s.PitSvRFP > 0) accPitFlags |= 0x02;
+                if (s.PitSvLRP > 0) accPitFlags |= 0x04;
+                if (s.PitSvRRP > 0) accPitFlags |= 0x08;
+                s.PitSvFlags = accPitFlags;
+                // Fast repair is iRacing-only — not applicable for ACC
             }
 
             return s;
@@ -577,21 +728,41 @@ namespace K10MediaBroadcaster.Plugin.Engine
                 case GameId.AC:
                 case GameId.ACEvo:
                 case GameId.ACRally:
-                    // Map ACC flags to iRacing bitmask
+                    // Fix #4: Map ACC flags to iRacing bitmask — add type 4 (white) and type 6 (penalty)
                     int accFlag = GetRaw<int>(pm, "Graphics.Flag", "DataCorePlugin.GameRawData.");
                     // ACC_FLAG_TYPE: 0=none, 1=blue, 2=yellow, 3=black, 4=white, 5=checkered, 6=penalty
                     int irMask = 0;
-                    if (accFlag == 2) irMask |= 0x02; // yellow
-                    if (accFlag == 1) irMask |= 0x04; // blue
-                    if (accFlag == 3) irMask |= 0x08; // black
-                    if (accFlag == 5) irMask |= 0x01; // checkered
+                    if (accFlag == 1) irMask |= 0x0020;    // blue
+                    if (accFlag == 2) irMask |= 0x0008;    // yellow → caution
+                    if (accFlag == 3) irMask |= 0x00010000; // black
+                    if (accFlag == 4) irMask |= 0x0002;    // white
+                    if (accFlag == 5) irMask |= 0x0001;    // checkered
+                    if (accFlag == 6) irMask |= 0x00010000; // penalty → black flag bit
                     return irMask;
                 case GameId.RaceRoom:
+                    // Fix #9: RaceRoom flag expansion — add green, white, checkered
                     int r3eMask = 0;
-                    if (GetRaw<bool>(pm, "Flags.Yellow", "DataCorePlugin.GameRawData.")) r3eMask |= 0x02;
-                    if (GetRaw<bool>(pm, "Flags.Blue", "DataCorePlugin.GameRawData.")) r3eMask |= 0x04;
-                    if (GetRaw<bool>(pm, "Flags.Black", "DataCorePlugin.GameRawData.")) r3eMask |= 0x08;
+                    if (GetRaw<bool>(pm, "Flags.Yellow", "DataCorePlugin.GameRawData."))    r3eMask |= 0x0008;
+                    if (GetRaw<bool>(pm, "Flags.Blue", "DataCorePlugin.GameRawData."))      r3eMask |= 0x0020;
+                    if (GetRaw<bool>(pm, "Flags.Black", "DataCorePlugin.GameRawData."))     r3eMask |= 0x00010000;
+                    if (GetRaw<bool>(pm, "Flags.Green", "DataCorePlugin.GameRawData."))     r3eMask |= 0x0004;
+                    if (GetRaw<bool>(pm, "Flags.White", "DataCorePlugin.GameRawData."))     r3eMask |= 0x0002;
+                    if (GetRaw<bool>(pm, "Flags.Checkered", "DataCorePlugin.GameRawData.")) r3eMask |= 0x0001;
                     return r3eMask;
+                case GameId.LMU:
+                    // Fix #9: LMU flag support — mGamePhase for session flags, mHighestFlagColor for individual
+                    int lmuMask = 0;
+                    int gamePhase = GetRaw<int>(pm, "Scoring.mScoringInfo.mGamePhase", "DataCorePlugin.GameRawData.");
+                    // LMU game phases: 5=GreenFlag, 6=FullCourseYellow, 8=FormationLap
+                    if (gamePhase == 5) lmuMask |= 0x0004; // green
+                    if (gamePhase == 6) lmuMask |= 0x0008; // yellow
+                    int flagColor = GetRaw<int>(pm, "Telemetry.mHighestFlagColor", "DataCorePlugin.GameRawData.");
+                    // 0=none, 1=green, 2=blue, 3=yellow, 5=black, 6=white
+                    if (flagColor == 2) lmuMask |= 0x0020; // blue
+                    if (flagColor == 3) lmuMask |= 0x0008; // yellow
+                    if (flagColor == 5) lmuMask |= 0x00010000; // black
+                    if (flagColor == 6) lmuMask |= 0x0002; // white
+                    return lmuMask;
                 case GameId.IRacing:
                 default:
                     return GetRaw<int>(pm, "SessionFlags");
@@ -603,8 +774,14 @@ namespace K10MediaBroadcaster.Plugin.Engine
             switch (game)
             {
                 case GameId.ACC:
+                case GameId.ACEvo:
                     // ACC doesn't expose incident count directly; use penalties as proxy
                     return GetRaw<int>(pm, "Graphics.Penalties", "DataCorePlugin.GameRawData.");
+                // Fix #11: Non-iRacing incident counts
+                case GameId.RaceRoom:
+                    return GetRaw<int>(pm, "CutTrackWarnings", "DataCorePlugin.GameRawData.");
+                case GameId.LMU:
+                    return GetRaw<int>(pm, "Scoring.mNumPenalties", "DataCorePlugin.GameRawData.");
                 case GameId.IRacing:
                 default:
                     return GetRaw<int>(pm, "PlayerCarMyIncidentCount");

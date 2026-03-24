@@ -946,6 +946,7 @@ namespace K10MediaBroadcaster.Plugin
                     double sessionElapsed = s.LapCurrentTime + s.CompletedLaps * avgLap;
                     Jp(sb, "DataCorePlugin.GameData.SessionTimeSpan", sessionElapsed, ic);
                     Jp(sb, "DataCorePlugin.GameData.RemainingTime", s.SessionTimeRemain, ic);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.SessionLapsRemaining", s.SessionLapsRemaining);
                     Jp(sb, "DataCorePlugin.GameData.TotalLaps", 0);  // populated from game data when available
                     Jp(sb, "DataCorePlugin.GameData.CarModel", Escape(s.CarModel ?? ""));
                     Jp(sb, "IRacingExtraProperties.iRacing_DriverInfo_IRating", s.IRating);

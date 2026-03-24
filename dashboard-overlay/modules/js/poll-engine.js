@@ -185,10 +185,19 @@
 
     const fuelPerLap = _demo ? (+v('K10MediaBroadcaster.Plugin.Demo.FuelPerLap') || 0) : (+v('DataCorePlugin.Computed.Fuel_LitersPerLap') || 0);
     const fuelLapsEst = +(p[dsPre + 'FuelLapsRemaining']) || (fuelPerLap > 0 ? fuel / fuelPerLap : 0);
+    const completedLaps = +(p[dsPre + 'CompletedLaps']) || 0;
     const fuelVals = document.querySelectorAll('.fuel-stats .val');
     if (fuelVals.length >= 2) {
-      fuelVals[0].textContent = fuelPerLap > 0 ? fuelPerLap.toFixed(2) : '—';
-      fuelVals[1].textContent = fuelLapsEst > 0 ? fuelLapsEst.toFixed(1) : '—';
+      // Fix #10: Show "calculating..." during lap 1 when fuelPerLap hasn't stabilized yet
+      if (fuelPerLap > 0) {
+        fuelVals[0].textContent = fuelPerLap.toFixed(2);
+      } else if (completedLaps < 2 && fuel > 0) {
+        fuelVals[0].textContent = 'calc...';
+      } else {
+        fuelVals[0].textContent = '—';
+      }
+      // Fix #10: Show "—" instead of "0" when fuelPerLap is 0 (no data yet)
+      fuelVals[1].textContent = fuelLapsEst > 0.1 ? fuelLapsEst.toFixed(1) : '—';
     }
     const pitSug = document.querySelector('.fuel-pit-suggest');
     if (pitSug) {
@@ -435,14 +444,19 @@
     updateSRPie(sr);
 
     // ─── Estimated iRating Delta ───
-    const irDelta = +(p[dsPre + 'EstimatedIRatingDelta']) || 0;
+    // Fix #3: Server sends int.MinValue (-2147483648) as sentinel for "no data".
+    // Distinguish that from an actual delta of 0 (perfectly average finish).
+    const irDeltaRaw = +(p[dsPre + 'EstimatedIRatingDelta']);
+    const IR_NO_DATA = -2147483648;
+    const irDeltaHasData = !isNaN(irDeltaRaw) && irDeltaRaw !== IR_NO_DATA;
+    const irDelta = irDeltaHasData ? irDeltaRaw : 0;
     window._lastIRDelta = irDelta; // expose for driver profile modal
     const ratDeltas = document.querySelectorAll('.rating-delta');
     if (ratDeltas.length >= 1) {
       const el = ratDeltas[0];
-      if (irDelta !== 0 && ir > 0) {
+      if (irDeltaHasData && ir > 0) {
         el.textContent = (irDelta > 0 ? '+' : '') + irDelta;
-        el.className = 'rating-delta ' + (irDelta > 0 ? 'positive' : 'negative');
+        el.className = 'rating-delta ' + (irDelta > 0 ? 'positive' : irDelta < 0 ? 'negative' : 'neutral');
       } else {
         el.textContent = '—';
         el.className = 'rating-delta';

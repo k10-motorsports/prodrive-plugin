@@ -67,6 +67,8 @@ namespace K10MediaBroadcaster.Plugin.Engine
         public double LapLastTime       { get; set; }
         public double LapBestTime       { get; set; }
         public double SessionTimeRemain { get; set; }
+        /// <summary>Laps remaining in session (iRacing SessionLapsRemainEx, avoids off-by-one).</summary>
+        public int    SessionLapsRemaining { get; set; }
 
         // ── World-space velocity (for track map dead reckoning) ──────────────
         // iRacing: VelocityX (lateral, car-local), VelocityZ (forward, car-local)
