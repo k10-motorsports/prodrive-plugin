@@ -43,13 +43,15 @@
       c.style.display = webglOn ? '' : 'none';
     });
 
-    // Ambient light toggle — start/stop screen capture + glow + glass reflections
-    document.body.classList.toggle('ambient-off', _settings.showAmbientLight === false);
-    if (_settings.showAmbientLight !== false) {
-      if (typeof window.startAmbientLight === 'function') window.startAmbientLight();
-    } else {
-      if (typeof window.stopAmbientLight === 'function') window.stopAmbientLight();
+    // Ambient light mode — migrate legacy boolean to 3-way string
+    if (typeof _settings.showAmbientLight === 'boolean') {
+      _settings.ambientMode = _settings.showAmbientLight ? 'reflective' : 'off';
+      delete _settings.showAmbientLight;
     }
+    const ambMode = _settings.ambientMode || 'reflective';
+    if (typeof applyAmbientMode === 'function') applyAmbientMode(ambMode);
+    const ambSel = document.getElementById('settingsAmbientMode');
+    if (ambSel) ambSel.value = ambMode;
     // Restore saved capture region and send to main process
     if (typeof window.restoreAmbientCapture === 'function') window.restoreAmbientCapture();
 

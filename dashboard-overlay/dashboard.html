@@ -157,23 +157,6 @@
       </div>
       <div class="panel pedals-area" id="pedalsArea">
         <canvas class="gl-overlay" id="pedalsGlCanvas"></canvas>
-        <div class="pedal-labels-row">
-          <div class="pedal-label-group">
-            <div class="pedal-channel-label throttle">THROTTLE</div>
-            <div class="pedal-pct" style="color:var(--green);">0%</div>
-          </div>
-          <div class="pedal-label-group">
-            <div class="pedal-channel-label brake">BRAKE</div>
-            <div class="pedal-pct" style="color:var(--red);">0%</div>
-          </div>
-          <div class="pedal-label-group" id="clutchLabelGroup">
-            <div class="pedal-channel-label clutch">CLUTCH</div>
-            <div class="pedal-pct" style="color:var(--blue);">0%</div>
-          </div>
-        </div>
-        <div class="pedal-viz-stack">
-          <!-- Histograms + trace rendered in WebGL via pedalsGlCanvas -->
-        </div>
       </div>
     </div>
 
@@ -820,8 +803,14 @@
       <div class="settings-row"><span class="settings-label">Car Manufacturer</span><div class="settings-toggle on" data-section="carLogoSquare" data-key="showCarLogo" onclick="toggleSetting(this)"></div></div>
       <div class="settings-row"><span class="settings-label">Game Logo</span><div class="settings-toggle on" data-key="showGameLogo" onclick="toggleGameLogo(this)"></div></div>
       <div class="settings-row"><span class="settings-label">WebGL Effects</span><div class="settings-toggle on" data-key="showWebGL" onclick="toggleWebGL(this)"></div></div>
-      <div class="settings-row"><span class="settings-label">Ambient Light</span><div class="settings-toggle on" data-key="showAmbientLight" id="ambientLightToggle" onclick="toggleAmbientLight(this)"></div></div>
-      <div class="settings-hint">Ambient glare + glass reflections on panels</div>
+      <div class="settings-row"><span class="settings-label">Ambient Light</span>
+        <select class="settings-select" id="settingsAmbientMode" onchange="updateAmbientMode(this.value)">
+          <option value="reflective">Reflective</option>
+          <option value="matte">Matte</option>
+          <option value="off">Off</option>
+        </select>
+      </div>
+      <div class="settings-hint">Reflective = full glare, Matte = subtle, Off = none</div>
       <div class="settings-row"><span class="settings-label">Capture Area</span><button class="settings-btn" id="btnSetCaptureArea" onclick="startCaptureAreaSelection()">Draw Region</button></div>
       <div class="settings-hint">Draw a screen region to sample ambient color from</div>
       <div class="ambient-preview-container" id="ambientPreviewContainer">

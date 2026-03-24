@@ -103,6 +103,18 @@
   transition: opacity 400ms ease;
 }
 
+/* ── Matte mode: glass reflections at 50% ── */
+body.ambient-matte .panel::after,
+body.ambient-matte .tacho-block::after,
+body.ambient-matte .commentary-inner::after,
+body.ambient-matte .leaderboard-panel::after,
+body.ambient-matte .datastream-panel::after,
+body.ambient-matte .pitbox-panel::after,
+body.ambient-matte .incidents-panel::after,
+body.ambient-matte .spotter-panel::after {
+  opacity: calc((0.25 + var(--ambient-lum) * 0.35) * 0.5) !important;
+}
+
 /* ── Kill glass reflections when ambient is off ── */
 body.ambient-off .panel::after,
 body.ambient-off .tacho-block::after,

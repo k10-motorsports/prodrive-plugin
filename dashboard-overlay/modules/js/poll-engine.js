@@ -160,15 +160,8 @@
     }
 
     if (_pollFrame % 2 === 0) {
-      // Level meter bars are driven directly by uThr/uBrk/uClt uniforms in WebGL.
-      // Update trace (function in webgl-helpers manages circular buffer + WebGL upload)
+      // Update trace circular buffer + WebGL texture
       renderPedalTrace(thr, brk, _clutchHidden ? 0 : clt);
-    }
-    const pcts = document.querySelectorAll('.pedal-pct');
-    if (pcts.length >= 3) {
-      pcts[0].textContent = (Math.round(thr * 100) | 0) + '%';
-      pcts[1].textContent = (Math.round(brk * 100) | 0) + '%';
-      pcts[2].textContent = (Math.round(clt * 100) | 0) + '%';
     }
 
     // ─── WebGL FX update ───

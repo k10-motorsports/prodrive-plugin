@@ -292,19 +292,26 @@
     saveSettings();
   }
 
-  function toggleAmbientLight(el) {
-    const isOn = el.classList.contains('on');
-    const newVal = !isOn;
-    el.classList.toggle('on', newVal);
-    _settings.showAmbientLight = newVal;
-    // Toggle body class — hides glare canvas + glass reflections via CSS
-    document.body.classList.toggle('ambient-off', !newVal);
-    if (newVal) {
-      if (typeof window.startAmbientLight === 'function') window.startAmbientLight();
-    } else {
-      if (typeof window.stopAmbientLight === 'function') window.stopAmbientLight();
-    }
+  function updateAmbientMode(mode) {
+    _settings.ambientMode = mode;
+    // Migrate legacy boolean → new mode
+    delete _settings.showAmbientLight;
+    applyAmbientMode(mode);
     saveSettings();
+  }
+
+  function applyAmbientMode(mode) {
+    const body = document.body;
+    body.classList.remove('ambient-off', 'ambient-matte');
+    if (mode === 'off') {
+      body.classList.add('ambient-off');
+      if (typeof window.stopAmbientLight === 'function') window.stopAmbientLight();
+    } else {
+      if (mode === 'matte') body.classList.add('ambient-matte');
+      if (typeof window.startAmbientLight === 'function') window.startAmbientLight();
+    }
+    // Expose mode for WebGL shader: 0=off, 1=matte, 2=reflective
+    window._ambientModeInt = mode === 'off' ? 0 : mode === 'matte' ? 1 : 2;
   }
 
   function toggleBonkers(el) {

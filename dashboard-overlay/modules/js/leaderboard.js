@@ -269,11 +269,18 @@
 
   // Called by pollUpdate when we get real data — suppresses offline demo
   function _markLbLive() {
+    const wasOffline = !_lbHasLiveData && _offlineLbTimer;
     _lbHasLiveData = true;
     // Kill offline demo if it was running
     if (_offlineLbTimer) {
       clearInterval(_offlineLbTimer);
       _offlineLbTimer = null;
+    }
+    // Clear stale demo rows so they don't persist when real data has no leaderboard
+    if (wasOffline) {
+      const c = document.getElementById('lbRows');
+      if (c) c.innerHTML = '';
+      _lbLastJson = '';
     }
   }
 

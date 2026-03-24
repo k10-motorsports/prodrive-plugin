@@ -1,7 +1,7 @@
 // Datastream renderer
 
   // ═══════════════════════════════════════════════════════════════
-  //  DATASTREAM RENDERER
+  //  DATASTREAM RENDERER  (optimised)
   // ═══════════════════════════════════════════════════════════════
 
   const _dsCanvas = document.getElementById('dsGforceCanvas');
@@ -22,6 +22,34 @@
   const _yawTrailCanvas = document.getElementById('dsYawTrail');
   const _yawTrailCtx = _yawTrailCanvas ? _yawTrailCanvas.getContext('2d') : null;
 
+  // ── Cached DOM refs (avoid per-frame getElementById) ──
+  const _elLatG       = document.getElementById('dsLatG');
+  const _elLongG      = document.getElementById('dsLongG');
+  const _elPeakG      = document.getElementById('dsPeakG');
+  const _elYawRate    = document.getElementById('dsYawRate');
+  const _elYawFill    = document.getElementById('dsYawFill');
+  const _elSteerTorque = document.getElementById('dsSteerTorque');
+  const _elDelta      = document.getElementById('dsDelta');
+  const _elTrackTemp  = document.getElementById('dsTrackTemp');
+  const _elCtrlABS    = document.getElementById('ctrlABS');
+  const _elCtrlTC     = document.getElementById('ctrlTC');
+
+  // ── Cached gradients for yaw trail (reused when canvas size unchanged) ──
+  let _yawCacheW = 0, _yawCacheH = 0, _yawCacheHue = -1;
+  let _yawFillGrad = null, _yawStrokeGrad = null;
+
+  // ── DPR-aware G-force canvas init (set once, not every frame) ──
+  let _dsCanvasReady = false;
+  const _dsCssW = 64, _dsCssH = 64;
+
+  function _ensureGforceCanvas() {
+    if (_dsCanvasReady || !_dsCanvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    _dsCanvas.width  = _dsCssW * dpr;
+    _dsCanvas.height = _dsCssH * dpr;
+    _dsCanvasReady = true;
+  }
+
   function renderYawTrail(yawRate) {
     // Store sample
     _yawTrail[_yawTrailIdx] = yawRate;
@@ -39,6 +67,22 @@
 
     const maxYaw = 1.5; // max expected yaw rate
     const mid = h / 2;
+    const absYaw = Math.abs(yawRate);
+    const hue = Math.max(0, 210 - absYaw * 120) | 0;
+
+    // Rebuild gradients only when canvas size or hue changes
+    const hueI = hue;
+    if (w !== _yawCacheW || h !== _yawCacheH || hueI !== _yawCacheHue) {
+      _yawCacheW = w; _yawCacheH = h; _yawCacheHue = hueI;
+      _yawFillGrad = ctx.createLinearGradient(0, 0, w, 0);
+      _yawFillGrad.addColorStop(0,   `hsla(${hue}, 60%, 50%, 0.02)`);
+      _yawFillGrad.addColorStop(0.7, `hsla(${hue}, 65%, 50%, 0.15)`);
+      _yawFillGrad.addColorStop(1,   `hsla(${hue}, 70%, 55%, 0.35)`);
+      _yawStrokeGrad = ctx.createLinearGradient(0, 0, w, 0);
+      _yawStrokeGrad.addColorStop(0,   `hsla(${hue}, 60%, 55%, 0.05)`);
+      _yawStrokeGrad.addColorStop(0.8, `hsla(${hue}, 70%, 55%, 0.3)`);
+      _yawStrokeGrad.addColorStop(1,   `hsla(${hue}, 75%, 60%, 0.6)`);
+    }
 
     // Draw filled waveform — left=oldest, right=newest
     ctx.beginPath();
@@ -48,21 +92,12 @@
       const x = (i / (count - 1)) * w;
       const val = _yawTrail[idx];
       const y = mid - (val / maxYaw) * (mid - 2);
-      if (i === 0) ctx.lineTo(x, y);
-      else ctx.lineTo(x, y);
+      ctx.lineTo(x, y);
     }
     // Close to baseline on right, sweep back along baseline
     ctx.lineTo(w, mid);
     ctx.closePath();
-
-    // Gradient fill: newest edge is bright, oldest fades out
-    const grad = ctx.createLinearGradient(0, 0, w, 0);
-    const absYaw = Math.abs(yawRate);
-    const hue = Math.max(0, 210 - absYaw * 120);
-    grad.addColorStop(0, `hsla(${hue}, 60%, 50%, 0.02)`);
-    grad.addColorStop(0.7, `hsla(${hue}, 65%, 50%, 0.15)`);
-    grad.addColorStop(1, `hsla(${hue}, 70%, 55%, 0.35)`);
-    ctx.fillStyle = grad;
+    ctx.fillStyle = _yawFillGrad;
     ctx.fill();
 
     // Stroke the waveform line
@@ -75,11 +110,7 @@
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
-    const strokeGrad = ctx.createLinearGradient(0, 0, w, 0);
-    strokeGrad.addColorStop(0, `hsla(${hue}, 60%, 55%, 0.05)`);
-    strokeGrad.addColorStop(0.8, `hsla(${hue}, 70%, 55%, 0.3)`);
-    strokeGrad.addColorStop(1, `hsla(${hue}, 75%, 60%, 0.6)`);
-    ctx.strokeStyle = strokeGrad;
+    ctx.strokeStyle = _yawStrokeGrad;
     ctx.lineWidth = 1.2;
     ctx.stroke();
 
@@ -96,26 +127,26 @@
   let _dsPrevIncidents = -1;
   let _dsPrevDeltaSign = 0;  // -1, 0, 1
 
-  function dsFlash(id) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.classList.remove('ds-flash');
-    void el.offsetWidth;
-    el.classList.add('ds-flash');
+  // ── Flash via Web Animations API (no forced reflow) ──
+  function dsFlash(el) {
+    if (!el || !el.animate) return;
+    el.animate([
+      { opacity: 1, filter: 'brightness(2)' },
+      { opacity: 1, filter: 'brightness(1)' }
+    ], { duration: 300, easing: 'ease-out' });
   }
 
   function drawGforceDiamond(latG, longG) {
     if (!_dsCtx) return;
+    _ensureGforceCanvas();
     const c = _dsCanvas;
     const dpr = window.devicePixelRatio || 1;
-    const cssW = 64, cssH = 64;
-    c.width = cssW * dpr;
-    c.height = cssH * dpr;
     const ctx = _dsCtx;
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, cssW, cssH);
+    // Clear without resetting canvas dimensions (preserves state)
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, _dsCssW, _dsCssH);
 
-    const cx = cssW / 2, cy = cssH / 2;
+    const cx = _dsCssW / 2, cy = _dsCssH / 2;
     const maxG = 3.0;  // full scale
     const r = 28;       // diamond radius in px
 
@@ -183,18 +214,14 @@
 
     if (distanceFactor > 1) {
       isClamped = true;
-      // How far past the boundary (0 to infinity, where 1 = at boundary)
       clampRatio = Math.min((distanceFactor - 1) / (distanceFactor - 1), 1);
 
       // Project to nearest point on diamond edge
-      // Scale the vector from center toward the dot to land on the boundary
       const signX = dotX >= cx ? 1 : -1;
       const signY = dotY >= cy ? 1 : -1;
       dotX = cx + signX * (r * Math.abs(dotX - cx)) / (dx + dy);
       dotY = cy - signY * (r * Math.abs(dotY - cy)) / (dx + dy);
 
-      // Clamp to actual boundary more precisely
-      // Recalculate to ensure we're exactly on the edge
       const newDx = Math.abs(dotX - cx);
       const newDy = Math.abs(dotY - cy);
       const scale = 1 / ((newDx + newDy) / r);
@@ -207,21 +234,12 @@
     // Dot color: blue at low G, shifts toward red/orange at high G
     const hue = Math.max(0, 210 - totalG * 50);
     let lum = 55 + totalG * 5;
-
-    // When clamped, boost luminosity by up to 20%
-    if (isClamped) {
-      lum = Math.min(lum + 20, 95);
-    }
+    if (isClamped) lum = Math.min(lum + 20, 95);
 
     ctx.fillStyle = `hsl(${hue},70%,${lum}%)`;
     ctx.beginPath();
-
-    // Dot radius: 2.5 base, up to 5.0 when clamped
     let dotRadius = 2.5;
-    if (isClamped) {
-      dotRadius = 2.5 + (5.0 - 2.5) * clampRatio;
-    }
-
+    if (isClamped) dotRadius = 2.5 + (5.0 - 2.5) * clampRatio;
     ctx.arc(dotX, dotY, dotRadius, 0, Math.PI * 2);
     ctx.fill();
 
@@ -232,7 +250,13 @@
     ctx.fill();
   }
 
+  // ── Visibility gate: skip rendering when datastream panel is hidden ──
+  const _dsPanel = document.getElementById('datastreamArea') || ((_dsCanvas) ? _dsCanvas.closest('.panel') : null);
+
   function updateDatastream(p, isDemo) {
+    // Skip entirely if panel is not visible
+    if (_dsPanel && _dsPanel.offsetParent === null) return;
+
     const pre = isDemo ? 'K10MediaBroadcaster.Plugin.Demo.DS.' : 'K10MediaBroadcaster.Plugin.DS.';
     const vd = (key) => +p[pre + key] || 0;
 
@@ -250,80 +274,66 @@
     drawGforceDiamond(latG, longG);
 
     // Lat/Long G values
-    const latEl = document.getElementById('dsLatG');
-    const longEl = document.getElementById('dsLongG');
-    if (latEl) latEl.textContent = Math.abs(latG).toFixed(2) + 'g';
-    if (longEl) longEl.textContent = Math.abs(longG).toFixed(2) + 'g';
+    if (_elLatG) _elLatG.textContent = Math.abs(latG).toFixed(2) + 'g';
+    if (_elLongG) _elLongG.textContent = Math.abs(longG).toFixed(2) + 'g';
 
     // Peak G tracking
     const totalG = Math.sqrt(latG * latG + longG * longG);
     const wasNewPeak = totalG > _dsPeakG && _dsPeakG > 0;
     if (totalG > _dsPeakG) _dsPeakG = totalG;
-    const peakEl = document.getElementById('dsPeakG');
-    if (peakEl) { peakEl.textContent = _dsPeakG.toFixed(2) + 'g'; if (wasNewPeak) dsFlash('dsPeakG'); }
+    if (_elPeakG) { _elPeakG.textContent = _dsPeakG.toFixed(2) + 'g'; if (wasNewPeak) dsFlash(_elPeakG); }
 
     // Yaw rate
-    const yawEl = document.getElementById('dsYawRate');
-    if (yawEl) yawEl.textContent = Math.abs(yawRate).toFixed(2) + ' r/s';
+    if (_elYawRate) _elYawRate.textContent = Math.abs(yawRate).toFixed(2) + ' r/s';
 
     // Yaw bar (centered, extends left for negative, right for positive)
-    const yawFill = document.getElementById('dsYawFill');
-    if (yawFill) {
+    if (_elYawFill) {
       const maxYaw = 1.5;
       const pct = Math.min(Math.abs(yawRate) / maxYaw, 1.0) * 50;
-      if (yawRate >= 0) {
-        yawFill.style.left = '50%';
-        yawFill.style.width = pct + '%';
-      } else {
-        yawFill.style.left = (50 - pct) + '%';
-        yawFill.style.width = pct + '%';
-      }
-      // Color: blue for small, red for high yaw
       const yawHue = Math.max(0, 210 - Math.abs(yawRate) * 120);
-      yawFill.style.background = `hsla(${yawHue},70%,55%,0.7)`;
+      if (yawRate >= 0) {
+        _elYawFill.style.cssText = `left:50%;width:${pct}%;background:hsla(${yawHue},70%,55%,0.7)`;
+      } else {
+        _elYawFill.style.cssText = `left:${50 - pct}%;width:${pct}%;background:hsla(${yawHue},70%,55%,0.7)`;
+      }
     }
 
     // Yaw trail waveform
     renderYawTrail(yawRate);
 
     // Steering torque
-    const ffbEl = document.getElementById('dsSteerTorque');
-    if (ffbEl) ffbEl.textContent = steerTorque.toFixed(1) + ' Nm';
+    if (_elSteerTorque) _elSteerTorque.textContent = steerTorque.toFixed(1) + ' Nm';
 
     // Lap delta
-    const deltaEl = document.getElementById('dsDelta');
-    if (deltaEl) {
+    if (_elDelta) {
       const sign = lapDelta >= 0 ? '+' : '';
-      deltaEl.textContent = sign + lapDelta.toFixed(3);
-      deltaEl.classList.remove('ds-positive', 'ds-negative', 'ds-neutral');
-      if (lapDelta > 0.05) deltaEl.classList.add('ds-positive');
-      else if (lapDelta < -0.05) deltaEl.classList.add('ds-negative');
-      else deltaEl.classList.add('ds-neutral');
+      _elDelta.textContent = sign + lapDelta.toFixed(3);
+      _elDelta.classList.remove('ds-positive', 'ds-negative', 'ds-neutral');
+      if (lapDelta > 0.05) _elDelta.classList.add('ds-positive');
+      else if (lapDelta < -0.05) _elDelta.classList.add('ds-negative');
+      else _elDelta.classList.add('ds-neutral');
       // Flash on sign change
       const curSign = lapDelta > 0.05 ? 1 : lapDelta < -0.05 ? -1 : 0;
-      if (_dsPrevDeltaSign !== 0 && curSign !== 0 && curSign !== _dsPrevDeltaSign) dsFlash('dsDelta');
+      if (_dsPrevDeltaSign !== 0 && curSign !== 0 && curSign !== _dsPrevDeltaSign) dsFlash(_elDelta);
       if (curSign !== 0) _dsPrevDeltaSign = curSign;
     }
 
     // Track temp
-    const tempEl = document.getElementById('dsTrackTemp');
-    if (tempEl) {
-      tempEl.textContent = trackTemp > 0 ? trackTemp.toFixed(1) + '°C' : '—°C';
-      if (_dsPrevTrackTemp > 0 && Math.abs(trackTemp - _dsPrevTrackTemp) > 0.3) dsFlash('dsTrackTemp');
+    if (_elTrackTemp) {
+      _elTrackTemp.textContent = trackTemp > 0 ? trackTemp.toFixed(1) + '°C' : '—°C';
+      if (_dsPrevTrackTemp > 0 && Math.abs(trackTemp - _dsPrevTrackTemp) > 0.3) dsFlash(_elTrackTemp);
       _dsPrevTrackTemp = trackTemp;
     }
 
     // ABS/TC activity → glow on adjustments module bars
     if (absActive) _dsAbsFlash = 8;
     if (tcActive) _dsTcFlash = 8;
-    const absCtrl = document.getElementById('ctrlABS');
-    const tcCtrl = document.getElementById('ctrlTC');
-    if (absCtrl) {
-      absCtrl.classList.toggle('ctrl-active', _dsAbsFlash > 0);
+    if (_elCtrlABS) {
+      _elCtrlABS.classList.toggle('ctrl-active', _dsAbsFlash > 0);
       if (_dsAbsFlash > 0) _dsAbsFlash--;
     }
-    if (tcCtrl) {
-      tcCtrl.classList.toggle('ctrl-active', _dsTcFlash > 0);
+    if (_elCtrlTC) {
+      _elCtrlTC.classList.toggle('ctrl-active', _dsTcFlash > 0);
       if (_dsTcFlash > 0) _dsTcFlash--;
     }
   }

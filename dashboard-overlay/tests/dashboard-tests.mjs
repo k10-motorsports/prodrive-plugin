@@ -62,10 +62,9 @@ test.describe('Page structure', () => {
     await expect(segs).toHaveCount(11);
   });
 
-  test('pedal level meters rendered via WebGL', async ({ page }) => {
+  test('pedal rolling histogram rendered via WebGL', async ({ page }) => {
     await load(page);
-    // Level meter bars + trace are drawn by the pedals WebGL shader.
-    // Verify the WebGL FX frame function is exposed.
+    // Rolling bar histogram is drawn by the pedals WebGL shader.
     const hasFn = await page.evaluate(() => typeof window._pedalsFXFrame === 'function');
     expect(hasFn).toBeTruthy();
   });
@@ -203,12 +202,11 @@ test.describe('Telemetry rendering', () => {
     await expect(irs.nth(1)).toHaveText('2530 iR');
   });
 
-  test('pedal percentages display', async ({ page }) => {
+  test('pedal area has no text labels (full-graphics mode)', async ({ page }) => {
     await load(page);
-    const pcts = page.locator('.pedal-pct');
-    await expect(pcts.nth(0)).toHaveText('82%');
-    await expect(pcts.nth(1)).toHaveText('0%');
-    await expect(pcts.nth(2)).toHaveText('0%');
+    // Pedal labels + percentages removed; module is fully graphics
+    const labels = page.locator('.pedal-pct');
+    await expect(labels).toHaveCount(0);
   });
 });
 

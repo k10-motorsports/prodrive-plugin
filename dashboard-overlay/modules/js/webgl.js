@@ -218,7 +218,13 @@
     }
 
     /* ════════════════════════════════════════════
-       PEDAL HISTOGRAM FX — additive glow + energy
+       PEDAL HISTOGRAM — rolling bar history with LED glow
+       ════════════════════════════════════════════
+       Design: Throttle bars scroll from right, brake from left.
+       They meet & overlay in the center when both are pressed.
+       Each bar = one trace sample, height = pedal value.
+       Tacho-style LED glow: convex gradient, bloom, subtle pulse.
+       Edge lights respond to pedal input.
        ════════════════════════════════════════════ */
     const pedalsCtx = initGL('pedalsGlCanvas');
     let _pedalValues = { thr: 0, brk: 0, clt: 0 };
@@ -235,264 +241,325 @@
           gl_Position = vec4(aPos, 0.0, 1.0);
         }`;
 
-      // ═══ COMBINED HISTOGRAM + TRACE + EDGE-GLOW SHADER ═══
-      // Renders:
-      //   Layer 1 (z1): Throttle histogram bars  — left-to-right, green, 0.54 opacity
-      //   Layer 2 (z2): Brake histogram bars     — right-to-left (reversed), red, 0.66 opacity
-      //   Layer 3 (z3): Clutch histogram bars    — left-to-right, blue, 0.54 opacity
-      //   Layer 4 (z4): Pedal trace waveforms    — gradient-faded lines with glow dots
-      //   Layer 5 (z5): Edge glow FX             — pedal-driven edge lighting
-      //
-      // Histogram data: 64-wide data texture, rows 0-2 = thr/brk/clt (20 bars each)
-      // Trace data:     128-wide data texture, rows 0-2 = thr/brk/clt (120 samples)
+      // ═══ ROLLING PEDAL HISTOGRAM SHADER ═══
       const pedalsFS = `#version 300 es
         precision highp float;
         in vec2 vUV;
         out vec4 fragColor;
 
-        uniform float uThr;        // live pedal values 0-1
+        uniform float uThr;        // live pedal 0-1
         uniform float uBrk;
         uniform float uClt;
         uniform float uTime;
-        uniform vec2  uRes;
+        uniform vec2  uRes;        // canvas pixel size
         uniform float uDPR;
         uniform int   uClutchHidden;
-        uniform vec4  uHistRect; // viz-stack rect in UV space (x, y, w, h)
-        uniform vec2  uVizRes;   // viz-stack pixel dimensions
 
-        // Trace data texture: 128×4, R channel = sample value 0-1
-        // Row 0 = throttle, row 1 = brake, row 2 = clutch
+        // Trace data: 128×4 R32F, row 0=thr, 1=brk, 2=clt (120 samples circular)
         uniform sampler2D uTraceTex;
-        uniform int   uTraceCount;  // number of valid trace samples (up to 120)
-        uniform int   uTraceIdx;    // write head position in circular buffer
+        uniform int   uTraceCount;
+        uniform int   uTraceIdx;
 
-        // ── Constants matching CSS ──
-        const int HIST_BARS = 20;
-        const float BAR_GAP = 1.0;         // 1px gap between bars
-        const vec3 COL_THR = vec3(0.263, 0.627, 0.278);   // #43a047
-        const vec3 COL_BRK = vec3(0.898, 0.224, 0.208);   // #e53935
-        const vec3 COL_CLT = vec3(0.118, 0.533, 0.898);   // #1e88e5
+        const int   SAMPLES   = 120;
+        const float BAR_GAP   = 1.0;    // 1px gap between bars
+        const float BAR_RAD   = 1.5;    // rounded top radius in px
 
-        // ── Level meter bar layer (like rev bars) ──
-        // pedalVal: 0-1 current pedal input
-        // direction: 0 = left-to-right (brake), 1 = right-to-left (throttle)
-        vec4 histLayer(vec2 uv, float pedalVal, vec3 color, float baseAlpha, int direction) {
-          float pxW = uVizRes.x;
-          float pxH = uVizRes.y;
+        // LED bar colors — matched to tacho style
+        const vec3 COL_THR_HI  = vec3(0.45, 0.92, 0.40);  // bright green LED
+        const vec3 COL_THR_LO  = vec3(0.12, 0.52, 0.18);  // dark green
+        const vec3 COL_BRK_HI  = vec3(0.95, 0.30, 0.22);  // bright red LED
+        const vec3 COL_BRK_LO  = vec3(0.55, 0.10, 0.08);  // dark red
+        const vec3 COL_CLT_HI  = vec3(0.35, 0.65, 0.95);  // bright blue LED
+        const vec3 COL_CLT_LO  = vec3(0.10, 0.30, 0.60);  // dark blue
 
-          // How many bars are lit
-          int litCount = int(round(pedalVal * float(HIST_BARS)));
-
-          // Bar layout: even width with 1px gaps
-          float totalGap = float(HIST_BARS - 1) * BAR_GAP;
-          float barW = (pxW - totalGap) / float(HIST_BARS);
-
-          // Pixel x in fill direction
-          float px = uv.x * pxW;
-          if (direction == 1) px = pxW - px; // reverse for throttle
-
-          // Find which bar this pixel is in
-          float cursor = 0.0;
-          for (int i = 0; i < HIST_BARS; i++) {
-            float barStart = cursor;
-            float barEnd = cursor + barW;
-
-            if (px >= barStart && px < barEnd) {
-              // Bar present? Full height if lit, 2px stub if dim
-              bool lit = (i < litCount);
-              float barH = lit ? 1.0 : (2.0 / pxH);
-              float barY = 1.0 - uv.y; // 0 at bottom, 1 at top
-              if (barY > barH) return vec4(0.0);
-
-              // Rounded top corners (1px radius)
-              float radius = 1.0;
-              float topDist = (barH * pxH) - (barY * pxH);
-              float xCenter = (barStart + barEnd) * 0.5;
-              float edgeDist = (barW * 0.5) - abs(px - xCenter);
-              if (topDist < radius && edgeDist < radius) {
-                float dx = radius - edgeDist;
-                float dy = radius - topDist;
-                if (dx * dx + dy * dy > radius * radius) {
-                  return vec4(0.0);
-                }
-              }
-
-              float a = lit ? baseAlpha : 0.12;
-              return vec4(color, a);
-            }
-            cursor = barEnd + BAR_GAP;
-          }
-          return vec4(0.0);
+        // Noise for shimmer
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
         }
 
-        // ── Pedal trace ──
-        // Smooth waveform line with gradient fade from left (old) to right (new)
-        vec4 traceLayer(vec2 uv) {
-          if (uTraceCount < 3) return vec4(0.0);
+        // ── Single rolling bar layer ──
+        // direction: 0 = scroll from right (newest at right edge)
+        //            1 = scroll from left  (newest at left edge)
+        vec4 barLayer(vec2 uv, int channel, int direction, vec3 colHi, vec3 colLo,
+                      float baseAlpha, float liveVal) {
+          if (uTraceCount < 2) return vec4(0.0);
+          int count = min(uTraceCount, SAMPLES);
 
-          int count = min(uTraceCount, 120);
-          vec3 colors[3];
-          colors[0] = vec3(0.298, 0.686, 0.314);   // trace green (76,175,80)/255
-          colors[1] = vec3(0.957, 0.263, 0.212);    // trace red   (244,67,54)/255
-          colors[2] = vec3(0.259, 0.647, 0.961);    // trace blue  (66,165,245)/255
+          float pxW = uRes.x;
+          float pxH = uRes.y;
 
-          vec3 col = vec3(0.0);
-          float alpha = 0.0;
+          // Total width in pixels available for bars
+          float totalGap = float(count - 1) * BAR_GAP;
+          float barW = max(1.0, (pxW - totalGap) / float(count));
 
-          float pxW = uVizRes.x;
-          float pxH = uVizRes.y;
-          float lineW = 1.5; // line width in pixels
+          // Which pixel column are we in?
+          float px = (direction == 0) ? uv.x * pxW : (1.0 - uv.x) * pxW;
 
-          for (int ch = 0; ch < 3; ch++) {
-            if (ch == 2 && uClutchHidden == 1) continue;
+          // Find bar index
+          float stride = barW + BAR_GAP;
+          int barIdx = int(floor(px / stride));
+          if (barIdx < 0 || barIdx >= count) return vec4(0.0);
 
-            // Find the two samples bracketing this x position
-            float xNorm = uv.x; // 0 at left (oldest), 1 at right (newest)
-            float sampleF = xNorm * float(count - 1);
-            int s0 = int(floor(sampleF));
-            int s1 = min(s0 + 1, count - 1);
-            float frac = fract(sampleF);
+          float barStart = float(barIdx) * stride;
+          float barEnd = barStart + barW;
+          if (px < barStart || px >= barEnd) return vec4(0.0); // in gap
 
-            // Map sample index to circular buffer position
-            int idx0 = (uTraceIdx - count + s0 + 120) % 120;
-            int idx1 = (uTraceIdx - count + s1 + 120) % 120;
-            if (idx0 < 0) idx0 += 120;
-            if (idx1 < 0) idx1 += 120;
+          // Map bar index to circular buffer: barIdx 0 = newest
+          int bufIdx = (uTraceIdx - 1 - barIdx + SAMPLES * 2) % SAMPLES;
+          float val = texelFetch(uTraceTex, ivec2(bufIdx, channel), 0).r;
 
-            float v0 = texelFetch(uTraceTex, ivec2(idx0, ch), 0).r;
-            float v1 = texelFetch(uTraceTex, ivec2(idx1, ch), 0).r;
-            float val = mix(v0, v1, frac);
+          if (val < 0.005) return vec4(0.0); // skip empty bars
 
-            // Y position of trace line (0 = bottom)
-            float lineY = val * (pxH - 2.0) + 1.0; // matches Canvas: h - val*(h-2) - 1
-            float pixelY = (1.0 - uv.y) * pxH;      // current pixel from bottom
-            float dist = abs(pixelY - lineY);
+          // Bar height
+          float barH = val; // 0-1 normalized
+          float barY = 1.0 - uv.y; // 0 at bottom, 1 at top
+          if (barY > barH) return vec4(0.0);
 
-            if (dist < lineW + 1.0) {
-              // Gradient opacity: fades from left to right
-              float fadeAlpha;
-              if (xNorm < 0.3) fadeAlpha = mix(0.0, 0.08, xNorm / 0.3);
-              else if (xNorm < 0.7) fadeAlpha = mix(0.08, 0.2, (xNorm - 0.3) / 0.4);
-              else fadeAlpha = mix(0.2, 0.45, (xNorm - 0.7) / 0.3);
-
-              float lineMask = smoothstep(lineW + 0.5, lineW - 0.5, dist);
-              float a = lineMask * fadeAlpha * 0.85; // 0.85 = CSS .pedal-trace-canvas opacity
-
-              col += colors[ch] * a;
-              alpha += a;
-            }
-
-            // Glow dot at leading edge (rightmost, newest sample)
-            if (xNorm > 0.98) {
-              int lastIdx = (uTraceIdx - 1 + 120) % 120;
-              if (lastIdx < 0) lastIdx += 120;
-              float lastVal = texelFetch(uTraceTex, ivec2(lastIdx, ch), 0).r;
-              if (lastVal > 0.02) {
-                float glowY = lastVal * (pxH - 2.0) + 1.0;
-                float glowX = pxW - 1.0;
-                float curPxX = uv.x * pxW;
-                float curPxY = (1.0 - uv.y) * pxH;
-                float gDist = length(vec2(curPxX - glowX, curPxY - glowY));
-                float glow = smoothstep(3.5, 0.0, gDist) * 0.6 * 0.85;
-                col += colors[ch] * glow;
-                alpha += glow;
-              }
-            }
+          // Rounded top corners
+          float topDist = (barH * pxH) - (barY * pxH);
+          float xCenter = (barStart + barEnd) * 0.5;
+          float edgeDist = (barW * 0.5) - abs(px - xCenter);
+          if (topDist < BAR_RAD && edgeDist < BAR_RAD) {
+            float dx = BAR_RAD - edgeDist;
+            float dy = BAR_RAD - topDist;
+            if (dx * dx + dy * dy > BAR_RAD * BAR_RAD) return vec4(0.0);
           }
 
-          return vec4(col, clamp(alpha, 0.0, 1.0));
+          // LED convex gradient: brighter at top, darker at base
+          float yRatio = barY / max(barH, 0.01);
+          vec3 barColor = mix(colLo, colHi, smoothstep(0.0, 0.7, yRatio));
+
+          // Subtle top highlight (convex surface reflection)
+          float highlight = smoothstep(0.85, 1.0, yRatio) * 0.3;
+          barColor += highlight;
+
+          // Age fade: newest bars (idx 0) bright, older bars dim
+          float age = float(barIdx) / float(count);
+          float ageFade = mix(1.0, 0.25, age * age);
+
+          // Spring animation: newest 3 bars have intensity overshoot
+          float spring = 1.0;
+          if (barIdx < 3) {
+            float t = float(3 - barIdx) / 3.0;
+            spring = 1.0 + t * 0.15 * sin(uTime * 12.0 + float(barIdx)) * liveVal;
+          }
+
+          float alpha = baseAlpha * ageFade * spring * val;
+          return vec4(barColor * alpha, alpha);
         }
 
-        // ── Edge glow FX (original pedal glow) ──
-        float pulse(float t, float speed, float base) {
-          return base + (1.0 - base) * (0.5 + 0.5 * sin(t * speed * 0.6));
+        // ── Bloom glow behind bars ──
+        vec4 bloomLayer(vec2 uv, int channel, int direction, vec3 colHi, float liveVal) {
+          if (liveVal < 0.02) return vec4(0.0);
+          float dprScale = max(uDPR, 1.0);
+          float dpr2 = dprScale * dprScale;
+
+          // Glow source: the edge where newest bars appear
+          float edgeX = (direction == 0) ? 1.0 : 0.0;
+          float distX = abs(uv.x - edgeX);
+          float spread = liveVal * 0.4;
+          float glow = exp(-distX * distX / max(spread * spread, 0.001)) * liveVal;
+
+          // Vertical: stronger at bottom where bars are taller
+          float vBias = smoothstep(1.0, 0.0, uv.y) * 0.7 + 0.3;
+          glow *= vBias;
+
+          // Pulse
+          float pulse = 0.85 + 0.15 * sin(uTime * (4.0 + liveVal * 3.0));
+          glow *= pulse * 0.5 * dpr2;
+
+          return vec4(colHi * glow, glow * 0.35);
         }
 
-        vec4 edgeGlowLayer(vec2 uv) {
+        // ── Edge lights: subtle glow at panel borders when pedals are pressed ──
+        vec4 edgeLightLayer(vec2 uv) {
           vec3 col = vec3(0.0);
           float alpha = 0.0;
           float dprScale = max(uDPR, 1.0);
           float dpr2 = dprScale * dprScale;
 
-          float rightEdge  = exp(-(1.0 - uv.x) * (16.0 / dpr2));
-          float leftEdge   = exp(-uv.x * (16.0 / dpr2));
-          float bottomEdge = exp(-uv.y * (14.0 / dpr2));
-          float topEdge    = exp(-(1.0 - uv.y) * (20.0 / dpr2));
+          float rightEdge  = exp(-(1.0 - uv.x) * (18.0 / dpr2));
+          float leftEdge   = exp(-uv.x * (18.0 / dpr2));
+          float bottomEdge = exp(-uv.y * (16.0 / dpr2));
+          float topEdge    = exp(-(1.0 - uv.y) * (22.0 / dpr2));
 
+          // Throttle: right + bottom edge (bars originate from right)
           if (uThr > 0.01) {
-            float p = pulse(uTime, 4.0 + uThr * 2.0, 0.88);
-            float edge = rightEdge + bottomEdge * 0.6 + topEdge * 0.2;
-            float glow = edge * uThr * p;
-            col += vec3(0.20, 1.0, 0.05) * glow * 0.9 * dpr2;
-            alpha += glow * 0.4 * dpr2;
+            float e = rightEdge + bottomEdge * 0.4 + topEdge * 0.15;
+            float g = e * uThr * (0.85 + 0.15 * sin(uTime * 5.0));
+            col += COL_THR_HI * g * 0.6 * dpr2;
+            alpha += g * 0.25 * dpr2;
           }
 
+          // Brake: left + bottom edge (bars originate from left)
           if (uBrk > 0.01) {
-            float p = pulse(uTime, 3.5 + uBrk * 2.5, 0.88);
-            float edge = leftEdge + bottomEdge * 0.25 + topEdge * 0.15;
-            float glow = edge * uBrk * p;
-            col += vec3(0.92, 0.22, 0.20) * glow * 0.35 * dpr2;
-            alpha += glow * 0.12 * dpr2;
+            float e = leftEdge + bottomEdge * 0.4 + topEdge * 0.15;
+            float g = e * uBrk * (0.85 + 0.15 * sin(uTime * 4.5));
+            col += COL_BRK_HI * g * 0.5 * dpr2;
+            alpha += g * 0.2 * dpr2;
           }
 
-          if (uClt > 0.01) {
-            float p = pulse(uTime, 3.5 + uClt * 2.0, 0.92);
-            float edge = rightEdge * 0.6 + bottomEdge * 0.25;
-            float glow = edge * uClt * p;
-            col += vec3(0.25, 0.50, 0.92) * glow * 0.14 * dpr2;
-            alpha += glow * 0.05 * dpr2;
+          // Clutch: subtle bottom edge
+          if (uClt > 0.01 && uClutchHidden == 0) {
+            float e = bottomEdge * 0.5 + topEdge * 0.1;
+            float g = e * uClt * 0.9;
+            col += COL_CLT_HI * g * 0.25 * dpr2;
+            alpha += g * 0.08 * dpr2;
           }
 
-          float maxAlpha = dprScale > 1.1 ? 0.75 : 0.65;
-          alpha = clamp(alpha, 0.0, maxAlpha);
+          alpha = clamp(alpha, 0.0, 0.65);
           return vec4(col * alpha, alpha);
+        }
+
+        // ── Trace waveform lines: bright colored lines on top of bars ──
+        vec4 traceLayer(vec2 uv, int channel, int direction, vec3 col, float liveVal) {
+          if (uTraceCount < 4) return vec4(0.0);
+          int count = min(uTraceCount, SAMPLES);
+
+          float pxW = uRes.x;
+          float pxH = uRes.y;
+          float lineThick = 2.0;  // line thickness in pixels
+
+          // Walk through samples and find the two bracketing the current x
+          float px = (direction == 0) ? uv.x * pxW : (1.0 - uv.x) * pxW;
+          float stride = pxW / float(count - 1);
+          int segIdx = int(floor(px / stride));
+          if (segIdx < 0 || segIdx >= count - 1) return vec4(0.0);
+
+          float frac = (px - float(segIdx) * stride) / stride;
+
+          // Map segment indices to circular buffer (0 = newest)
+          int buf0 = (uTraceIdx - 1 - segIdx + SAMPLES * 2) % SAMPLES;
+          int buf1 = (uTraceIdx - 1 - (segIdx + 1) + SAMPLES * 2) % SAMPLES;
+          float v0 = texelFetch(uTraceTex, ivec2(buf0, channel), 0).r;
+          float v1 = texelFetch(uTraceTex, ivec2(buf1, channel), 0).r;
+
+          // Interpolated value at this x position
+          float val = mix(v0, v1, frac);
+
+          // Y position of the line (bottom=0, top=1 in bar space)
+          float lineY = val;               // 0-1 normalized height
+          float pixelY = 1.0 - uv.y;      // 0 at bottom, 1 at top
+
+          // Distance from current pixel to the line in pixels
+          float dist = abs(pixelY - lineY) * pxH;
+
+          // Anti-aliased line
+          float fw = fwidth(pixelY) * pxH;
+          float aa = smoothstep(lineThick + fw, lineThick * 0.3, dist);
+          if (aa < 0.001) return vec4(0.0);
+
+          // Age fade along x: newest edge bright, oldest dim
+          float age = float(segIdx) / float(count);
+          float ageFade = mix(1.0, 0.15, age);
+
+          // Intensity pulse dynamic to recent pedal activity
+          float pulse = 0.7 + 0.3 * liveVal;
+          float glow = aa * ageFade * pulse;
+
+          // Bright neon color with slight bloom halo
+          vec3 lineCol = col * (1.0 + 0.4 * liveVal);
+
+          // Softer outer glow
+          float outerDist = abs(pixelY - lineY) * pxH;
+          float outerGlow = exp(-outerDist * outerDist / max(16.0 * liveVal, 2.0)) * liveVal * 0.3 * ageFade;
+
+          vec3 finalCol = lineCol * glow + col * outerGlow;
+          float alpha = clamp(glow + outerGlow, 0.0, 1.0);
+          return vec4(finalCol * alpha, alpha);
+        }
+
+        // ── Overlap hot zone: additive glow where throttle+brake overlap ──
+        vec4 overlapGlow(vec2 uv) {
+          float overlap = min(uThr, uBrk);
+          if (overlap < 0.05) return vec4(0.0);
+
+          // Hot zone in the center where bars meet
+          float centerDist = abs(uv.x - 0.5);
+          float intensity = exp(-centerDist * centerDist * 20.0) * overlap;
+          float flicker = 0.8 + 0.2 * sin(uTime * 8.0 + uv.y * 15.0);
+          intensity *= flicker;
+
+          vec3 hotColor = mix(vec3(0.95, 0.65, 0.15), vec3(1.0, 0.35, 0.05), overlap);
+          float a = intensity * 0.4;
+          return vec4(hotColor * a, a);
         }
 
         void main() {
           vec2 uv = vUV;
 
-          // === Layer 5: Edge glow (full panel) ===
-          vec4 glow = edgeGlowLayer(uv);
+          // Edge lights (behind everything)
+          vec4 edge = edgeLightLayer(uv);
 
-          // Remap UV into the histogram/trace viewport (viz-stack rect)
-          // uHistRect = (x, y, w, h) in canvas UV space
-          vec2 vizUV = (uv - uHistRect.xy) / uHistRect.zw;
+          // Bloom glow (behind bars)
+          vec4 thrBloom = bloomLayer(uv, 0, 1, COL_THR_HI, uThr);
+          vec4 brkBloom = bloomLayer(uv, 1, 0, COL_BRK_HI, uBrk);
 
-          // Check if pixel is inside the viz-stack region
-          bool inViz = vizUV.x >= 0.0 && vizUV.x <= 1.0 && vizUV.y >= 0.0 && vizUV.y <= 1.0;
+          // Rolling history bars
+          // Throttle scrolls right-to-left (newest at left edge)
+          vec4 thrBar = barLayer(uv, 0, 1, COL_THR_HI, COL_THR_LO, 0.75, uThr);
+          // Brake scrolls left-to-right (newest at right edge)
+          vec4 brkBar = barLayer(uv, 1, 0, COL_BRK_HI, COL_BRK_LO, 0.85, uBrk);
+          // Clutch: scroll from right, underneath throttle
+          vec4 cltBar = (uClutchHidden == 1) ? vec4(0.0)
+            : barLayer(uv, 2, 0, COL_CLT_HI, COL_CLT_LO, 0.55, uClt);
 
-          vec4 hist = vec4(0.0);
-          vec4 trace = vec4(0.0);
+          // Overlap heat glow
+          vec4 hot = overlapGlow(uv);
 
-          if (inViz) {
-            // === Layer 1-3: Level meter bars (like rev bars) ===
-            // Throttle: right-to-left (direction 1), Brake: left-to-right (direction 0)
-            vec4 hThr = histLayer(vizUV, uThr, COL_THR, 0.54, 1);
-            vec4 hBrk = histLayer(vizUV, uBrk, COL_BRK, 0.66, 0);
-            vec4 hClt = (uClutchHidden == 1) ? vec4(0.0) : histLayer(vizUV, uClt, COL_CLT, 0.54, 0);
+          // ── Composite ──
+          vec3 col = edge.rgb;
+          float alpha = edge.a;
 
-            // Composite histograms (clutch on top of brake on top of throttle)
-            hist = hThr;
-            hist.rgb = mix(hist.rgb, hBrk.rgb, hBrk.a);
-            hist.a = max(hist.a, hBrk.a);
-            hist.rgb = mix(hist.rgb, hClt.rgb, hClt.a);
-            hist.a = max(hist.a, hClt.a);
+          // Bloom layer
+          col += thrBloom.rgb;
+          alpha += thrBloom.a;
+          col += brkBloom.rgb;
+          alpha += brkBloom.a;
 
-            // === Layer 4: Pedal trace waveforms ===
-            trace = traceLayer(vizUV);
+          // Bars: over-blend so overlapping areas combine additively
+          col = mix(col, thrBar.rgb, thrBar.a);
+          alpha = max(alpha, thrBar.a);
+
+          col = mix(col, brkBar.rgb, brkBar.a);
+          alpha = max(alpha, brkBar.a);
+
+          // Where both exist, add the overlap back as additive blend
+          float bothMask = min(thrBar.a, brkBar.a);
+          if (bothMask > 0.01) {
+            col += (thrBar.rgb + brkBar.rgb) * bothMask * 0.3;
+            alpha += bothMask * 0.15;
           }
 
-          // Composite: glow behind everything, hist on top, trace on top of hist
-          vec3 col = glow.rgb;
-          float alpha = glow.a;
+          // Clutch underneath
+          col = mix(col, cltBar.rgb, cltBar.a * 0.5);
+          alpha = max(alpha, cltBar.a * 0.5);
 
-          col = mix(col, hist.rgb, hist.a);
-          alpha = max(alpha, hist.a);
+          // Overlap hot glow on top
+          col += hot.rgb;
+          alpha += hot.a;
 
-          col += trace.rgb;
-          alpha = max(alpha, trace.a);
+          // Trace waveform lines on top of everything
+          // Throttle trace (scrolls right-to-left, direction=1)
+          vec4 thrTrace = traceLayer(uv, 0, 1, COL_THR_HI, uThr);
+          col += thrTrace.rgb;
+          alpha = max(alpha, thrTrace.a);
 
-          fragColor = vec4(col * clamp(alpha, 0.0, 1.0), clamp(alpha, 0.0, 1.0));
+          // Brake trace (scrolls left-to-right, direction=0)
+          vec4 brkTrace = traceLayer(uv, 1, 0, COL_BRK_HI, uBrk);
+          col += brkTrace.rgb;
+          alpha = max(alpha, brkTrace.a);
+
+          // Clutch trace
+          if (uClutchHidden == 0) {
+            vec4 cltTrace = traceLayer(uv, 2, 0, COL_CLT_HI, uClt);
+            col += cltTrace.rgb;
+            alpha = max(alpha, cltTrace.a);
+          }
+
+          alpha = clamp(alpha, 0.0, 1.0);
+          col = clamp(col, 0.0, 1.0);
+          fragColor = vec4(col * alpha, alpha);
         }`;
 
       const vs = createShader(pGL, pGL.VERTEX_SHADER, quadVS);
@@ -508,14 +575,9 @@
         const uRes  = pGL.getUniformLocation(prog, 'uRes');
         const uDPR  = pGL.getUniformLocation(prog, 'uDPR');
         const uClutchHidden = pGL.getUniformLocation(prog, 'uClutchHidden');
-        const uHistRect  = pGL.getUniformLocation(prog, 'uHistRect');
-        const uVizRes    = pGL.getUniformLocation(prog, 'uVizRes');
         const uTraceTex  = pGL.getUniformLocation(prog, 'uTraceTex');
         const uTraceCount = pGL.getUniformLocation(prog, 'uTraceCount');
         const uTraceIdx   = pGL.getUniformLocation(prog, 'uTraceIdx');
-
-        // Cache the viz-stack element for computing its position
-        const _vizStack = document.querySelector('#pedalsArea .pedal-viz-stack');
 
         const buf = pGL.createBuffer();
         pGL.bindBuffer(pGL.ARRAY_BUFFER, buf);
@@ -524,8 +586,7 @@
         pGL.enable(pGL.BLEND);
         pGL.blendFunc(pGL.ONE, pGL.ONE_MINUS_SRC_ALPHA);
 
-        // ── Data texture for trace ──
-        // Trace: 128×4 R32F (120 samples × 3 channels, padded to 128 width)
+        // Trace data texture: 128×4 R32F (120 samples × 3 channels)
         const traceTexData = new Float32Array(128 * 4);
         const traceTex = pGL.createTexture();
         pGL.activeTexture(pGL.TEXTURE0);
@@ -536,12 +597,11 @@
         pGL.texParameteri(pGL.TEXTURE_2D, pGL.TEXTURE_WRAP_T, pGL.CLAMP_TO_EDGE);
         pGL.texImage2D(pGL.TEXTURE_2D, 0, pGL.R32F, 128, 4, 0, pGL.RED, pGL.FLOAT, traceTexData);
 
-        // ── Public: update trace data from poll-engine ──
         window._updatePedalTraceWebGL = function(thrBuf, brkBuf, cltBuf, idx, count) {
           for (let i = 0; i < 120; i++) {
-            traceTexData[i]        = thrBuf[i] || 0;  // row 0
-            traceTexData[128 + i]  = brkBuf[i] || 0;  // row 1
-            traceTexData[256 + i]  = cltBuf[i] || 0;  // row 2
+            traceTexData[i]        = thrBuf[i] || 0;
+            traceTexData[128 + i]  = brkBuf[i] || 0;
+            traceTexData[256 + i]  = cltBuf[i] || 0;
           }
           pGL.activeTexture(pGL.TEXTURE0);
           pGL.bindTexture(pGL.TEXTURE_2D, traceTex);
@@ -575,25 +635,6 @@
           pGL.uniform1i(uTraceCount, _traceCount);
           pGL.uniform1i(uTraceIdx, _traceIdx);
 
-          // Compute viz-stack rect relative to the canvas
-          if (_vizStack) {
-            const panelRect = pC.parentElement.getBoundingClientRect();
-            const vizRect = _vizStack.getBoundingClientRect();
-            const dpr = window.devicePixelRatio || 1;
-            // UV-space position within the panel canvas
-            const vx = (vizRect.left - panelRect.left) / panelRect.width;
-            const vy = (vizRect.top - panelRect.top) / panelRect.height;
-            const vw = vizRect.width / panelRect.width;
-            const vh = vizRect.height / panelRect.height;
-            pGL.uniform4f(uHistRect, vx, vy, vw, vh);
-            pGL.uniform2f(uVizRes, vizRect.width * dpr, vizRect.height * dpr);
-          } else {
-            // Fallback: full canvas
-            pGL.uniform4f(uHistRect, 0, 0, 1, 1);
-            pGL.uniform2f(uVizRes, pC.width, pC.height);
-          }
-
-          // Bind trace data texture
           pGL.activeTexture(pGL.TEXTURE0);
           pGL.bindTexture(pGL.TEXTURE_2D, traceTex);
           pGL.uniform1i(uTraceTex, 0);
@@ -684,6 +725,7 @@
         // Ambient light (from Electron screen capture)
         uniform vec3  uAmbientColor;  // 0-1 RGB
         uniform float uAmbientLum;    // perceptual luminance 0-1
+        uniform int   uAmbientMode;   // 0=off, 1=matte, 2=reflective
 
         // ── Rounded-rect SDF — negative inside, positive outside ──
         float roundedRectSDF(vec2 uv, vec4 rect, vec2 radius) {
@@ -703,7 +745,8 @@
             vec4 r = uPanelRect[i];
             vec2 rad = uPanelRadius[i];
             float sdf = roundedRectSDF(uv, r, rad);
-            float m = 1.0 - smoothstep(-0.004, 0.004, sdf);
+            float fw = fwidth(sdf);  // 1-pixel feather, DPR-independent
+            float m = 1.0 - smoothstep(-fw, fw, sdf);
             m *= uPanelAlpha[i];
             mask = max(mask, m);
           }
@@ -729,7 +772,9 @@
         // All movement comes from shader effects — no per-panel loop.
         // Color is sampled infrequently; the shader fakes rich lighting.
         vec4 ambientGlow(vec2 uv) {
-          if (uAmbientLum < 0.01) return vec4(0.0);
+          if (uAmbientMode == 0 || uAmbientLum < 0.01) return vec4(0.0);
+          // Matte mode: 50% center glow strength, reduce sweep/shimmer
+          float modeMul = (uAmbientMode == 1) ? 0.5 : 1.0;
 
           // Speed scales all movement: idle ×0.3, full speed ×2.0
           float spdMul = 0.3 + uSpeed * 1.7;
@@ -760,7 +805,7 @@
           float edgeDist = panelMask(uv);  // 1.0 inside, 0.0 outside
           float edgeBloom = (1.0 - edgeDist) * smoothstep(0.0, 0.5, edgeDist) * 1.5;
 
-          float total = (glow + sweep + shimmer + edgeBloom) * uAmbientLum;
+          float total = (glow + sweep + shimmer + edgeBloom) * uAmbientLum * modeMul;
           total = min(total, 2.5);
 
           vec3 col = uAmbientColor * total;
@@ -887,6 +932,91 @@
           return vec4(col * alpha, alpha);
         }
 
+        // ── Spherical glass reflection per panel ──
+        // Each module has a convex glass dome surface that catches a specular
+        // highlight from an overhead light source, shifted by steering angle.
+        // Dome height scales with ambient mode: full in reflective, 50% in matte.
+        vec4 glassReflection(vec2 uv) {
+          if (uAmbientMode == 0 || uAmbientLum < 0.005) return vec4(0.0);
+
+          // Dome height: reflective=1.0, matte=0.5
+          float domeScale = (uAmbientMode == 1) ? 0.5 : 1.0;
+
+          // Light source: overhead, slightly shifted by steering
+          vec3 lightDir = normalize(vec3(
+            -0.15 + uSteer * 0.12,   // x: steer shifts highlight
+            -0.3,                     // y: slightly above center
+            1.0                       // z: toward viewer
+          ));
+
+          vec3 totalCol = vec3(0.0);
+          float totalAlpha = 0.0;
+
+          for (int i = 0; i < 16; i++) {
+            if (i >= uPanelCount) break;
+            vec4 r = uPanelRect[i];
+            if (r.z < 0.001 || r.w < 0.001) continue;
+
+            // Normalize UV within this panel
+            vec2 local = (uv - r.xy) / r.zw;
+            if (local.x < 0.0 || local.x > 1.0 || local.y < 0.0 || local.y > 1.0) continue;
+
+            // SDF-based soft edge (reuse panel SDF for feathering)
+            float sdf = roundedRectSDF(uv, r, uPanelRadius[i]);
+            float fw = fwidth(sdf);
+            float inside = smoothstep(fw, -fw * 2.0, sdf);
+            if (inside < 0.001) continue;
+
+            // Map local coords to box-shaped dome surface normal
+            // The dome fills the entire panel rect, curving down at edges
+            vec2 centered = local - 0.5;  // -0.5..+0.5
+
+            // Box dome: use rounded-rect distance instead of circular
+            // Panel border-radius in local 0-1 space
+            vec2 panelRLocal = uPanelRadius[i] / r.zw;
+            // SDF of a rounded rect in local space (0 at boundary, negative inside)
+            vec2 q = abs(centered) - (0.5 - panelRLocal);
+            float boxSdf = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - min(panelRLocal.x, panelRLocal.y);
+            // Map to 0 at center, 1 at panel edge
+            float edgeDist = smoothstep(-0.5, 0.0, boxSdf);
+
+            // Dome height: 1 at center, 0 at edges (box-shaped falloff)
+            float z = (1.0 - edgeDist) * domeScale;
+            if (z < 0.001) continue;
+
+            // Surface normal: gradient of the dome height
+            // Approximate partial derivatives from the box SDF
+            vec2 grad = centered * 2.0;  // base gradient pointing outward
+            // Steepen near edges using the box shape
+            float edgeSteep = smoothstep(0.3, 0.5, max(abs(centered.x), abs(centered.y)));
+            grad *= (1.0 + edgeSteep * 3.0);
+            vec3 normal = normalize(vec3(-grad, z));
+
+            // Specular: Blinn-Phong with a soft highlight
+            vec3 viewDir = vec3(0.0, 0.0, 1.0);
+            vec3 halfVec = normalize(lightDir + viewDir);
+            float spec = pow(max(dot(normal, halfVec), 0.0), 32.0 * domeScale + 8.0);
+
+            // Fresnel rim: stronger reflection at dome edges
+            float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.0) * 0.35;
+
+            // Tint specular with ambient color, add white highlight
+            vec3 specCol = mix(vec3(1.0), uAmbientColor * 1.5 + 0.5, 0.3);
+            float intensity = (spec * 0.3 + fresnel * 0.15) * uAmbientLum * domeScale;
+
+            // Subtle time-based caustic shimmer on the dome
+            float caustic = sin(local.x * 8.0 + uTime * 0.5) * sin(local.y * 6.0 - uTime * 0.3);
+            caustic = caustic * caustic * 0.04 * domeScale;
+
+            float a = clamp((intensity + caustic) * inside * uPanelAlpha[i], 0.0, 0.5);
+            totalCol += specCol * a;
+            totalAlpha += a;
+          }
+
+          totalAlpha = clamp(totalAlpha, 0.0, 0.6);
+          return vec4(totalCol, totalAlpha);
+        }
+
         void main() {
           vec2 uv = vUV;
           uv.y = 1.0 - uv.y;
@@ -897,6 +1027,7 @@
 
           // Layer all effects
           vec4 ambient  = ambientGlow(uv);
+          vec4 glass    = glassReflection(uv);
           vec4 glow     = panelGlow(uv);
           vec4 vignette = gForceVignette(uv);
           vec4 aberr    = speedAberration(uv);
@@ -907,7 +1038,11 @@
           vec3 col = vec3(0.0);
           float alpha = 0.0;
 
-          // Ambient glow: base layer
+          // Glass dome: base layer (between module content and glare)
+          col += glass.rgb;
+          alpha += glass.a;
+
+          // Ambient glow: on top of glass
           col += ambient.rgb;
           alpha += ambient.a;
 
@@ -971,6 +1106,7 @@
         // Ambient light uniforms
         const uAmbientColor = gGL.getUniformLocation(prog, 'uAmbientColor');
         const uAmbientLum   = gGL.getUniformLocation(prog, 'uAmbientLum');
+        const uAmbientMode  = gGL.getUniformLocation(prog, 'uAmbientMode');
 
         const buf = gGL.createBuffer();
         gGL.bindBuffer(gGL.ARRAY_BUFFER, buf);
@@ -995,7 +1131,6 @@
         };
 
         // Register pedal glare sources
-        // Throttle: luminance-matched to brake (~0.35 vs ~0.37), same intensity curve
         window.registerGlareSource('pedal-thr', 'pedalsArea',
           [0.10, 0.45, 0.08], function() { return _pedalValues.thr * 0.5; });
         window.registerGlareSource('pedal-brk', 'pedalsArea',
@@ -1165,6 +1300,7 @@
           const amb = window._ambientGL || { r: 0.3, g: 0.4, b: 0.55, lum: 0.35 };
           gGL.uniform3f(uAmbientColor, amb.r, amb.g, amb.b);
           gGL.uniform1f(uAmbientLum, amb.lum);
+          gGL.uniform1i(uAmbientMode, window._ambientModeInt !== undefined ? window._ambientModeInt : 2);
 
           gGL.drawArrays(gGL.TRIANGLE_STRIP, 0, 4);
         };
