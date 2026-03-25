@@ -10,7 +10,7 @@
 ; Compile with:
 ;   iscc installer/k10-media-broadcaster.iss
 ;
-; The script expects to be run from the repository root.
+; Paths are relative to this .iss file's directory (installer/).
 
 #define MyAppName      "K10 Media Broadcaster"
 #define MyAppVersion   "1.0.0"
@@ -29,7 +29,6 @@ AppSupportURL={#MyAppURL}/issues
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
-; Output setup exe to installer/output/
 OutputDir=output
 OutputBaseFilename=K10-Media-Broadcaster-Setup-{#MyAppVersion}
 SetupIconFile=..\dashboard-overlay\images\branding\icon.ico
@@ -38,8 +37,8 @@ Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
-ArchitecturesAllowed=x64compatible
-ArchitecturesInstallIn64BitMode=x64compatible
+ArchitecturesAllowed=x64
+ArchitecturesInstallIn64BitMode=x64
 MinVersion=10.0
 
 [Languages]
@@ -103,7 +102,6 @@ var
 begin
   Result := '';
 
-  // Check SIMHUB_PATH environment variable first
   Dir := GetEnv('SIMHUB_PATH');
   if (Dir <> '') and FileExists(Dir + '\SimHubWPF.exe') then
   begin
@@ -111,22 +109,20 @@ begin
     Exit;
   end;
 
-  // Check common install locations
-  Dir := ExpandConstant('{pf32}\SimHub');
+  Dir := ExpandConstant('{commonpf32}\SimHub');
   if FileExists(Dir + '\SimHubWPF.exe') then
   begin
     Result := Dir;
     Exit;
   end;
 
-  Dir := ExpandConstant('{pf64}\SimHub');
+  Dir := ExpandConstant('{commonpf64}\SimHub');
   if FileExists(Dir + '\SimHubWPF.exe') then
   begin
     Result := Dir;
     Exit;
   end;
 
-  // Check registry (SimHub writes its install path here)
   if RegQueryStringValue(HKLM, 'SOFTWARE\SimHub', 'InstallDir', Dir) then
   begin
     if FileExists(Dir + '\SimHubWPF.exe') then
@@ -141,7 +137,6 @@ procedure InitializeWizard();
 begin
   SimHubDir := FindSimHub();
 
-  // Add a custom page to select SimHub directory (only for plugin component)
   SimHubDirPage := CreateInputDirPage(
     wpSelectComponents,
     'Select SimHub Installation',
@@ -153,13 +148,12 @@ begin
   if SimHubDir <> '' then
     SimHubDirPage.Values[0] := SimHubDir
   else
-    SimHubDirPage.Values[0] := ExpandConstant('{pf32}\SimHub');
+    SimHubDirPage.Values[0] := ExpandConstant('{commonpf32}\SimHub');
 end;
 
 function ShouldSkipPage(PageID: Integer): Boolean;
 begin
   Result := False;
-  // Skip SimHub dir page if plugin component is not selected
   if PageID = SimHubDirPage.ID then
     Result := not WizardIsComponentSelected('plugin');
 end;
@@ -181,20 +175,20 @@ end;
 
 function IsSimHubRunning(): Boolean;
 var
-  ResultCode: Integer;
+  ExecResult: Integer;
 begin
-  // Use tasklist to check if SimHub is running
   Exec('cmd.exe', '/c tasklist /FI "IMAGENAME eq SimHubWPF.exe" | find /i "SimHubWPF.exe"',
-       '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Result := (ResultCode = 0);
+       '', SW_HIDE, ewWaitUntilTerminated, ExecResult);
+  Result := (ExecResult = 0);
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  KillResult: Integer;
 begin
   Result := '';
   NeedsRestart := False;
 
-  // Only check if installing the plugin component
   if WizardIsComponentSelected('plugin') then
   begin
     if IsSimHubRunning() then
@@ -202,7 +196,7 @@ begin
       if MsgBox('SimHub is currently running. It must be closed before the plugin can be installed.' + #13#10#13#10 +
                 'Close SimHub now and continue?', mbConfirmation, MB_YESNO) = IDYES then
       begin
-        Exec('taskkill', '/F /IM SimHubWPF.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+        Exec('taskkill', '/F /IM SimHubWPF.exe', '', SW_HIDE, ewWaitUntilTerminated, KillResult);
         Sleep(2000);
       end
       else
@@ -210,6 +204,3 @@ begin
     end;
   end;
 end;
-
-var
-  ResultCode: Integer;
