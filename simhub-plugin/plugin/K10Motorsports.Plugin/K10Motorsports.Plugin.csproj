@@ -11,17 +11,24 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 
     <!--
-      Set SIMHUB_PATH in your environment or edit this directly.
-      Default SimHub install: C:\Program Files (x86)\SimHub\
+      SimHubPath resolution order:
+        1. SIMHUB_PATH environment variable (if set)
+        2. Default SimHub install folder (if it exists — local dev)
+        3. lib/simhub-refs/ in the repo (CI builds)
     -->
-    <SimHubPath Condition="'$(SIMHUB_PATH)'==''">C:\Program Files (x86)\SimHub\</SimHubPath>
     <SimHubPath Condition="'$(SIMHUB_PATH)'!=''">$(SIMHUB_PATH)</SimHubPath>
+    <SimHubPath Condition="'$(SimHubPath)'=='' And Exists('C:\Program Files (x86)\SimHub\SimHubWPF.exe')">C:\Program Files (x86)\SimHub\</SimHubPath>
+    <SimHubRefsPath>$(MSBuildProjectDirectory)\..\..\lib\simhub-refs\</SimHubRefsPath>
+    <SimHubPath Condition="'$(SimHubPath)'==''">$(SimHubRefsPath)</SimHubPath>
 
-    <!-- Build directly into SimHub folder for easy F5 debugging -->
-    <OutputPath>$(SimHubPath)</OutputPath>
+    <!-- CI mode: when SimHub isn't installed, build to a local staging folder -->
+    <_IsLocalDev>false</_IsLocalDev>
+    <_IsLocalDev Condition="Exists('C:\Program Files (x86)\SimHub\SimHubWPF.exe') Or '$(SIMHUB_PATH)'!=''">true</_IsLocalDev>
+    <OutputPath Condition="$(_IsLocalDev)">$(SimHubPath)</OutputPath>
+    <OutputPath Condition="!$(_IsLocalDev)">$(MSBuildProjectDirectory)\..\..\build\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-    <!-- true: copies IRSDKSharper + YamlDotNet DLLs into SimHub folder -->
+    <!-- true: copies IRSDKSharper + YamlDotNet DLLs into output folder -->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
@@ -37,6 +44,9 @@
   <!-- NuGet packages -->
   <ItemGroup>
     <PackageReference Include="IRSDKSharper" Version="1.1.4" />
+    <!-- log4net + Newtonsoft.Json via NuGet so CI doesn't need SimHub installed -->
+    <PackageReference Include="log4net" Version="2.0.15" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
   <!-- WinForms — needed for FolderBrowserDialog in settings panel -->
@@ -44,7 +54,10 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
 
-  <!-- SimHub plugin DLLs — must NOT be copied to output (Private=False) -->
+  <!--
+    SimHub plugin SDK DLLs — must NOT be copied to output (Private=False).
+    HintPath tries SimHubPath first (local dev or CI via lib/simhub-refs/).
+  -->
   <ItemGroup>
     <Reference Include="GameReaderCommon">
       <HintPath>$(SimHubPath)GameReaderCommon.dll</HintPath>
@@ -58,21 +71,13 @@
       <HintPath>$(SimHubPath)SimHub.Logging.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="log4net">
-      <HintPath>$(SimHubPath)log4net.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>$(SimHubPath)Newtonsoft.Json.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
   </ItemGroup>
 
   <!--
-    Post-build: copy the k10-motorsports-data folder alongside the DLL
-    so the plugin can find commentary_topics.json automatically.
+    Post-build (local dev only): copy the k10-motorsports-data folder
+    alongside the DLL so the plugin can find commentary_topics.json.
   -->
-  <Target Name="CopyDataset" AfterTargets="Build">
+  <Target Name="CopyDataset" AfterTargets="Build" Condition="$(_IsLocalDev)">
     <ItemGroup>
       <DatasetFiles Include="..\..\k10-motorsports-data\**\*" />
     </ItemGroup>
@@ -82,40 +87,41 @@
   </Target>
 
   <!--
-    Post-build: export built artifacts and dashboard back into the repo
-    so simhub-plugin/ always contains the latest files for commit.
+    Post-build: export built artifacts back into the repo.
+    Local dev reads from SimHub folder; CI reads from build/ folder.
     RepoPluginDir = simhub-plugin/ (two levels up from this .csproj).
-    Mirrors what export.bat does, minus _Backups.
   -->
   <PropertyGroup>
     <RepoPluginDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\..'))\</RepoPluginDir>
   </PropertyGroup>
   <Target Name="ExportToRepo" AfterTargets="Build">
     <!-- DLL -->
-    <Copy SourceFiles="$(SimHubPath)K10Motorsports.Plugin.dll"
+    <Copy SourceFiles="$(OutputPath)K10Motorsports.Plugin.dll"
           DestinationFolder="$(RepoPluginDir)"
           SkipUnchangedFiles="true" />
     <!-- PDB (Debug builds only) -->
-    <Copy SourceFiles="$(SimHubPath)K10Motorsports.Plugin.pdb"
+    <Copy SourceFiles="$(OutputPath)K10Motorsports.Plugin.pdb"
           DestinationFolder="$(RepoPluginDir)"
-          Condition="Exists('$(SimHubPath)K10Motorsports.Plugin.pdb')"
+          Condition="Exists('$(OutputPath)K10Motorsports.Plugin.pdb')"
           SkipUnchangedFiles="true" />
-    <!-- Sync recorded track maps back to repo for git commit -->
-    <ItemGroup>
+    <!-- Sync recorded track maps back to repo (local dev only) -->
+    <ItemGroup Condition="$(_IsLocalDev)">
       <RecordedMaps Include="$(SimHubPath)k10-motorsports-data\trackmaps\*.csv" />
     </ItemGroup>
     <Copy SourceFiles="@(RecordedMaps)"
           DestinationFolder="$(RepoPluginDir)k10-motorsports-data\trackmaps\"
-          SkipUnchangedFiles="true" />
-    <!-- Sync telemetry recordings back to repo for git commit -->
-    <ItemGroup>
+          SkipUnchangedFiles="true"
+          Condition="$(_IsLocalDev)" />
+    <!-- Sync telemetry recordings back to repo (local dev only) -->
+    <ItemGroup Condition="$(_IsLocalDev)">
       <RecordedTelemetry Include="$(SimHubPath)k10-motorsports-data\recordings\*.jsonl" />
     </ItemGroup>
     <Copy SourceFiles="@(RecordedTelemetry)"
           DestinationFolder="$(RepoPluginDir)k10-motorsports-data\recordings\"
-          SkipUnchangedFiles="true" />
+          SkipUnchangedFiles="true"
+          Condition="$(_IsLocalDev)" />
     <Message Importance="high"
-             Text="Exported DLL+PDB+TrackMaps+Recordings to $(RepoPluginDir)" />
+             Text="Exported DLL+PDB to $(RepoPluginDir)" />
   </Target>
 
   <!-- Debug: launch SimHub when pressing F5 -->

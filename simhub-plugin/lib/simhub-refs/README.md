@@ -1,32 +1,31 @@
-# SimHub Reference DLLs
+# SimHub Plugin SDK — Reference DLLs
 
-These DLLs are needed to compile the K10 Motorsports plugin. They come from
-your SimHub installation directory (`C:\Program Files (x86)\SimHub\`).
+These DLLs are the SimHub plugin API surface, committed to the repo so the
+plugin can compile on CI without a SimHub installation.
 
-## Required files
-
-Copy these 5 files into this directory:
+## Committed files
 
 | File                     | Purpose                        |
 |--------------------------|--------------------------------|
 | `GameReaderCommon.dll`   | Telemetry data types           |
 | `SimHub.Plugins.dll`     | Plugin interfaces & attributes |
 | `SimHub.Logging.dll`     | Logging facade                 |
-| `log4net.dll`            | Logging implementation         |
-| `Newtonsoft.Json.dll`    | JSON serialization             |
 
-## How to get them
+`log4net` and `Newtonsoft.Json` are pulled from NuGet instead.
 
-**From your Parallels VM or a Windows machine with SimHub installed:**
+## How the build resolves them
+
+The `.csproj` checks for a local SimHub install first (`C:\Program Files (x86)\SimHub\`).
+If SimHub isn't present (CI), it falls back to this `lib/simhub-refs/` directory automatically.
+
+## Updating
+
+If a new SimHub version changes the plugin API, copy the updated DLLs from your
+SimHub install folder into this directory and commit them:
 
 ```bash
-# From the Mac, if Parallels shared folders are set up:
-cp "/Volumes/[C] Windows/Program Files (x86)/SimHub/"*.dll lib/simhub-refs/
-
-# Or manually copy these 5 DLLs from the SimHub install folder.
+# From a Windows machine with SimHub installed:
+copy "C:\Program Files (x86)\SimHub\GameReaderCommon.dll" simhub-plugin\lib\simhub-refs\
+copy "C:\Program Files (x86)\SimHub\SimHub.Plugins.dll"   simhub-plugin\lib\simhub-refs\
+copy "C:\Program Files (x86)\SimHub\SimHub.Logging.dll"   simhub-plugin\lib\simhub-refs\
 ```
-
-## Important
-
-These DLLs are **not** redistributable and must **not** be committed to git.
-They are listed in `.gitignore`.

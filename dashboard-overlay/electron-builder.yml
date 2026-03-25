@@ -1,4 +1,4 @@
-appId: org.k10mediabroadcaster.broadcaster
+appId: org.k10motorsports.broadcaster
 productName: K10 Motorsports
 copyright: Copyright (c) 2026 Kevin Conboy
 
@@ -27,7 +27,7 @@ win:
 
 mac:
   category: public.app-category.utilities
-  icon: images/branding/icon.icns
+  icon: images/branding/icon.png
   darkModeSupport: true
   target:
     - target: dmg
@@ -36,7 +36,8 @@ mac:
         - arm64
 
 dmg:
-  title: K10 Motorsports
+  title: K10Motorsports
+  artifactName: K10-Motorsports-${version}-${arch}.${ext}
   contents:
     - x: 130
       "y": 220

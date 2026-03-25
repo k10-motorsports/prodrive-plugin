@@ -70,6 +70,8 @@ jobs:
         run: npx electron-builder --mac --config electron-builder.yml --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Skip code signing on CI (no Apple Developer cert configured)
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: Upload macOS DMG
         uses: actions/upload-artifact@v4
@@ -79,12 +81,12 @@ jobs:
           if-no-files-found: warn
 
   # ---------------------------------------------------------------
-  # Compile the Inno Setup combined installer
-  # The plugin DLL is pre-built and committed to the repo — no
-  # CI build needed (requires SimHub's private reference DLLs).
+  # Build plugin + compile the Inno Setup combined installer
+  # SimHub SDK DLLs are committed in lib/simhub-refs/ so the
+  # plugin compiles on CI without a SimHub installation.
   # ---------------------------------------------------------------
   build-installer:
-    name: Build Windows Installer
+    name: Build Plugin & Installer
     runs-on: windows-latest
     needs: [build-overlay-win]
 
@@ -97,23 +99,44 @@ jobs:
           name: overlay-win-unpacked
           path: dashboard-overlay/dist/win-unpacked/
 
-      - name: Verify plugin DLL exists in repo
-        run: |
-          if (!(Test-Path "simhub-plugin/K10Motorsports.Plugin.dll")) {
-            Write-Error "Plugin DLL not found. Build locally with SimHub and commit before tagging."
-            exit 1
-          }
-          Write-Host "Plugin DLL found: $(Get-Item simhub-plugin/K10Motorsports.Plugin.dll | Select-Object -ExpandProperty Length) bytes"
-        shell: pwsh
-
-      - name: Install Inno Setup
-        run: choco install innosetup -y --no-progress
-        shell: cmd
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
 
       - name: Extract version from tag
         id: version
         run: echo "VERSION=$($env:GITHUB_REF_NAME -replace '^v','')" >> $env:GITHUB_OUTPUT
         shell: pwsh
+
+      - name: Stamp plugin version from tag
+        run: |
+          $ver = "${{ steps.version.outputs.VERSION }}"
+          # Pad to 4-part version for AssemblyVersion (e.g. 0.0.8 → 0.0.8.0)
+          $parts = $ver.Split('.')
+          while ($parts.Count -lt 4) { $parts += '0' }
+          $asmVer = $parts -join '.'
+          $file = "simhub-plugin/plugin/K10Motorsports.Plugin/Properties/AssemblyInfo.cs"
+          $content = Get-Content $file -Raw
+          $content = $content -replace 'AssemblyVersion\("[^"]+"\)', "AssemblyVersion(`"$asmVer`")"
+          $content = $content -replace 'AssemblyFileVersion\("[^"]+"\)', "AssemblyFileVersion(`"$asmVer`")"
+          Set-Content $file $content
+          Write-Host "Stamped plugin version: $asmVer"
+        shell: pwsh
+
+      - name: Build plugin
+        run: |
+          dotnet build simhub-plugin/plugin/K10Motorsports.Plugin/K10Motorsports.Plugin.csproj -c Release
+          if (!(Test-Path "simhub-plugin/K10Motorsports.Plugin.dll")) {
+            Write-Error "Plugin DLL not produced by build."
+            exit 1
+          }
+          Write-Host "Plugin DLL built: $(Get-Item simhub-plugin/K10Motorsports.Plugin.dll | Select-Object -ExpandProperty Length) bytes"
+        shell: pwsh
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+        shell: cmd
 
       - name: Update version in .iss
         run: |

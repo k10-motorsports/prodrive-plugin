@@ -17,11 +17,14 @@ dist/
 *.log
 logs/
 
-# ── SimHub reference DLLs (not redistributable — see lib/simhub-refs/README.md)
-lib/simhub-refs/*.dll
+# ── SimHub reference DLLs (plugin SDK — committed for CI builds)
+# lib/simhub-refs/*.dll
 
 # ── Test results ────────────────────────────────────────────────────
 **/test-results/
+
+# ── Plugin CI build output ────────────────────────────────────────
+simhub-plugin/build/
 
 # ── Installer build artifacts ──────────────────────────────────────
 installer/output/
