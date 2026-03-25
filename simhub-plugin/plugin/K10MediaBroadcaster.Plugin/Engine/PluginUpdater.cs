@@ -4,7 +4,6 @@ using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
 
 namespace K10MediaBroadcaster.Plugin.Engine
 {
@@ -12,6 +11,9 @@ namespace K10MediaBroadcaster.Plugin.Engine
     /// Checks GitHub Releases for new plugin versions and downloads
     /// the installer. After download, launches the installer and
     /// signals SimHub to restart.
+    ///
+    /// Uses only .NET Framework 4.8 BCL types (no Newtonsoft dependency)
+    /// so the file compiles without SimHub's runtime DLLs on CI.
     /// </summary>
     public class PluginUpdater
     {
@@ -33,7 +35,6 @@ namespace K10MediaBroadcaster.Plugin.Engine
 
         public PluginUpdater()
         {
-            // Read the current assembly version
             var asm = typeof(PluginUpdater).Assembly;
             var ver = asm.GetName().Version;
             CurrentVersion = ver != null ? $"{ver.Major}.{ver.Minor}.{ver.Build}" : "0.0.0";
@@ -41,7 +42,8 @@ namespace K10MediaBroadcaster.Plugin.Engine
 
         /// <summary>
         /// Queries the GitHub Releases API for the latest release.
-        /// Looks for an asset matching *Setup*.exe in the release.
+        /// Parses the JSON response with regex — avoids a compile-time
+        /// dependency on Newtonsoft.Json (loaded at runtime by SimHub).
         /// </summary>
         public async Task CheckForUpdateAsync()
         {
@@ -52,7 +54,6 @@ namespace K10MediaBroadcaster.Plugin.Engine
 
             try
             {
-                // TLS 1.2 required for GitHub API
                 ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
 
                 var request = (HttpWebRequest)WebRequest.Create(GitHubApiUrl);
@@ -64,31 +65,31 @@ namespace K10MediaBroadcaster.Plugin.Engine
                     request.BeginGetResponse, request.EndGetResponse, null))
                 using (var reader = new StreamReader(response.GetResponseStream()))
                 {
-                    var json = JObject.Parse(await reader.ReadToEndAsync());
+                    var json = await reader.ReadToEndAsync();
 
-                    // Parse version from tag (e.g. "v1.2.3" or "1.2.3")
-                    var tag = json["tag_name"]?.ToString() ?? "";
+                    // Extract tag_name
+                    var tagMatch = Regex.Match(json, @"""tag_name""\s*:\s*""([^""]+)""");
+                    var tag = tagMatch.Success ? tagMatch.Groups[1].Value : "";
                     LatestVersion = Regex.Replace(tag, @"^v", "");
-                    ReleaseNotes = json["body"]?.ToString() ?? "";
 
-                    // Find the Setup exe asset
+                    // Extract body (release notes) — handle escaped quotes
+                    var bodyMatch = Regex.Match(json, @"""body""\s*:\s*""((?:[^""\\]|\\.)*)""");
+                    ReleaseNotes = bodyMatch.Success
+                        ? Regex.Unescape(bodyMatch.Groups[1].Value)
+                        : "";
+
+                    // Find the first Setup*.exe asset's browser_download_url
                     DownloadUrl = null;
-                    var assets = json["assets"] as JArray;
-                    if (assets != null)
+                    var assetPattern = new Regex(
+                        @"""name""\s*:\s*""([^""]*Setup[^""]*\.exe)""[^}]*?" +
+                        @"""browser_download_url""\s*:\s*""([^""]+)""",
+                        RegexOptions.Singleline | RegexOptions.IgnoreCase);
+                    var assetMatch = assetPattern.Match(json);
+                    if (assetMatch.Success)
                     {
-                        foreach (var asset in assets)
-                        {
-                            var name = asset["name"]?.ToString() ?? "";
-                            if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) &&
-                                name.IndexOf("Setup", StringComparison.OrdinalIgnoreCase) >= 0)
-                            {
-                                DownloadUrl = asset["browser_download_url"]?.ToString();
-                                break;
-                            }
-                        }
+                        DownloadUrl = assetMatch.Groups[2].Value;
                     }
 
-                    // Compare versions
                     UpdateAvailable = IsNewerVersion(LatestVersion, CurrentVersion) && DownloadUrl != null;
                 }
             }
@@ -106,7 +107,7 @@ namespace K10MediaBroadcaster.Plugin.Engine
 
         /// <summary>
         /// Downloads the installer to a temp file, then launches it.
-        /// SimHub will need to be restarted by the installer.
+        /// The Inno Setup installer handles closing SimHub if needed.
         /// </summary>
         public async Task DownloadAndInstallAsync()
         {
@@ -135,7 +136,6 @@ namespace K10MediaBroadcaster.Plugin.Engine
                     await client.DownloadFileTaskAsync(new Uri(DownloadUrl), tempPath);
                 }
 
-                // Launch the installer (it will handle closing SimHub)
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = tempPath,
@@ -169,7 +169,6 @@ namespace K10MediaBroadcaster.Plugin.Engine
 
         private static string NormalizeVersion(string v)
         {
-            // Ensure version has at least 3 parts (Major.Minor.Build)
             var parts = v.Split('.');
             while (parts.Length < 3)
             {

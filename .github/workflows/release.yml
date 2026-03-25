@@ -8,27 +8,23 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # ---------------------------------------------------------------
-  # Build the Electron overlay for Windows and macOS
+  # Build the Electron overlay for Windows
   # ---------------------------------------------------------------
-  build-overlay:
-    name: Build Overlay (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: windows-latest
-            platform: win
-          - os: macos-latest
-            platform: mac
+  build-overlay-win:
+    name: Build Overlay (Windows)
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: dashboard-overlay/package-lock.json
 
@@ -36,68 +32,74 @@ jobs:
         working-directory: dashboard-overlay
         run: npm ci
 
-      - name: Build overlay (${{ matrix.platform }})
+      - name: Build overlay (win)
         working-directory: dashboard-overlay
-        run: npx electron-builder --${{ matrix.platform }} --config electron-builder.yml
+        run: npx electron-builder --win --config electron-builder.yml --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload overlay artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: overlay-${{ matrix.platform }}
-          path: |
-            dashboard-overlay/dist/*.exe
-            dashboard-overlay/dist/*.dmg
-            dashboard-overlay/dist/*.yml
-            dashboard-overlay/dist/*.yaml
-          if-no-files-found: warn
-
       - name: Upload win-unpacked for Inno Setup
-        if: matrix.platform == 'win'
         uses: actions/upload-artifact@v4
         with:
           name: overlay-win-unpacked
           path: dashboard-overlay/dist/win-unpacked/
 
+      - name: Upload overlay NSIS installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: overlay-win-setup
+          path: dashboard-overlay/dist/K10-Media-Broadcaster-Setup-*.exe
+
+      - name: Upload auto-update metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: overlay-update-meta
+          path: |
+            dashboard-overlay/dist/latest.yml
+
   # ---------------------------------------------------------------
-  # Build the SimHub plugin DLL (Windows, .NET Framework 4.8)
+  # Build the Electron overlay for macOS (optional — does not block)
   # ---------------------------------------------------------------
-  build-plugin:
-    name: Build Plugin
-    runs-on: windows-latest
+  build-overlay-mac:
+    name: Build Overlay (macOS)
+    runs-on: macos-latest
+    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-node@v4
         with:
-          dotnet-version: "6.0.x"
+          node-version: 22
+          cache: npm
+          cache-dependency-path: dashboard-overlay/package-lock.json
 
-      - name: Build plugin (Release)
-        run: |
-          dotnet build simhub-plugin/plugin/K10MediaBroadcaster.Plugin/K10MediaBroadcaster.Plugin.csproj `
-            -c Release `
-            -p:OutputPath="${{ github.workspace }}/plugin-output" `
-            -p:AppendTargetFrameworkToOutputPath=false `
-            -p:AppendRuntimeIdentifierToOutputPath=false
-        shell: pwsh
+      - name: Install dependencies
+        working-directory: dashboard-overlay
+        run: npm ci
 
-      - name: Upload plugin artifacts
+      - name: Build overlay (mac)
+        working-directory: dashboard-overlay
+        run: npx electron-builder --mac --config electron-builder.yml --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload macOS DMG
         uses: actions/upload-artifact@v4
         with:
-          name: plugin-dll
-          path: |
-            plugin-output/K10MediaBroadcaster.Plugin.dll
-            plugin-output/K10MediaBroadcaster.Plugin.pdb
+          name: overlay-mac
+          path: dashboard-overlay/dist/*.dmg
+          if-no-files-found: warn
 
   # ---------------------------------------------------------------
   # Compile the Inno Setup combined installer
+  # The plugin DLL is pre-built and committed to the repo — no
+  # CI build needed (requires SimHub's private reference DLLs).
   # ---------------------------------------------------------------
   build-installer:
     name: Build Windows Installer
     runs-on: windows-latest
-    needs: [build-overlay, build-plugin]
+    needs: [build-overlay-win]
 
     steps:
       - uses: actions/checkout@v4
@@ -108,11 +110,14 @@ jobs:
           name: overlay-win-unpacked
           path: dashboard-overlay/dist/win-unpacked/
 
-      - name: Download plugin DLL
-        uses: actions/download-artifact@v4
-        with:
-          name: plugin-dll
-          path: simhub-plugin/
+      - name: Verify plugin DLL exists in repo
+        run: |
+          if (!(Test-Path "simhub-plugin/K10MediaBroadcaster.Plugin.dll")) {
+            Write-Error "Plugin DLL not found. Build locally with SimHub and commit before tagging."
+            exit 1
+          }
+          Write-Host "Plugin DLL found: $(Get-Item simhub-plugin/K10MediaBroadcaster.Plugin.dll | Select-Object -ExpandProperty Length) bytes"
+        shell: pwsh
 
       - name: Install Inno Setup
         run: choco install innosetup -y --no-progress
@@ -131,10 +136,11 @@ jobs:
         shell: pwsh
 
       - name: Compile installer
-        run: iscc installer/k10-media-broadcaster.iss
-        shell: cmd
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\k10-media-broadcaster.iss
+        shell: pwsh
 
-      - name: Upload installer artifact
+      - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
           name: installer
@@ -146,7 +152,7 @@ jobs:
   release:
     name: Publish Release
     runs-on: ubuntu-latest
-    needs: [build-overlay, build-plugin, build-installer]
+    needs: [build-overlay-win, build-installer]
 
     steps:
       - uses: actions/checkout@v4
@@ -155,6 +161,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release-artifacts/
+          merge-multiple: false
+
+      - name: List artifacts
+        run: find release-artifacts/ -type f | sort
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -162,9 +172,9 @@ jobs:
           generate_release_notes: true
           files: |
             release-artifacts/installer/*.exe
-            release-artifacts/overlay-win/*.exe
+            release-artifacts/overlay-win-setup/*.exe
             release-artifacts/overlay-mac/*.dmg
-            release-artifacts/plugin-dll/K10MediaBroadcaster.Plugin.dll
+            release-artifacts/overlay-update-meta/latest.yml
           draft: false
           prerelease: false
         env:
