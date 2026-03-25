@@ -120,6 +120,11 @@ const PROP_KEYS = [
   'K10MediaBroadcaster.Plugin.DS.TrackPct',
   'K10MediaBroadcaster.Plugin.DS.LapDelta',
   'K10MediaBroadcaster.Plugin.DS.CurrentSector',
+  'K10MediaBroadcaster.Plugin.DS.SectorCount',
+  'K10MediaBroadcaster.Plugin.DS.SectorSplits',
+  'K10MediaBroadcaster.Plugin.DS.SectorDeltas',
+  'K10MediaBroadcaster.Plugin.DS.SectorStates',
+  'K10MediaBroadcaster.Plugin.DS.SectorBoundaryPcts',
   'K10MediaBroadcaster.Plugin.DS.SectorSplitS1',
   'K10MediaBroadcaster.Plugin.DS.SectorSplitS2',
   'K10MediaBroadcaster.Plugin.DS.SectorSplitS3',
@@ -312,6 +317,8 @@ let _gapsLastLap = 0;          // last completed lap for gaps module
 let _gapsWorstLap = 0;         // worst valid lap time for gaps module
 let _gapsLapNum = 0;           // current lap number for gaps module
 let _gapsNonRaceMode = false;  // currently in non-race session
+let _lapStartIncidents = 0;   // incident count at start of current lap (for invalid detection)
+let _lapInvalid = false;       // true when incidents increased during current lap
 let _startPosition = 0;
 let _prevBB = -1, _prevTC = -1, _prevABS = -1;
 let _clutchSeenActive = false;

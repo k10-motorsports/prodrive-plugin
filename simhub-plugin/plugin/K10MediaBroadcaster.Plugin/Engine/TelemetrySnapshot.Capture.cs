@@ -139,12 +139,19 @@ namespace K10MediaBroadcaster.Plugin.Engine
 
             // ── Sector splits (using iRacing native boundaries from session YAML) ──
             // Feed iRacing's SplitTimeInfo sector boundaries to the tracker if available
-            if (_irEstimator != null && _irEstimator.HasSectorBoundaries && !_sectorTracker.HasNativeBoundaries)
+            // Prefer IRacingSdkBridge (full N-sector support) over legacy IRatingEstimator
+            if (_sdkBridge != null && _sdkBridge.SectorBoundaries.Length > 0 && !_sectorTracker.HasNativeBoundaries)
+            {
+                _sectorTracker.SetBoundaries(_sdkBridge.SectorBoundaries, _sdkBridge.SectorCount);
+            }
+            else if (_irEstimator != null && _irEstimator.HasSectorBoundaries && !_sectorTracker.HasNativeBoundaries)
             {
                 _sectorTracker.SetBoundaries(_irEstimator.SectorS2Start, _irEstimator.SectorS3Start);
             }
             _sectorTracker.Update(s.TrackPositionPct, s.LapCurrentTime, s.CompletedLaps);
             s.CurrentSector  = _sectorTracker.CurrentSector;
+            s.SectorCount    = _sectorTracker.SectorCount;
+            // Legacy 3-sector properties (backward compat)
             s.SectorSplitS1  = _sectorTracker.SplitS1;
             s.SectorSplitS2  = _sectorTracker.SplitS2;
             s.SectorSplitS3  = _sectorTracker.SplitS3;
@@ -156,6 +163,18 @@ namespace K10MediaBroadcaster.Plugin.Engine
             s.SectorS3StartPct = _sectorTracker.Sector3StartPct;
             s.SectorStateS2  = _sectorTracker.StateS2;
             s.SectorStateS3  = _sectorTracker.StateS3;
+            // N-sector arrays
+            var sc = _sectorTracker.SectorCount;
+            s.SectorSplits     = new double[sc];
+            s.SectorDeltas     = new double[sc];
+            s.SectorStates     = new int[sc];
+            s.SectorBoundaries = _sectorTracker.Boundaries;
+            for (int si = 0; si < sc; si++)
+            {
+                s.SectorSplits[si] = _sectorTracker.GetSplit(si);
+                s.SectorDeltas[si] = _sectorTracker.GetDelta(si);
+                s.SectorStates[si] = _sectorTracker.GetState(si);
+            }
 
             // ── Player name (needed before opponents loop for IsPlayer matching) ──
             try

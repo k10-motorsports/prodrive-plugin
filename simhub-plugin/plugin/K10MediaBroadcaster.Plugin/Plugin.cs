@@ -974,8 +974,9 @@ namespace K10MediaBroadcaster.Plugin
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.TcActive", s.TcActive ? 1 : 0);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.TrackPct", s.TrackPositionPct, ic);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.LapDelta", s.LapDeltaToBest, ic);
-                    // Sector splits
+                    // Sector splits (legacy 3-sector + N-sector)
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.CurrentSector", s.CurrentSector);
+                    Jp(sb, "K10MediaBroadcaster.Plugin.DS.SectorCount", s.SectorCount);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.SectorSplitS1", s.SectorSplitS1, ic);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.SectorSplitS2", s.SectorSplitS2, ic);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.SectorSplitS3", s.SectorSplitS3, ic);
@@ -987,6 +988,29 @@ namespace K10MediaBroadcaster.Plugin
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.SectorStateS3", s.SectorStateS3);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.SectorS2StartPct", s.SectorS2StartPct, ic);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.SectorS3StartPct", s.SectorS3StartPct, ic);
+                    // N-sector arrays (serialized as comma-separated for tracks with >3 sectors)
+                    if (s.SectorSplits != null && s.SectorCount > 3)
+                    {
+                        sb.Append("\"K10MediaBroadcaster.Plugin.DS.SectorSplits\":\"");
+                        for (int si = 0; si < s.SectorSplits.Length; si++)
+                        { if (si > 0) sb.Append(','); sb.Append(s.SectorSplits[si].ToString("F3", ic)); }
+                        sb.Append("\",");
+                        sb.Append("\"K10MediaBroadcaster.Plugin.DS.SectorDeltas\":\"");
+                        for (int si = 0; si < s.SectorDeltas.Length; si++)
+                        { if (si > 0) sb.Append(','); sb.Append(s.SectorDeltas[si].ToString("F3", ic)); }
+                        sb.Append("\",");
+                        sb.Append("\"K10MediaBroadcaster.Plugin.DS.SectorStates\":\"");
+                        for (int si = 0; si < s.SectorStates.Length; si++)
+                        { if (si > 0) sb.Append(','); sb.Append(s.SectorStates[si]); }
+                        sb.Append("\",");
+                        sb.Append("\"K10MediaBroadcaster.Plugin.DS.SectorBoundaryPcts\":\"");
+                        if (s.SectorBoundaries != null)
+                        {
+                            for (int si = 0; si < s.SectorBoundaries.Length; si++)
+                            { if (si > 0) sb.Append(','); sb.Append(s.SectorBoundaries[si].ToString("F6", ic)); }
+                        }
+                        sb.Append("\",");
+                    }
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.CompletedLaps", s.CompletedLaps);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.IsInPitLane", s.IsInPitLane ? 1 : 0);
                     Jp(sb, "K10MediaBroadcaster.Plugin.DS.SpeedKmh", s.SpeedKmh, ic);

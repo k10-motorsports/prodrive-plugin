@@ -103,6 +103,8 @@ namespace K10MediaBroadcaster.Plugin.Engine
 
         // ── Sector splits (computed by SectorTracker) ──────────────────────
         public int    CurrentSector      { get; set; } = 1;
+        /// <summary>Number of sectors for this track (from iRacing SplitTimeInfo).</summary>
+        public int    SectorCount        { get; set; } = 3;
         public double SectorSplitS1      { get; set; }
         public double SectorSplitS2      { get; set; }
         public double SectorSplitS3      { get; set; }
@@ -116,6 +118,16 @@ namespace K10MediaBroadcaster.Plugin.Engine
         public double SectorS3StartPct   { get; set; }
         public int    SectorStateS2      { get; set; }
         public int    SectorStateS3      { get; set; }
+
+        // ── N-sector arrays (for tracks with >3 sectors) ─────────────────
+        /// <summary>Split times for all sectors (N elements, 0-indexed).</summary>
+        public double[] SectorSplits     { get; set; }
+        /// <summary>Delta to best for all sectors (N elements, 0-indexed).</summary>
+        public double[] SectorDeltas     { get; set; }
+        /// <summary>State for all sectors: 0=none, 1=pb, 3=slower (N elements, 0-indexed).</summary>
+        public int[]    SectorStates     { get; set; }
+        /// <summary>Sector boundary start percentages (N-1 elements, for sectors 2..N).</summary>
+        public double[] SectorBoundaries { get; set; }
 
         // ── In-car adjustments (driver controls) ───────────────────────────
         // These change when the driver adjusts settings via button box / black box.

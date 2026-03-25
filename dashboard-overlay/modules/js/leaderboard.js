@@ -132,6 +132,8 @@
       if (b > 0 && b < sessionBest) sessionBest = b;
     }
     if (sessionBest === Infinity) sessionBest = 0;
+    // Expose session best for other modules (best lap coloring)
+    window._sessionBestLap = sessionBest;
 
     // Slice visible entries based on focus mode
     let visible;

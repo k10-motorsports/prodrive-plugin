@@ -793,16 +793,20 @@
     color: var(--text-primary);
   }
   .pos-meta-row .val.purple { color: var(--purple); }
+  .pos-meta-row .val.green  { color: var(--green); }
   .pos-meta-row.best-row {
     font-size: 16px;
     font-weight: var(--fw-semi);
     text-align: center;
+    width: 100%;
   }
   .pos-meta-row.best-row .val {
     font-family: var(--ff-mono);
     font-size: 20px;
     font-weight: 600;
     letter-spacing: -0.02em;
+    display: block;
+    text-align: center;
   }
 
   /* Gaps — side-by-side */
@@ -861,10 +865,15 @@
   .sector-cell.sector-faster .sector-time { color: var(--green); }
   .sector-cell.sector-faster .sector-delta { color: var(--green); }
   .sector-cell.sector-slower {
+    background: hsla(45,80%,40%,0.2);
+  }
+  .sector-cell.sector-slower .sector-time { color: var(--amber); }
+  .sector-cell.sector-slower .sector-delta { color: var(--amber); }
+  .sector-cell.sector-invalid {
     background: hsla(0,65%,45%,0.25);
   }
-  .sector-cell.sector-slower .sector-time { color: var(--red); }
-  .sector-cell.sector-slower .sector-delta { color: var(--red); }
+  .sector-cell.sector-invalid .sector-time { color: var(--red); }
+  .sector-cell.sector-invalid .sector-delta { color: var(--red); }
   .sector-cell.sector-active {
     border: 1px solid hsla(0,0%,100%,0.15);
   }

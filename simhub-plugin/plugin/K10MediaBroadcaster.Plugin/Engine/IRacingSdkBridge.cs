@@ -50,6 +50,11 @@ namespace K10MediaBroadcaster.Plugin.Engine
         public double SectorS3StartPct { get; private set; }
         public bool HasSectorBoundaries { get; private set; }
 
+        /// <summary>All sector boundary percentages from iRacing SplitTimeInfo (sorted ascending).</summary>
+        public double[] SectorBoundaries { get; private set; } = Array.Empty<double>();
+        /// <summary>Number of sectors defined by iRacing for this track.</summary>
+        public int SectorCount { get; private set; } = 3;
+
         // Driver ratings for iRating estimation
         private readonly Dictionary<int, int> _driverIRatings = new Dictionary<int, int>();
         public IReadOnlyDictionary<int, int> DriverIRatings => _driverIRatings;
@@ -343,11 +348,31 @@ namespace K10MediaBroadcaster.Plugin.Engine
             }
 
             // ── Sector boundaries from SplitTimeInfo ──
-            if (si.SplitTimeInfo?.Sectors != null && si.SplitTimeInfo.Sectors.Count >= 3)
+            if (si.SplitTimeInfo?.Sectors != null && si.SplitTimeInfo.Sectors.Count >= 2)
             {
-                SectorS2StartPct = si.SplitTimeInfo.Sectors[1].SectorStartPct;
-                SectorS3StartPct = si.SplitTimeInfo.Sectors[2].SectorStartPct;
-                HasSectorBoundaries = SectorS2StartPct > 0 && SectorS3StartPct > SectorS2StartPct;
+                // Store all sector boundaries (skip sector 0 which starts at 0.0)
+                var boundaries = new List<double>();
+                for (int i = 1; i < si.SplitTimeInfo.Sectors.Count; i++)
+                {
+                    var pct = si.SplitTimeInfo.Sectors[i].SectorStartPct;
+                    if (pct > 0 && pct < 1) boundaries.Add(pct);
+                }
+                SectorBoundaries = boundaries.ToArray();
+                SectorCount = si.SplitTimeInfo.Sectors.Count;
+
+                // Backward compat: populate S2/S3 start for legacy 3-sector code paths
+                if (boundaries.Count >= 2)
+                {
+                    SectorS2StartPct = boundaries[0];
+                    SectorS3StartPct = boundaries[1];
+                    HasSectorBoundaries = SectorS2StartPct > 0 && SectorS3StartPct > SectorS2StartPct;
+                }
+                else if (boundaries.Count == 1)
+                {
+                    SectorS2StartPct = boundaries[0];
+                    SectorS3StartPct = 0;
+                    HasSectorBoundaries = false;
+                }
             }
         }
 

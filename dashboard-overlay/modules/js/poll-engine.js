@@ -319,7 +319,14 @@
       if (sp) sp.textContent = pos > 0 ? 'P' + pos : 'P—';
     });
     document.querySelectorAll('.pos-meta-row .val').forEach(el => {
-      if (el.classList.contains('purple')) el.textContent = fmtLap(bestLap);
+      if (el.closest('.best-row')) {
+        el.textContent = fmtLap(bestLap);
+        // Green = personal best, purple = session best of everyone
+        const sb = window._sessionBestLap || 0;
+        const isSessionBest = bestLap > 0 && sb > 0 && Math.abs(bestLap - sb) < 0.05;
+        el.classList.remove('purple', 'green');
+        if (bestLap > 0) el.classList.add(isSessionBest ? 'purple' : 'green');
+      }
       else el.textContent = lap > 0 ? lap : '—';
     });
     if (pos !== _lastPosition && _lastPosition > 0 && pos > 0) {
@@ -415,6 +422,14 @@
         }, 30000);
       }
     }
+    // ── Lap validity: detect incidents added during this lap ──
+    const _incCount = +(p[dsPre + 'IncidentCount']) || 0;
+    if (lap > 0 && lap !== _prevLap) {
+      _lapStartIncidents = _incCount;
+      _lapInvalid = false;
+    }
+    if (_incCount > _lapStartIncidents) _lapInvalid = true;
+
     _prevLap = lap;
 
     // End-of-race: pin timer visible for final 3 laps or final 5 minutes
@@ -501,14 +516,25 @@
 
       const curSector = +(p[dsPre + 'CurrentSector']) || 1;
       const lapDelta = +(p[dsPre + 'LapDelta']) || 0;
-      const splits = [+(p[dsPre + 'SectorSplitS1']) || 0, +(p[dsPre + 'SectorSplitS2']) || 0, +(p[dsPre + 'SectorSplitS3']) || 0];
-      const deltas = [+(p[dsPre + 'SectorDeltaS1']) || 0, +(p[dsPre + 'SectorDeltaS2']) || 0, +(p[dsPre + 'SectorDeltaS3']) || 0];
-      const states = [+(p[dsPre + 'SectorStateS1']) || 0, +(p[dsPre + 'SectorStateS2']) || 0, +(p[dsPre + 'SectorStateS3']) || 0];
-      // state: 0=none, 1=pb, 2=faster, 3=slower
+      const sectorCount = +(p[dsPre + 'SectorCount']) || 3;
+
+      // Build sector arrays: use N-sector arrays if available, else legacy 3-sector
+      let splits, deltas, states;
+      const splitsStr = p[dsPre + 'SectorSplits'];
+      if (sectorCount > 3 && splitsStr) {
+        splits = splitsStr.split(',').map(Number);
+        deltas = (p[dsPre + 'SectorDeltas'] || '').split(',').map(Number);
+        states = (p[dsPre + 'SectorStates'] || '').split(',').map(Number);
+      } else {
+        splits = [+(p[dsPre + 'SectorSplitS1']) || 0, +(p[dsPre + 'SectorSplitS2']) || 0, +(p[dsPre + 'SectorSplitS3']) || 0];
+        deltas = [+(p[dsPre + 'SectorDeltaS1']) || 0, +(p[dsPre + 'SectorDeltaS2']) || 0, +(p[dsPre + 'SectorDeltaS3']) || 0];
+        states = [+(p[dsPre + 'SectorStateS1']) || 0, +(p[dsPre + 'SectorStateS2']) || 0, +(p[dsPre + 'SectorStateS3']) || 0];
+      }
+      // state: 0=none, 1=pb (session best / purple), 2=faster (green), 3=slower (yellow)
       const stateClass = ['', 'sector-pb', 'sector-faster', 'sector-slower'];
 
       // Store for track map sector coloring + boundaries for path splitting
-      window._sectorData = { curSector, splits, deltas, states };
+      window._sectorData = { curSector, splits, deltas, states, sectorCount };
       const s2Pct = +(p[dsPre + 'SectorS2StartPct']) || 0;
       const s3Pct = +(p[dsPre + 'SectorS3StartPct']) || 0;
       if (s2Pct > 0 && s3Pct > s2Pct) window._sectorBoundaries = { s2: s2Pct, s3: s3Pct };
@@ -518,13 +544,50 @@
         ? (+(p['K10MediaBroadcaster.Plugin.Demo.CurrentLapTime']) || 0)
         : (+(p['DataCorePlugin.GameData.CurrentLapTime']) || 0);
 
-      for (let si = 1; si <= 3; si++) {
+      // ── Dynamic sector cell management ──
+      // Ensure sectorIndicator has the right number of cells
+      const sectorEl = document.getElementById('sectorIndicator');
+      if (sectorEl) {
+        const existing = sectorEl.querySelectorAll('.sector-cell');
+        if (existing.length !== sectorCount) {
+          sectorEl.innerHTML = '';
+          for (let i = 1; i <= sectorCount; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'sector-cell';
+            cell.id = 'sector' + i;
+            cell.innerHTML = '<div class="sector-label">S' + i + '</div>' +
+              '<div class="sector-time" id="sector' + i + 'Time">—</div>' +
+              '<div class="sector-delta" id="sector' + i + 'Delta"></div>';
+            sectorEl.appendChild(cell);
+          }
+        }
+      }
+
+      // Determine if too many sectors to show values (would clip)
+      // Threshold: if >6 sectors, omit the time/delta values to avoid clipping
+      const omitValues = sectorCount > 6;
+
+      for (let si = 1; si <= sectorCount; si++) {
         const cell = document.getElementById('sector' + si);
         const timeEl = document.getElementById('sector' + si + 'Time');
         const deltaEl = document.getElementById('sector' + si + 'Delta');
         if (!cell || !timeEl) continue;
 
-        cell.classList.remove('sector-pb', 'sector-faster', 'sector-slower', 'sector-active');
+        cell.classList.remove('sector-pb', 'sector-faster', 'sector-slower', 'sector-invalid', 'sector-active');
+
+        // If lap is invalid (incident occurred), mark all sectors red
+        if (_lapInvalid) {
+          cell.classList.add('sector-invalid');
+        }
+
+        if (omitValues) {
+          // Too many sectors: just show color state, no text values
+          timeEl.textContent = '';
+          if (deltaEl) deltaEl.textContent = '';
+          if (si === curSector) cell.classList.add('sector-active');
+          else if (!_lapInvalid && splits[si - 1] > 0 && stateClass[states[si - 1]]) cell.classList.add(stateClass[states[si - 1]]);
+          continue;
+        }
 
         if (si === curSector) {
           // Active sector: show running sector elapsed time, delta below
@@ -554,22 +617,22 @@
           if (deltaEl) {
             if (lapDelta !== 0) {
               deltaEl.textContent = (lapDelta >= 0 ? '+' : '') + lapDelta.toFixed(2);
-              cell.classList.add(lapDelta < 0 ? 'sector-faster' : 'sector-slower');
+              if (!_lapInvalid) cell.classList.add(lapDelta < 0 ? 'sector-faster' : 'sector-slower');
             } else {
               deltaEl.textContent = '';
             }
           }
         } else if (splits[si - 1] > 0) {
-          // Completed sector: show split time, delta to best below
+          // Completed sector: show sector time + delta to my best
           const split = splits[si - 1];
           const m = Math.floor(split / 60);
           const s = (split % 60);
           timeEl.textContent = (m > 0 ? m + ':' : '') + (m > 0 && s < 10 ? '0' : '') + s.toFixed(1);
-          if (stateClass[states[si - 1]]) cell.classList.add(stateClass[states[si - 1]]);
+          if (!_lapInvalid && stateClass[states[si - 1]]) cell.classList.add(stateClass[states[si - 1]]);
           if (deltaEl) {
             const d = deltas[si - 1];
-            if (states[si - 1] === 1) deltaEl.textContent = 'PB';
-            else if (d !== 0) deltaEl.textContent = (d >= 0 ? '+' : '') + d.toFixed(2);
+            if (d !== 0) deltaEl.textContent = (d >= 0 ? '+' : '') + d.toFixed(2);
+            else if (states[si - 1] === 1) deltaEl.textContent = 'PB';
             else deltaEl.textContent = '';
           }
         } else {

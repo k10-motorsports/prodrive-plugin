@@ -64,6 +64,7 @@
       p1: position === 1,
       checkered: flagState === 'checkered',
       event: event,
+      newLap: currentLap > 0 && currentLap !== _rtLastLap,
     };
     if (sample.checkered) _rtFinished = true;
 
@@ -117,7 +118,7 @@
           for (let cx = x; cx < x + sw; cx += sqSize) {
             const row = Math.floor(cy / sqSize);
             const col = Math.floor((cx - x) / sqSize);
-            ctx.fillStyle = (row + col) % 2 === 0 ? 'hsla(0,0%,100%,0.12)' : 'hsla(0,0%,100%,0.03)';
+            ctx.fillStyle = (row + col) % 2 === 0 ? 'hsla(0,0%,100%,0.35)' : 'hsla(0,0%,0%,0.4)';
             ctx.fillRect(cx, cy, Math.min(sqSize, x + sw - cx), Math.min(sqSize, h - cy));
           }
         }
@@ -148,6 +149,19 @@
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(x, 5);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+    }
+
+    // Third pass: draw white lap boundary lines
+    for (let i = 0; i < len; i++) {
+      const sample = _rtHistory[i];
+      if (!sample.newLap) continue;
+      const x = Math.floor(i * sliceW);
+      ctx.strokeStyle = 'hsla(0,0%,100%,0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
       ctx.lineTo(x, h);
       ctx.stroke();
     }

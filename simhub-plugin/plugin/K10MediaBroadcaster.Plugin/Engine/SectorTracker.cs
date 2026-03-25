@@ -3,76 +3,111 @@ using System;
 namespace K10MediaBroadcaster.Plugin.Engine
 {
     /// <summary>
-    /// Tracks 3-sector split times using iRacing's native sector boundaries
+    /// Tracks N-sector split times using iRacing's native sector boundaries
     /// (from SplitTimeInfo.Sectors[].SectorStartPct in the session YAML).
-    /// Falls back to equal thirds if native boundaries aren't available.
+    /// Falls back to equal thirds (3 sectors) if native boundaries aren't available.
     /// </summary>
     public class SectorTracker
     {
-        // Default boundaries (equal thirds) — overridden by SetBoundaries()
-        private double _s2Start = 0.333;
-        private double _s3Start = 0.667;
+        // Boundaries: array of LapDistPct values where each sector starts (excluding sector 1 which starts at 0)
+        // For 3 sectors: [s2Start, s3Start]. For 5 sectors: [s2Start, s3Start, s4Start, s5Start].
+        private double[] _boundaries = new double[] { 0.333, 0.667 };
         private bool _hasNativeBoundaries;
 
-        // Best sector splits for the session
-        private double _bestS1, _bestS2, _bestS3;
+        // Dynamic arrays sized to sector count
+        private double[] _bestSplits;   // best split time per sector
+        private double[] _lastSplits;   // last completed split time per sector
+        private double[] _deltas;       // delta to best per sector
+        private int[]    _states;       // 0=none, 1=pb, 2=faster, 3=slower
 
-        // Current lap sector entry time
+        // Current lap state
         private double _sectorEntryTime;
         private int _prevSector;
-
-        // Last completed sector splits + deltas
-        private double _lastS1, _lastS2, _lastS3;
-        private double _deltaS1, _deltaS2, _deltaS3;
-
-        // State: 0=none, 1=pb, 2=faster, 3=slower
-        private int _stateS1, _stateS2, _stateS3;
-
-        // Track new-lap detection
         private int _prevCompletedLaps;
 
-        /// <summary>Current sector the player is in (1, 2, or 3).</summary>
+        /// <summary>Number of sectors for this track.</summary>
+        public int SectorCount { get; private set; } = 3;
+
+        /// <summary>Current sector the player is in (1-based).</summary>
         public int CurrentSector { get; private set; } = 1;
 
-        /// <summary>Sector 2 start as LapDistPct (for track map rendering).</summary>
-        public double Sector2StartPct => _s2Start;
-        /// <summary>Sector 3 start as LapDistPct (for track map rendering).</summary>
-        public double Sector3StartPct => _s3Start;
         /// <summary>Whether native iRacing sector boundaries are loaded.</summary>
         public bool HasNativeBoundaries => _hasNativeBoundaries;
 
-        /// <summary>Last completed S1 split time (seconds).</summary>
-        public double SplitS1 => _lastS1;
-        public double SplitS2 => _lastS2;
-        public double SplitS3 => _lastS3;
+        // ── Legacy 3-sector properties (backward compat) ──
+        public double Sector2StartPct => _boundaries.Length >= 1 ? _boundaries[0] : 0.333;
+        public double Sector3StartPct => _boundaries.Length >= 2 ? _boundaries[1] : 0.667;
 
-        public double BestS1 => _bestS1;
-        public double BestS2 => _bestS2;
-        public double BestS3 => _bestS3;
+        public double SplitS1 => GetSplit(0);
+        public double SplitS2 => GetSplit(1);
+        public double SplitS3 => GetSplit(2);
+        public double BestS1  => GetBest(0);
+        public double BestS2  => GetBest(1);
+        public double BestS3  => GetBest(2);
+        public double DeltaS1 => GetDelta(0);
+        public double DeltaS2 => GetDelta(1);
+        public double DeltaS3 => GetDelta(2);
+        public int    StateS1 => GetState(0);
+        public int    StateS2 => GetState(1);
+        public int    StateS3 => GetState(2);
 
-        public double DeltaS1 => _deltaS1;
-        public double DeltaS2 => _deltaS2;
-        public double DeltaS3 => _deltaS3;
+        // ── N-sector array accessors ──
+        /// <summary>Get the last completed split time for sector index (0-based).</summary>
+        public double GetSplit(int idx) => _lastSplits != null && idx < _lastSplits.Length ? _lastSplits[idx] : 0;
+        /// <summary>Get the best split time for sector index (0-based).</summary>
+        public double GetBest(int idx)  => _bestSplits != null && idx < _bestSplits.Length ? _bestSplits[idx] : 0;
+        /// <summary>Get the delta to best for sector index (0-based).</summary>
+        public double GetDelta(int idx) => _deltas != null && idx < _deltas.Length ? _deltas[idx] : 0;
+        /// <summary>Get the state for sector index (0-based). 0=none, 1=pb, 2=faster, 3=slower</summary>
+        public int    GetState(int idx) => _states != null && idx < _states.Length ? _states[idx] : 0;
 
-        /// <summary>0=none, 1=pb, 2=faster, 3=slower</summary>
-        public int StateS1 => _stateS1;
-        public int StateS2 => _stateS2;
-        public int StateS3 => _stateS3;
+        /// <summary>Get the sector boundary start percentages (excludes sector 1 which starts at 0).</summary>
+        public double[] Boundaries => _boundaries;
+
+        public SectorTracker()
+        {
+            AllocArrays(3);
+        }
+
+        private void AllocArrays(int count)
+        {
+            SectorCount = count;
+            _bestSplits = new double[count];
+            _lastSplits = new double[count];
+            _deltas     = new double[count];
+            _states     = new int[count];
+        }
 
         /// <summary>
         /// Set sector boundaries from iRacing's SplitTimeInfo YAML.
-        /// iRacing defines sectors with SectorStartPct values.
-        /// Sector 1 always starts at 0.0, so we need the start of S2 and S3.
+        /// Pass the SectorStartPct values for sectors 2..N (sector 1 starts at 0).
+        /// </summary>
+        public void SetBoundaries(double[] boundaries, int sectorCount)
+        {
+            if (boundaries == null || boundaries.Length == 0 || sectorCount < 2) return;
+
+            // Validate monotonically increasing and in range (0,1)
+            double prev = 0;
+            foreach (var b in boundaries)
+            {
+                if (b <= prev || b >= 1) return;
+                prev = b;
+            }
+
+            _boundaries = boundaries;
+            _hasNativeBoundaries = true;
+            AllocArrays(sectorCount);
+            ResetState();
+        }
+
+        /// <summary>
+        /// Legacy 2-boundary overload for backward compatibility.
         /// </summary>
         public void SetBoundaries(double s2StartPct, double s3StartPct)
         {
             if (s2StartPct > 0 && s2StartPct < 1 && s3StartPct > s2StartPct && s3StartPct < 1)
             {
-                _s2Start = s2StartPct;
-                _s3Start = s3StartPct;
-                _hasNativeBoundaries = true;
-                // Reset splits when boundaries change (new track)
-                Reset();
+                SetBoundaries(new[] { s2StartPct, s3StartPct }, 3);
             }
         }
 
@@ -83,17 +118,26 @@ namespace K10MediaBroadcaster.Plugin.Engine
         {
             if (trackPct < 0 || trackPct > 1.01) return;
 
-            int sector = trackPct < _s2Start ? 1 : trackPct < _s3Start ? 2 : 3;
+            // Determine current sector (1-based)
+            int sector = SectorCount; // default to last sector
+            for (int i = 0; i < _boundaries.Length; i++)
+            {
+                if (trackPct < _boundaries[i])
+                {
+                    sector = i + 1;
+                    break;
+                }
+            }
 
             // New lap detection
-            if (completedLaps > _prevCompletedLaps || (sector == 1 && _prevSector == 3))
+            if (completedLaps > _prevCompletedLaps || (sector == 1 && _prevSector == SectorCount))
             {
-                if (_prevSector == 3)
+                if (_prevSector == SectorCount)
                 {
                     double splitTime = currentLapTime > 0
                         ? currentLapTime - _sectorEntryTime : 0;
                     if (splitTime > 0.1)
-                        RecordSplit(3, splitTime);
+                        RecordSplit(SectorCount, splitTime);
                 }
                 _sectorEntryTime = 0;
                 _prevCompletedLaps = completedLaps;
@@ -117,39 +161,32 @@ namespace K10MediaBroadcaster.Plugin.Engine
 
         private void RecordSplit(int sector, double splitTime)
         {
-            switch (sector)
+            int idx = sector - 1;
+            if (idx < 0 || idx >= SectorCount) return;
+
+            _lastSplits[idx] = splitTime;
+            if (_bestSplits[idx] <= 0 || splitTime < _bestSplits[idx])
             {
-                case 1:
-                    _lastS1 = splitTime;
-                    if (_bestS1 <= 0 || splitTime < _bestS1)
-                    { _bestS1 = splitTime; _deltaS1 = 0; _stateS1 = 1; }
-                    else
-                    { _deltaS1 = splitTime - _bestS1; _stateS1 = _deltaS1 < 0.01 ? 1 : 3; }
-                    break;
-                case 2:
-                    _lastS2 = splitTime;
-                    if (_bestS2 <= 0 || splitTime < _bestS2)
-                    { _bestS2 = splitTime; _deltaS2 = 0; _stateS2 = 1; }
-                    else
-                    { _deltaS2 = splitTime - _bestS2; _stateS2 = _deltaS2 < 0.01 ? 1 : 3; }
-                    break;
-                case 3:
-                    _lastS3 = splitTime;
-                    if (_bestS3 <= 0 || splitTime < _bestS3)
-                    { _bestS3 = splitTime; _deltaS3 = 0; _stateS3 = 1; }
-                    else
-                    { _deltaS3 = splitTime - _bestS3; _stateS3 = _deltaS3 < 0.01 ? 1 : 3; }
-                    break;
+                _bestSplits[idx] = splitTime;
+                _deltas[idx] = 0;
+                _states[idx] = 1; // PB
+            }
+            else
+            {
+                _deltas[idx] = splitTime - _bestSplits[idx];
+                _states[idx] = _deltas[idx] < 0.01 ? 1 : 3; // within 0.01s = still PB, else slower
             }
         }
 
         /// <summary>Reset all sector data (session change, track change).</summary>
         public void Reset()
         {
-            _bestS1 = _bestS2 = _bestS3 = 0;
-            _lastS1 = _lastS2 = _lastS3 = 0;
-            _deltaS1 = _deltaS2 = _deltaS3 = 0;
-            _stateS1 = _stateS2 = _stateS3 = 0;
+            AllocArrays(SectorCount);
+            ResetState();
+        }
+
+        private void ResetState()
+        {
             _sectorEntryTime = 0;
             _prevSector = 0;
             _prevCompletedLaps = 0;

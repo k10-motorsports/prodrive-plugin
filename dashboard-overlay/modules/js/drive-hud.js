@@ -83,7 +83,10 @@
       var sDeltaEl = document.getElementById('dhS' + si + 'Delta');
       if (!cell || !timeEl) continue;
 
-      cell.classList.remove('dh-s-pb', 'dh-s-faster', 'dh-s-slower', 'dh-s-active');
+      cell.classList.remove('dh-s-pb', 'dh-s-faster', 'dh-s-slower', 'dh-s-invalid', 'dh-s-active');
+
+      // If lap is invalid (incident occurred), mark all sectors red
+      if (_lapInvalid) cell.classList.add('dh-s-invalid');
 
       if (si === curSector) {
         cell.classList.add('dh-s-active');
