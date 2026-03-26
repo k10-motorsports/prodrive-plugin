@@ -1,7 +1,7 @@
 // K10 Motorsports — Shared constants
 
 export const SITE_NAME = 'K10 Motorsports'
-export const SITE_DESCRIPTION = 'Real-time sim racing telemetry overlay with AI commentary, sector analysis, and driver performance tracking.'
+export const SITE_DESCRIPTION = 'Broadcast-grade sim racing HUD with real-time telemetry, race strategy, AI commentary, WebGL visual effects, and HomeKit smart lighting. Built for iRacing.'
 
 // Domain config — derived from environment so dev/prod URLs are automatic.
 // Production: https://k10motorsports.racing / https://drive.k10motorsports.racing

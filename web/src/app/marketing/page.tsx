@@ -26,8 +26,8 @@ export default async function HomePage() {
           {SITE_NAME}
         </h1>
         <p className="text-xl text-[var(--text-dim)] max-w-2xl leading-relaxed mb-10 relative z-10">
-          Real-time sim racing telemetry overlay with AI commentary, sector analysis,
-          and driver performance tracking. Built for iRacing.
+          Broadcast-grade sim racing HUD with real-time telemetry, race strategy,
+          AI commentary, WebGL effects, and HomeKit smart lighting. Built for iRacing.
         </p>
         <div className="flex gap-4 relative z-10">
           <a
@@ -52,32 +52,32 @@ export default async function HomePage() {
           {[
             {
               title: 'Live Telemetry HUD',
-              desc: 'Gear, speed, RPM with tachometer. Pedal traces. Fuel and tyre monitoring. Brake bias, TC, ABS. All at 30fps.',
+              desc: 'Gear, speed, RPM with color-coded tachometer. Pedal traces. Fuel with pit window estimates. Four-corner tyre temps. BB/TC/ABS. Live lap timer with delta-to-best. All at 30fps.',
               accent: 'var(--k10-red)',
             },
             {
-              title: 'AI Commentary',
-              desc: '50+ telemetry-driven events with severity-based interruption. Contextual commentary about your car and the circuit.',
+              title: 'Race Strategy Engine',
+              desc: 'Real-time tire lifecycle tracking with composite grip scoring, fuel burn analysis with pit window calculation, stint-aware evaluation, and severity-graded coaching calls.',
               accent: 'var(--amber)',
             },
             {
-              title: 'Sector Analysis',
-              desc: 'F1-style 3-sector timing using iRacing native boundaries. Live delta, split times, PB tracking.',
+              title: 'AI Commentary',
+              desc: '33 telemetry-driven triggers with 240+ prompt combinations. Composable sentence fragments. Severity-based interruption with cooldowns. Contextual to your car and circuit.',
               accent: 'var(--green)',
             },
             {
-              title: 'Leaderboard',
-              desc: 'Relative leaderboard with sparkline lap history, iRating display, gap times, and pit status.',
+              title: 'Track Map & Sectors',
+              desc: 'SVG minimap with heading-up rotation. Per-sector timing with native iRacing boundaries (up to 7+ sectors). Live delta, split times, PB tracking.',
               accent: 'var(--blue)',
             },
             {
-              title: 'Drive Mode',
-              desc: 'Full-screen driver HUD for iPad or second screen. Track map, sectors, position, incidents — glanceable at speed.',
+              title: 'WebGL Visual Effects',
+              desc: 'Fragment shader post-processing: glare, bloom, light sweep, g-force vignette, RPM redline. Ambient light engine samples your screen and drives glass refraction effects.',
               accent: 'var(--cyan)',
             },
             {
-              title: 'Driver Profile',
-              desc: 'iRating and Safety Rating tracking across all license classes. History charts, car brand heatmap, performance assessment.',
+              title: 'Smart Lighting & Drive Mode',
+              desc: 'HomeKit integration maps flags, proximity, and strategy calls to smart light colors. Fullscreen Drive HUD mode for focused racing without production elements.',
               accent: 'var(--purple)',
             },
           ].map((f) => (
@@ -102,34 +102,34 @@ export default async function HomePage() {
 
         <div className="space-y-8">
           <div>
-            <h3 className="text-xl font-bold mb-3 text-[var(--k10-red)]">1. SimHub Plugin</h3>
+            <h3 className="text-xl font-bold mb-3 text-[var(--k10-red)]">1. Download the Installer</h3>
             <p className="text-[var(--text-dim)] mb-3">
-              Prerequisites: SimHub installed on Windows. Optional: iRacing Extra Properties plugin for iRating display.
+              The Windows installer bundles the SimHub plugin and the dashboard overlay. It auto-detects your SimHub installation and handles all file placement.
             </p>
-            <div className="bg-[var(--bg-surface)] rounded-lg p-4 font-mono text-sm text-[var(--green)] border border-[var(--border-subtle)]">
-              Double-click <span className="text-white">install.bat</span> in the repository root
+            <div className="bg-[var(--bg-surface)] rounded-lg p-4 font-mono text-sm border border-[var(--border-subtle)]">
+              <a href="https://github.com/alternatekev/media-coach-simhub-plugin/releases/latest" className="text-[var(--green)] hover:underline">
+                Download K10-Motorsports-Setup.exe →
+              </a>
             </div>
           </div>
 
           <div>
-            <h3 className="text-xl font-bold mb-3 text-[var(--k10-red)]">2. Dashboard Overlay</h3>
+            <h3 className="text-xl font-bold mb-3 text-[var(--k10-red)]">2. Enable in SimHub</h3>
             <p className="text-[var(--text-dim)] mb-3">
-              The Electron overlay runs as a transparent window on top of your sim.
-            </p>
-            <div className="bg-[var(--bg-surface)] rounded-lg p-4 font-mono text-sm space-y-1 border border-[var(--border-subtle)]">
-              <div><span className="text-[var(--text-muted)]">$</span> <span className="text-white">cd dashboard-overlay</span></div>
-              <div><span className="text-[var(--text-muted)]">$</span> <span className="text-white">npm install</span></div>
-              <div><span className="text-[var(--text-muted)]">$</span> <span className="text-white">npm start</span></div>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-xl font-bold mb-3 text-[var(--k10-red)]">3. Remote Access</h3>
-            <p className="text-[var(--text-dim)] mb-3">
-              Stream the dashboard to any browser on your network — iPad, phone, second monitor.
+              Launch SimHub, enable &ldquo;K10 Motorsports&rdquo; in the plugin list, and configure display timing, commentary categories, and strategy options in the settings panel.
             </p>
             <div className="bg-[var(--bg-surface)] rounded-lg p-4 font-mono text-sm text-[var(--text-dim)] border border-[var(--border-subtle)]">
-              Settings → Connections → Stream to Safari → scan QR code
+              Optional: install <span className="text-white">iRacing Extra Properties</span> for iRating + Safety Rating
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-xl font-bold mb-3 text-[var(--k10-red)]">3. Launch & Connect</h3>
+            <p className="text-[var(--text-dim)] mb-3">
+              The overlay runs as a transparent window on top of your sim. Stream it to any browser on your network for multi-screen setups.
+            </p>
+            <div className="bg-[var(--bg-surface)] rounded-lg p-4 font-mono text-sm text-[var(--text-dim)] border border-[var(--border-subtle)]">
+              Built-in auto-updater keeps you current — check for updates from the SimHub settings panel
             </div>
           </div>
         </div>
