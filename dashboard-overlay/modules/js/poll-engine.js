@@ -180,15 +180,21 @@
     const fuel = +d('DataCorePlugin.GameData.Fuel', 'Demo.Fuel') || 0;
     const fuelPct = +(p[dsPre + 'FuelPct']) || 0;
     const fuelRem = document.querySelector('.fuel-remaining');
-    if (fuelRem) fuelRem.innerHTML = fuel > 0 ? fuel.toFixed(1) + ' <span class="unit">L</span>' : '— <span class="unit">L</span>';
+    // Respect DisplayUnits for fuel label (0=imperial/gal, 1=metric/L)
+    const _rawFuelUnits = p[dsPre + 'DisplayUnits'];
+    const _fuelImperial = _rawFuelUnits !== '' && _rawFuelUnits != null && parseInt(_rawFuelUnits) === 0;
+    const fuelDisplay = _fuelImperial ? fuel / 3.78541 : fuel;
+    const fuelUnitLabel = _fuelImperial ? 'gal' : 'L';
+    if (fuelRem) fuelRem.innerHTML = fuelDisplay > 0 ? fuelDisplay.toFixed(1) + ' <span class="unit">' + fuelUnitLabel + '</span>' : '— <span class="unit">' + fuelUnitLabel + '</span>';
     updateFuelBar(fuelPct, 0);
 
-    const fuelPerLap = _demo ? (+v('K10Motorsports.Plugin.Demo.FuelPerLap') || 0) : (+v('DataCorePlugin.Computed.Fuel_LitersPerLap') || 0);
-    const fuelLapsEst = +(p[dsPre + 'FuelLapsRemaining']) || (fuelPerLap > 0 ? fuel / fuelPerLap : 0);
+    const fuelPerLapRaw = _demo ? (+v('K10Motorsports.Plugin.Demo.FuelPerLap') || 0) : (+v('DataCorePlugin.Computed.Fuel_LitersPerLap') || 0);
+    const fuelPerLap = _fuelImperial ? fuelPerLapRaw / 3.78541 : fuelPerLapRaw;
+    const fuelLapsEst = +(p[dsPre + 'FuelLapsRemaining']) || (fuelPerLapRaw > 0 ? fuel / fuelPerLapRaw : 0);
     const completedLaps = +(p[dsPre + 'CompletedLaps']) || 0;
     const fuelVals = document.querySelectorAll('.fuel-stats .val');
     if (fuelVals.length >= 2) {
-      // Fix #10: Show "calculating..." during lap 1 when fuelPerLap hasn't stabilized yet
+      // Show "calculating..." during lap 1 when fuelPerLap hasn't stabilized yet
       if (fuelPerLap > 0) {
         fuelVals[0].textContent = fuelPerLap.toFixed(2);
       } else if (completedLaps < 2 && fuel > 0) {

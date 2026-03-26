@@ -113,8 +113,31 @@
   }
 
   // ── Wear bar helpers ──
+  // Parse tyre wear with null-awareness and raw telemetry fallback.
+  // Returns null when no data available, otherwise 0-1 (1=new, 0=worn).
+  function _parseTyreWear(gameDataVal, rawL, rawM, rawR) {
+    // Try GameData value first
+    if (gameDataVal != null && gameDataVal !== '') {
+      var v = parseFloat(gameDataVal);
+      if (!isNaN(v)) return v;
+    }
+    // Fallback: raw telemetry wear points (average of inner/mid/outer)
+    var l = parseFloat(rawL), m = parseFloat(rawM), r = parseFloat(rawR);
+    if (!isNaN(l) && !isNaN(m) && !isNaN(r) && (l + m + r) > 0) {
+      return (l + m + r) / 3;
+    }
+    return null; // No data available yet
+  }
+
   function updateWearBar(fillEl, valEl, wear) {
     if (!fillEl || !valEl) return;
+    if (wear === null || wear === undefined) {
+      // No data — show placeholder instead of fake 100%
+      fillEl.style.width = '0%';
+      fillEl.className = 'pb-tire-bar-fill';
+      valEl.textContent = '—';
+      return;
+    }
     var pct = Math.max(0, Math.min(100, (1 - wear) * 100));
     var remaining = Math.round(pct);
     fillEl.style.width = remaining + '%';
@@ -168,11 +191,18 @@
     updateTire('LR', _els.tireLR, _els.pressLR, pb('TireLR'), pb('PressureLR'));
     updateTire('RR', _els.tireRR, _els.pressRR, pb('TireRR'), pb('PressureRR'));
 
-    // Wear bars
-    updateWearBar(_els.wearLF, _els.wearLFVal, parseFloat(gd('TyreWearFrontLeft')) || 0);
-    updateWearBar(_els.wearRF, _els.wearRFVal, parseFloat(gd('TyreWearFrontRight')) || 0);
-    updateWearBar(_els.wearLR, _els.wearLRVal, parseFloat(gd('TyreWearRearLeft')) || 0);
-    updateWearBar(_els.wearRR, _els.wearRRVal, parseFloat(gd('TyreWearRearRight')) || 0);
+    // Wear bars — iRacing sends 0-1 where 1=new, 0=worn.
+    // Use null-aware parsing: null/undefined means "no data yet" (show —),
+    // whereas 0 means "fully worn" (show 0%).
+    // Fall back to raw telemetry average if GameData returns null (first lap).
+    var wearFL = _parseTyreWear(gd('TyreWearFrontLeft'), dc('LFwearL'), dc('LFwearM'), dc('LFwearR'));
+    var wearFR = _parseTyreWear(gd('TyreWearFrontRight'), dc('RFwearL'), dc('RFwearM'), dc('RFwearR'));
+    var wearRL = _parseTyreWear(gd('TyreWearRearLeft'), dc('LRwearL'), dc('LRwearM'), dc('LRwearR'));
+    var wearRR = _parseTyreWear(gd('TyreWearRearRight'), dc('RRwearL'), dc('RRwearM'), dc('RRwearR'));
+    updateWearBar(_els.wearLF, _els.wearLFVal, wearFL);
+    updateWearBar(_els.wearRF, _els.wearRFVal, wearFR);
+    updateWearBar(_els.wearLR, _els.wearLRVal, wearRL);
+    updateWearBar(_els.wearRR, _els.wearRRVal, wearRR);
 
     // Tyre temps
     if (_els.tempLF) _els.tempLF.textContent = formatTemp(gd('TyreTempFrontLeft'), units);
