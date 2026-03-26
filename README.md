@@ -66,6 +66,12 @@ Download **K10-Motorsports-Setup.exe** from the [latest release](https://github.
 
 The plugin includes a built-in **Check for updates** button in its SimHub settings panel that downloads and launches the latest installer automatically.
 
+### macOS (Overlay Only)
+
+The SimHub plugin is Windows-only, but the Electron overlay can run standalone on macOS for reviewing replays, remote dashboard access, or development. Double-click `scripts/mac/K10 Media Broadcaster.command` — it auto-installs Node dependencies, fixes Electron code signing on Apple Silicon, and launches the overlay detached from the terminal. A separate `scripts/mac/install.command` handles a clean dependency install if needed.
+
+The overlay connects to a SimHub instance on the network (configure the API URL in settings, e.g. `http://your-pc:8889/k10mediabroadcaster`).
+
 ### Manual Install (SimHub Plugin Only)
 
 Prerequisites: [SimHub](https://www.simhubdash.com/) installed on Windows.
