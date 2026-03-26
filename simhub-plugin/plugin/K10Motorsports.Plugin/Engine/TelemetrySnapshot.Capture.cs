@@ -122,9 +122,15 @@ namespace K10Motorsports.Plugin.Engine
 
             // ── Environment ──────────────────────────────────────────────────
             s.TrackTemp     = Coalesce(GetRaw<float>(pm, "TrackTemp"), GetNorm<float>(d, "RoadTemperature"));
+            s.AirTemp       = Coalesce(GetRaw<float>(pm, "AirTemp"),   GetNorm<float>(d, "AirTemperature"));
             bool iRacingWet = GetRaw<bool>(pm, "WeatherDeclaredWet");
             float rainInt   = GetNorm<float>(d, "RainIntensity");
             s.WeatherWet    = iRacingWet || rainInt > 0.1f;
+
+            // ── Display units (iRacing user preference) ──────────────────
+            // iRacing telemetry var: DisplayUnits  0=imperial, 1=metric
+            int rawUnits = GetRaw<int>(pm, "DisplayUnits");
+            s.DisplayUnits = rawUnits;  // 0 if not available (default metric via property init)
 
             // ── Lap timing: iRacing raw → normalized fallback ────────────────
             s.LapCurrentTime    = Coalesce(GetRaw<float>(pm, "LapCurrentLapTime"),  GetNorm<float>(d, "CurrentLapTime"));
@@ -569,7 +575,7 @@ namespace K10Motorsports.Plugin.Engine
                 string country = GetPluginProp<string>(pm, "DataCorePlugin.GameData.TrackCountry") ?? "";
                 if (string.IsNullOrEmpty(country))
                     country = GetRaw<string>(pm, "WeekendInfo.TrackCountry") ?? "";
-                s.TrackCountry = country;
+                s.TrackCountry = NormalizeCountryCode(country);
             }
             catch { s.TrackCountry = ""; }
 

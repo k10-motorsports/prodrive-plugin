@@ -1,15 +1,7 @@
 // ═══════════════════════════════════════════════════════════════
-//  PIT BOX — Read-only display of iRacing pit stop selections
-//  and current in-car adjustment values
-// ═══════════════════════════════════════════════════════════════
-//
-//  Two sections displayed side-by-side:
-//    • Pit Stop — fuel, tires, fast repair, tearoff
-//    • Car Setup — BB, TC, ABS, ARB, engine, fuel mix, wings
-//      (rows auto-hide based on car-specific availability)
-//
-//  All data is read-only from iRacing telemetry — no commands are sent.
-//  Values flash on change, matching the existing ctrl-changed pattern.
+//  PIT BOX — Tabbed driver panel: tyres, fuel, weather,
+//  in-car adjustments, camera/FFB.
+//  All data read-only from telemetry. Respects iRacing DisplayUnits.
 // ═══════════════════════════════════════════════════════════════
 
 (function initPitBox() {
@@ -21,87 +13,133 @@
 
   // ── Previous values for change detection ──
   const _prev = {};
-  let _initialized = false; // suppress flash on first frame
+  let _initialized = false;
+
+  // ── Wheel button input counters ──
+  // The plugin increments these each time the corresponding SimHub action fires.
+  // We detect changes per-frame and dispatch the appropriate UI action.
+  let _lastTabCycle = -1;
+  let _lastTabCycleBack = -1;
+  let _lastNext = -1;
+  let _lastPrev = -1;
+  let _lastIncrement = -1;
+  let _lastDecrement = -1;
+  let _lastToggle = -1;
+  var _tabOrder = ['tyres', 'fuel', 'weather', 'adj', 'camera'];
 
   function cacheElements() {
-    const $ = (id) => document.getElementById(id);
+    var $ = function(id) { return document.getElementById(id); };
     _els = {
       panel:       $('pitBoxPanel'),
       noData:      $('pbNoData'),
       content:     $('pbContent'),
-      // Fuel
+      // Tyres tab — pit selections
+      tireLF:      $('pbTireLF'),   tireRF:      $('pbTireRF'),
+      tireLR:      $('pbTireLR'),   tireRR:      $('pbTireRR'),
+      pressLF:     $('pbPressLF'),  pressRF:     $('pbPressRF'),
+      pressLR:     $('pbPressLR'),  pressRR:     $('pbPressRR'),
+      // Tyres tab — wear bars
+      wearLF:      $('pbWearLF'),   wearLFVal:   $('pbWearLFVal'),
+      wearRF:      $('pbWearRF'),   wearRFVal:   $('pbWearRFVal'),
+      wearLR:      $('pbWearLR'),   wearLRVal:   $('pbWearLRVal'),
+      wearRR:      $('pbWearRR'),   wearRRVal:   $('pbWearRRVal'),
+      // Tyres tab — temps
+      tempLF:      $('pbTempLF'),   tempRF:      $('pbTempRF'),
+      tempLR:      $('pbTempLR'),   tempRR:      $('pbTempRR'),
+      // Fuel tab
+      fuelBar:     $('pbFuelBar'),
+      fuelLevel:   $('pbFuelLevel'),
+      fuelUnit:    $('pbFuelUnit'),
+      fuelPerLap:  $('pbFuelPerLap'),
+      fuelLaps:    $('pbFuelLaps'),
       fuelVal:     $('pbFuelVal'),
-      fuelRow:     $('pbFuelVal')?.parentElement,
-      // Tires
-      tireLF:      $('pbTireLF'),
-      tireRF:      $('pbTireRF'),
-      tireLR:      $('pbTireLR'),
-      tireRR:      $('pbTireRR'),
-      pressLF:     $('pbPressLF'),
-      pressRF:     $('pbPressRF'),
-      pressLR:     $('pbPressLR'),
-      pressRR:     $('pbPressRR'),
-      // Services
       fastRepair:  $('pbFastRepair'),
       windshield:  $('pbWindshield'),
-      // Car adjustments
-      adjBB:       $('pbAdjBB'),
-      adjTC:       $('pbAdjTC'),
-      adjABS:      $('pbAdjABS'),
-      adjARBF:     $('pbAdjARBF'),
-      adjARBR:     $('pbAdjARBR'),
-      adjEng:      $('pbAdjEng'),
-      adjFuel:     $('pbAdjFuel'),
-      adjWJL:      $('pbAdjWJL'),
-      adjWJR:      $('pbAdjWJR'),
-      adjWingF:    $('pbAdjWingF'),
-      adjWingR:    $('pbAdjWingR'),
-      // Car adjustment rows (for hide/show)
-      rowTC:       $('pbRowTC'),
-      rowABS:      $('pbRowABS'),
-      rowARBF:     $('pbRowARBF'),
-      rowARBR:     $('pbRowARBR'),
-      rowEng:      $('pbRowEng'),
-      rowFuel:     $('pbRowFuel'),
-      rowWJL:      $('pbRowWJL'),
-      rowWJR:      $('pbRowWJR'),
-      rowWingF:    $('pbRowWingF'),
-      rowWingR:    $('pbRowWingR'),
+      // Weather tab
+      weatherIcon: $('pbWeatherIcon'),
+      airTemp:     $('pbAirTemp'),
+      trackTemp:   $('pbTrackTemp'),
+      conditions:  $('pbConditions'),
+      // Adjustments tab
+      adjBB:    $('pbAdjBB'),    adjTC:    $('pbAdjTC'),
+      adjABS:   $('pbAdjABS'),   adjARBF:  $('pbAdjARBF'),
+      adjARBR:  $('pbAdjARBR'),  adjEng:   $('pbAdjEng'),
+      adjFuel:  $('pbAdjFuel'),  adjWJL:   $('pbAdjWJL'),
+      adjWJR:   $('pbAdjWJR'),   adjWingF: $('pbAdjWingF'),
+      adjWingR: $('pbAdjWingR'),
+      rowTC:    $('pbRowTC'),    rowABS:   $('pbRowABS'),
+      rowARBF:  $('pbRowARBF'),  rowARBR:  $('pbRowARBR'),
+      rowEng:   $('pbRowEng'),   rowFuel:  $('pbRowFuel'),
+      rowWJL:   $('pbRowWJL'),   rowWJR:   $('pbRowWJR'),
+      rowWingF: $('pbRowWingF'), rowWingR: $('pbRowWingR'),
+      // Camera tab
+      ffbMax:   $('pbFFBMax'),
+      mirror:   $('pbMirror'),
     };
   }
 
-  // ── Tab switching removed — sections are now always visible side-by-side ──
+  // ── Tab switching ──
+  window.switchPbTab = function(el) {
+    var tab = el.dataset.pbTab;
+    if (!tab) return;
+    // Deactivate all tabs and pages
+    var tabs = document.querySelectorAll('.pb-tab');
+    var pages = document.querySelectorAll('.pb-page');
+    for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('active');
+    for (var i = 0; i < pages.length; i++) pages[i].classList.remove('active');
+    // Activate selected
+    el.classList.add('active');
+    var page = document.querySelector('[data-pb-page="' + tab + '"]');
+    if (page) page.classList.add('active');
+  };
 
-  // ── Flash animation (matches flashElement pattern from webgl-helpers.js) ──
+  // ── Flash animation ──
   function flash(el) {
     if (!el || !_initialized) return;
     el.classList.remove('pb-flash');
-    void el.offsetWidth; // force reflow
+    void el.offsetWidth;
     el.classList.add('pb-flash');
-    setTimeout(() => el.classList.remove('pb-flash'), 1400);
+    setTimeout(function() { el.classList.remove('pb-flash'); }, 1400);
   }
 
-  // Check if a value changed and flash its element
   function checkAndFlash(key, newVal, el) {
-    if (_prev[key] !== undefined && _prev[key] !== newVal) {
-      flash(el);
-    }
+    if (_prev[key] !== undefined && _prev[key] !== newVal) flash(el);
     _prev[key] = newVal;
   }
 
-  // ── Show/hide a row based on car capability ──
   function setRowVisible(rowEl, visible) {
     if (!rowEl) return;
     rowEl.classList.toggle('hidden', !visible);
   }
 
-  // ── Update pit box from polled data ──
+  // ── Wear bar helpers ──
+  function updateWearBar(fillEl, valEl, wear) {
+    if (!fillEl || !valEl) return;
+    var pct = Math.max(0, Math.min(100, (1 - wear) * 100));
+    var remaining = Math.round(pct);
+    fillEl.style.width = remaining + '%';
+    fillEl.className = 'pb-tire-bar-fill' +
+      (remaining < 20 ? ' crit' : remaining < 40 ? ' warn' : '');
+    valEl.textContent = remaining + '%';
+  }
+
+  // ── Temperature formatting — respects DisplayUnits ──
+  function formatTemp(celsius, units) {
+    if (!celsius && celsius !== 0) return '—';
+    var c = parseFloat(celsius) || 0;
+    if (c === 0) return '—';
+    // units: 0=imperial(°F), 1=metric(°C)
+    if (units === 0) return Math.round(c * 9 / 5 + 32) + '°F';
+    return Math.round(c) + '°C';
+  }
+
+  // ── Main update handler ──
   window.updatePitBox = function(d) {
     if (!_els) cacheElements();
     if (!_els || !_els.panel) return;
 
-    // Only show for iRacing
-    const isIRacing = typeof _isIRacing !== 'undefined' ? _isIRacing : false;
+    // Show/hide based on game detection
+    var isIRacing = typeof _isIRacing !== 'undefined' ? _isIRacing : false;
     if (isIRacing !== _lastIsIRacing) {
       _lastIsIRacing = isIRacing;
       if (_els.noData) _els.noData.style.display = isIRacing ? 'none' : '';
@@ -109,30 +147,91 @@
     }
     if (!isIRacing) return;
 
-    const pb = key => d['K10Motorsports.Plugin.PitBox.' + key];
-    const dc = key => d['DataCorePlugin.GameRawData.Telemetry.' + key];
+    var pb = function(key) { return d['K10Motorsports.Plugin.PitBox.' + key]; };
+    var dc = function(key) { return d['DataCorePlugin.GameRawData.Telemetry.' + key]; };
+    var ds = function(key) { return d['K10Motorsports.Plugin.DS.' + key]; };
+    var gd = function(key) { return d['DataCorePlugin.GameData.' + key]; };
 
-    // ── Fuel ──
-    const fuelReq = pb('FuelRequested');
-    const fuelDisplay = pb('FuelDisplay') || '—';
-    if (_els.fuelVal) {
-      _els.fuelVal.textContent = fuelReq ? fuelDisplay : 'OFF';
-      _els.fuelVal.className = 'pb-value ' + (fuelReq ? 'active' : 'inactive');
-      checkAndFlash('fuel', fuelDisplay + '|' + fuelReq, _els.fuelRow || _els.fuelVal);
-    }
+    var units = parseInt(ds('DisplayUnits')) || 1; // 0=imperial, 1=metric
 
-    // ── Tires ──
+    // ════════════════════════════════════════
+    //  TYRES TAB
+    // ════════════════════════════════════════
+
+    // Pit selections
     updateTire('LF', _els.tireLF, _els.pressLF, pb('TireLF'), pb('PressureLF'));
     updateTire('RF', _els.tireRF, _els.pressRF, pb('TireRF'), pb('PressureRF'));
     updateTire('LR', _els.tireLR, _els.pressLR, pb('TireLR'), pb('PressureLR'));
     updateTire('RR', _els.tireRR, _els.pressRR, pb('TireRR'), pb('PressureRR'));
 
-    // ── Services ──
+    // Wear bars
+    updateWearBar(_els.wearLF, _els.wearLFVal, parseFloat(gd('TyreWearFrontLeft')) || 0);
+    updateWearBar(_els.wearRF, _els.wearRFVal, parseFloat(gd('TyreWearFrontRight')) || 0);
+    updateWearBar(_els.wearLR, _els.wearLRVal, parseFloat(gd('TyreWearRearLeft')) || 0);
+    updateWearBar(_els.wearRR, _els.wearRRVal, parseFloat(gd('TyreWearRearRight')) || 0);
+
+    // Tyre temps
+    if (_els.tempLF) _els.tempLF.textContent = formatTemp(gd('TyreTempFrontLeft'), units);
+    if (_els.tempRF) _els.tempRF.textContent = formatTemp(gd('TyreTempFrontRight'), units);
+    if (_els.tempLR) _els.tempLR.textContent = formatTemp(gd('TyreTempRearLeft'), units);
+    if (_els.tempRR) _els.tempRR.textContent = formatTemp(gd('TyreTempRearRight'), units);
+
+    // ════════════════════════════════════════
+    //  FUEL TAB
+    // ════════════════════════════════════════
+
+    var fuelPct = parseFloat(ds('FuelPct')) || 0;
+    var fuelFormatted = ds('FuelFormatted') || '—';
+    var fuelPerLap = ds('FuelPerLapFormatted') || '—';
+    var fuelLaps = parseFloat(ds('FuelLapsRemaining')) || 0;
+    var fuelDisplay = pb('FuelDisplay') || '—';
+    var fuelRequested = pb('FuelRequested');
+    var unitLabel = units === 0 ? 'gallons' : 'liters';
+
+    // Fuel gauge bar
+    if (_els.fuelBar) {
+      _els.fuelBar.style.width = Math.min(100, fuelPct) + '%';
+      _els.fuelBar.className = 'pb-fuel-bar-fill' +
+        (fuelPct < 10 ? ' crit' : fuelPct < 25 ? ' warn' : '');
+    }
+    if (_els.fuelLevel) _els.fuelLevel.textContent = fuelFormatted;
+    if (_els.fuelUnit) _els.fuelUnit.textContent = unitLabel;
+    if (_els.fuelPerLap) _els.fuelPerLap.textContent = fuelPerLap;
+    if (_els.fuelLaps) {
+      _els.fuelLaps.textContent = fuelLaps > 0 && fuelLaps < 99
+        ? fuelLaps.toFixed(1) : '—';
+    }
+    // Pit fuel add
+    if (_els.fuelVal) {
+      _els.fuelVal.textContent = fuelRequested ? fuelDisplay : 'OFF';
+      _els.fuelVal.className = 'pb-value ' + (fuelRequested ? 'active' : 'inactive');
+      checkAndFlash('fuel', fuelDisplay + '|' + fuelRequested, _els.fuelVal.parentElement);
+    }
+
+    // Services
     updateToggle('fastRepair', _els.fastRepair, pb('FastRepairRequested'));
     updateToggle('windshield', _els.windshield, pb('WindshieldRequested'));
 
-    // ── Car-specific row visibility ──
-    // BB is always shown (every car has brake bias)
+    // ════════════════════════════════════════
+    //  WEATHER TAB
+    // ════════════════════════════════════════
+
+    var airTemp = parseFloat(ds('AirTemp')) || 0;
+    var trackTempVal = parseFloat(ds('TrackTemp')) || 0;
+    var isWet = parseInt(ds('WeatherWet')) === 1;
+
+    if (_els.weatherIcon) _els.weatherIcon.textContent = isWet ? '🌧' : '☀';
+    if (_els.airTemp) _els.airTemp.textContent = formatTemp(airTemp, units);
+    if (_els.trackTemp) _els.trackTemp.textContent = formatTemp(trackTempVal, units);
+    if (_els.conditions) {
+      _els.conditions.textContent = isWet ? 'Wet' : 'Dry';
+      _els.conditions.className = 'pb-value' + (isWet ? ' on' : '');
+    }
+
+    // ════════════════════════════════════════
+    //  ADJUSTMENTS TAB
+    // ════════════════════════════════════════
+
     setRowVisible(_els.rowTC,    pb('HasTC'));
     setRowVisible(_els.rowABS,   pb('HasABS'));
     setRowVisible(_els.rowARBF,  pb('HasARBFront'));
@@ -144,7 +243,6 @@
     setRowVisible(_els.rowWingF, pb('HasWingFront'));
     setRowVisible(_els.rowWingR, pb('HasWingRear'));
 
-    // ── Car adjustments ──
     updateAdj('bb',    _els.adjBB,    dc('dcBrakeBias'),         '%', 1);
     updateAdj('tc',    _els.adjTC,    dc('dcTractionControl'),   '',  0);
     updateAdj('abs',   _els.adjABS,   dc('dcABS'),               '',  0);
@@ -157,24 +255,73 @@
     updateAdj('wingf', _els.adjWingF, dc('dcWingFront'),         '',  0);
     updateAdj('wingr', _els.adjWingR, dc('dcWingRear'),          '',  0);
 
-    // After first full frame, enable flash detection
+    // ════════════════════════════════════════
+    //  CAMERA / FFB TAB
+    // ════════════════════════════════════════
+
+    // dcFFBMaxForce is not currently exposed in telemetry —
+    // show "—" until we wire it. Mirrors are in-sim only.
+    if (_els.ffbMax) _els.ffbMax.textContent = '—';
+    if (_els.mirror) _els.mirror.textContent = '—';
+
+    // ════════════════════════════════════════
+    //  WHEEL BUTTON INPUTS
+    // ════════════════════════════════════════
+
+    var tabCycle     = parseInt(ds('PitboxTabCycle')) || 0;
+    var tabCycleBack = parseInt(ds('PitboxTabCycleBack')) || 0;
+    var pbNext       = parseInt(ds('PitboxNext')) || 0;
+    var pbPrev       = parseInt(ds('PitboxPrev')) || 0;
+    var pbInc        = parseInt(ds('PitboxIncrement')) || 0;
+    var pbDec        = parseInt(ds('PitboxDecrement')) || 0;
+    var pbTog        = parseInt(ds('PitboxToggle')) || 0;
+
+    if (_lastTabCycle === -1) {
+      // First frame — capture baselines, don't fire anything
+      _lastTabCycle = tabCycle; _lastTabCycleBack = tabCycleBack;
+      _lastNext = pbNext; _lastPrev = pbPrev;
+      _lastIncrement = pbInc; _lastDecrement = pbDec;
+      _lastToggle = pbTog;
+    } else {
+      // Tab cycling
+      var tabDir = 0;
+      if (tabCycle !== _lastTabCycle)         { _lastTabCycle = tabCycle; tabDir = 1; }
+      if (tabCycleBack !== _lastTabCycleBack) { _lastTabCycleBack = tabCycleBack; tabDir = -1; }
+      if (tabDir !== 0) {
+        var activeTab = document.querySelector('.pb-tab.active');
+        var currentKey = activeTab ? activeTab.dataset.pbTab : _tabOrder[0];
+        var idx = _tabOrder.indexOf(currentKey);
+        var nextIdx = (idx + tabDir + _tabOrder.length) % _tabOrder.length;
+        var nextTab = document.querySelector('.pb-tab[data-pb-tab="' + _tabOrder[nextIdx] + '"]');
+        if (nextTab) switchPbTab(nextTab);
+      }
+
+      // Element navigation / value adjustment — actions stubbed for future mapping
+      if (pbNext !== _lastNext)  { _lastNext = pbNext;  /* TODO: move focus to next element */ }
+      if (pbPrev !== _lastPrev)  { _lastPrev = pbPrev;  /* TODO: move focus to prev element */ }
+      if (pbInc !== _lastIncrement)  { _lastIncrement = pbInc;  /* TODO: increment focused value */ }
+      if (pbDec !== _lastDecrement)  { _lastDecrement = pbDec;  /* TODO: decrement focused value */ }
+      if (pbTog !== _lastToggle) { _lastToggle = pbTog; /* TODO: toggle focused element on/off */ }
+    }
+
+    // Enable flash detection after first full frame
     if (!_initialized) _initialized = true;
   };
 
+  // ── Tire update helper ──
   function updateTire(pos, statusEl, pressEl, isChanging, pressStr) {
     if (statusEl) {
       statusEl.textContent = isChanging ? 'CHANGE' : 'KEEP';
       statusEl.className = 'pb-tire-status ' + (isChanging ? 'changing' : 'keeping');
     }
     if (pressEl) {
-      const p = pressStr || '—';
-      pressEl.textContent = isChanging ? p + ' psi' : '—';
+      var p = pressStr || '—';
+      pressEl.textContent = isChanging ? p : '—';
       pressEl.style.opacity = isChanging ? '1' : '0.3';
     }
-    // Flash the tire cell on change
-    const key = 'tire' + pos;
-    const val = (isChanging ? 1 : 0) + '|' + pressStr;
-    checkAndFlash(key, val, statusEl?.parentElement);
+    var key = 'tire' + pos;
+    var val = (isChanging ? 1 : 0) + '|' + pressStr;
+    checkAndFlash(key, val, statusEl ? statusEl.parentElement : null);
   }
 
   function updateToggle(key, el, isOn) {
@@ -186,7 +333,7 @@
 
   function updateAdj(key, el, val, suffix, decimals) {
     if (!el) return;
-    const v = parseFloat(val) || 0;
+    var v = parseFloat(val) || 0;
     if (v === 0) {
       el.textContent = '—';
       el.className = 'pb-adj-val zero';

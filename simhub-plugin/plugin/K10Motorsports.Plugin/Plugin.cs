@@ -53,6 +53,16 @@ private readonly TrackMapProvider  _trackMap = new TrackMapProvider();
         private HttpListener _httpListener;
         private Thread _httpThread;
 
+        // Pitbox wheel button counters — each incremented by a SimHub action,
+        // read by dashboard each poll frame to detect changes.
+        private volatile int _pitboxTabCycle = 0;
+        private volatile int _pitboxTabCycleBack = 0;
+        private volatile int _pitboxNext = 0;
+        private volatile int _pitboxPrev = 0;
+        private volatile int _pitboxIncrement = 0;
+        private volatile int _pitboxDecrement = 0;
+        private volatile int _pitboxToggle = 0;
+
         // Start position tracking — captured once when race goes green
         private int _startPosition = 0;
         private bool _startPositionCaptured = false;
@@ -297,6 +307,24 @@ private readonly TrackMapProvider  _trackMap = new TrackMapProvider();
                 _feedback.Record(_engine.CurrentTopicId, _engine.CurrentText, -1);
                 SimHub.Logging.Current.Info($"[K10Motorsports] ThumbsDown: {_engine.CurrentTopicId}");
             });
+
+            // Pitbox wheel button actions — bind in SimHub Control Mapper
+            this.AddAction("CyclePitboxTab",     (a, b) => { _pitboxTabCycle++;    });
+            this.AddAction("CyclePitboxTabBack", (a, b) => { _pitboxTabCycleBack++; });
+            this.AddAction("PitboxNext",         (a, b) => { _pitboxNext++;        });
+            this.AddAction("PitboxPrev",         (a, b) => { _pitboxPrev++;        });
+            this.AddAction("PitboxIncrement",    (a, b) => { _pitboxIncrement++;   });
+            this.AddAction("PitboxDecrement",    (a, b) => { _pitboxDecrement++;   });
+            this.AddAction("PitboxToggle",       (a, b) => { _pitboxToggle++;      });
+
+            // Expose pitbox counters so dashboard can detect changes
+            this.AttachDelegate("DS.PitboxTabCycle",     () => _pitboxTabCycle);
+            this.AttachDelegate("DS.PitboxTabCycleBack", () => _pitboxTabCycleBack);
+            this.AttachDelegate("DS.PitboxNext",         () => _pitboxNext);
+            this.AttachDelegate("DS.PitboxPrev",         () => _pitboxPrev);
+            this.AttachDelegate("DS.PitboxIncrement",    () => _pitboxIncrement);
+            this.AttachDelegate("DS.PitboxDecrement",    () => _pitboxDecrement);
+            this.AttachDelegate("DS.PitboxToggle",       () => _pitboxToggle);
 
 // ── Events ────────────────────────────────────────────────────────
             this.AddEvent("NewCommentaryPrompt");
@@ -976,6 +1004,16 @@ private readonly TrackMapProvider  _trackMap = new TrackMapProvider();
                     Jp(sb, "K10Motorsports.Plugin.DS.YawRate", s.YawRate, ic);
                     Jp(sb, "K10Motorsports.Plugin.DS.SteerTorque", s.SteeringWheelTorque, ic);
                     Jp(sb, "K10Motorsports.Plugin.DS.TrackTemp", s.TrackTemp, ic);
+                    Jp(sb, "K10Motorsports.Plugin.DS.AirTemp", s.AirTemp, ic);
+                    Jp(sb, "K10Motorsports.Plugin.DS.WeatherWet", s.WeatherWet ? 1 : 0);
+                    Jp(sb, "K10Motorsports.Plugin.DS.DisplayUnits", s.DisplayUnits);
+                    Jp(sb, "K10Motorsports.Plugin.DS.PitboxTabCycle", _pitboxTabCycle);
+                    Jp(sb, "K10Motorsports.Plugin.DS.PitboxTabCycleBack", _pitboxTabCycleBack);
+                    Jp(sb, "K10Motorsports.Plugin.DS.PitboxNext", _pitboxNext);
+                    Jp(sb, "K10Motorsports.Plugin.DS.PitboxPrev", _pitboxPrev);
+                    Jp(sb, "K10Motorsports.Plugin.DS.PitboxIncrement", _pitboxIncrement);
+                    Jp(sb, "K10Motorsports.Plugin.DS.PitboxDecrement", _pitboxDecrement);
+                    Jp(sb, "K10Motorsports.Plugin.DS.PitboxToggle", _pitboxToggle);
                     Jp(sb, "K10Motorsports.Plugin.DS.IncidentCount", s.IncidentCount);
                     Jp(sb, "K10Motorsports.Plugin.DS.IncidentLimitPenalty", s.IncidentLimitPenalty);
                     Jp(sb, "K10Motorsports.Plugin.DS.IncidentLimitDQ", s.IncidentLimitDQ);

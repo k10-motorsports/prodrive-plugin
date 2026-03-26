@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace K10Motorsports.Plugin.Engine
 {
     /// <summary>
@@ -58,7 +61,13 @@ namespace K10Motorsports.Plugin.Engine
         // TrackTemp:  iRacing, AC, ACC, AMS2, LMU
         // WeatherWet: iRacing (flag), AC/AMS2/LMU (RainIntensity > threshold)
         public double TrackTemp         { get; set; }
+        public double AirTemp           { get; set; }
         public bool   WeatherWet        { get; set; }
+
+        // ── Display units (iRacing user preference) ──────────────────────────
+        // 0 = imperial (gallons, °F, mph), 1 = metric (liters, °C, km/h)
+        // Default to metric — most SimHub data arrives in metric.
+        public int    DisplayUnits      { get; set; } = 1;
 
         // ── Lap timing — iRacing raw, with cross-game normalized fallback ────
         // All fields available in most SimHub-supported games
@@ -215,6 +224,134 @@ namespace K10Motorsports.Plugin.Engine
         /// <summary>ISO country code of the track location (e.g. "DE", "US", "GB").</summary>
         public string TrackCountry { get; set; } = "";
 
+        // ── Country name → ISO 3166-1 alpha-2 code mapping ──────────────────
+        // iRacing sends full country names (e.g. "USA", "Belgium"); we need
+        // 2-letter ISO codes for the dashboard flags.json lookup.
+        private static readonly Dictionary<string, string> CountryNameToISO =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            // iRacing track countries (all current content)
+            { "USA",                  "US" },
+            { "United States",        "US" },
+            { "United Kingdom",       "GB" },
+            { "Great Britain",        "GB" },
+            { "England",              "GB" },
+            { "Belgium",              "BE" },
+            { "France",               "FR" },
+            { "Italy",                "IT" },
+            { "Germany",              "DE" },
+            { "Japan",                "JP" },
+            { "Australia",            "AU" },
+            { "Brazil",               "BR" },
+            { "Spain",                "ES" },
+            { "Portugal",             "PT" },
+            { "Netherlands",          "NL" },
+            { "The Netherlands",      "NL" },
+            { "Austria",              "AT" },
+            { "Hungary",              "HU" },
+            { "Canada",               "CA" },
+            { "Mexico",               "MX" },
+            { "Bahrain",              "BH" },
+            { "United Arab Emirates", "AE" },
+            { "UAE",                  "AE" },
+            { "Saudi Arabia",         "SA" },
+            { "Singapore",            "SG" },
+            { "Monaco",               "MC" },
+            { "South Africa",         "ZA" },
+            { "China",                "CN" },
+            { "Qatar",                "QA" },
+            { "South Korea",          "KR" },
+            { "Korea",                "KR" },
+            { "Malaysia",             "MY" },
+            { "New Zealand",          "NZ" },
+            { "Finland",              "FI" },
+            { "Sweden",               "SE" },
+            { "Norway",               "NO" },
+            { "Denmark",              "DK" },
+            { "Switzerland",          "CH" },
+            { "Czech Republic",       "CZ" },
+            { "Czechia",              "CZ" },
+            { "Poland",               "PL" },
+            { "Ireland",              "IE" },
+            { "Argentina",            "AR" },
+            { "India",                "IN" },
+            { "Russia",               "RU" },
+            { "Turkey",               "TR" },
+            { "Romania",              "RO" },
+            { "Scotland",             "GB" },
+            { "Wales",                "GB" },
+        };
+
+        /// <summary>
+        /// Normalizes a country string to a 2-letter ISO code.
+        /// Handles iRacing full names ("USA", "Belgium"), existing ISO codes ("US", "BE"),
+        /// and SimHub formats.
+        /// </summary>
+        public static string NormalizeCountryCode(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return "";
+            string trimmed = raw.Trim();
+
+            // Already a 2-letter ISO code?
+            if (trimmed.Length == 2)
+                return trimmed.ToUpperInvariant();
+
+            // Already a 3-letter ISO code? Map common ones.
+            if (trimmed.Length == 3)
+            {
+                string upper = trimmed.ToUpperInvariant();
+                if (upper == "USA") return "US";
+                if (upper == "GBR") return "GB";
+                if (upper == "BEL") return "BE";
+                if (upper == "FRA") return "FR";
+                if (upper == "ITA") return "IT";
+                if (upper == "DEU" || upper == "GER") return "DE";
+                if (upper == "JPN") return "JP";
+                if (upper == "AUS") return "AU";
+                if (upper == "BRA") return "BR";
+                if (upper == "ESP") return "ES";
+                if (upper == "PRT") return "PT";
+                if (upper == "NLD") return "NL";
+                if (upper == "AUT") return "AT";
+                if (upper == "HUN") return "HU";
+                if (upper == "CAN") return "CA";
+                if (upper == "MEX") return "MX";
+                if (upper == "BHR") return "BH";
+                if (upper == "ARE") return "AE";
+                if (upper == "SAU") return "SA";
+                if (upper == "SGP") return "SG";
+                if (upper == "MCO") return "MC";
+                if (upper == "ZAF") return "ZA";
+                if (upper == "CHN") return "CN";
+                if (upper == "QAT") return "QA";
+                if (upper == "KOR") return "KR";
+                if (upper == "MYS") return "MY";
+                if (upper == "NZL") return "NZ";
+                if (upper == "FIN") return "FI";
+                if (upper == "SWE") return "SE";
+                if (upper == "NOR") return "NO";
+                if (upper == "DNK") return "DK";
+                if (upper == "CHE") return "CH";
+                if (upper == "CZE") return "CZ";
+                if (upper == "POL") return "PL";
+                if (upper == "IRL") return "IE";
+                if (upper == "ARG") return "AR";
+                if (upper == "IND") return "IN";
+                if (upper == "RUS") return "RU";
+                if (upper == "TUR") return "TR";
+                if (upper == "ROU") return "RO";
+            }
+
+            // Full country name lookup
+            if (CountryNameToISO.TryGetValue(trimmed, out string code))
+                return code;
+
+            // Last resort: return first 2 chars uppercased (better than nothing)
+            return trimmed.Length >= 2
+                ? trimmed.Substring(0, 2).ToUpperInvariant()
+                : trimmed.ToUpperInvariant();
+        }
+
         // ── iRacing flag bitmasks (from irsdk_Flags enum) ────────────────────
         public const int FLAG_CHECKERED = 0x0001;
         public const int FLAG_WHITE     = 0x0002;
@@ -312,11 +449,20 @@ namespace K10Motorsports.Plugin.Engine
         /// <summary>RPM rounded to integer string, or "0".</summary>
         public string RpmDisplay => Rpms > 0 ? ((int)System.Math.Round(Rpms)).ToString() : "0";
 
-        /// <summary>Fuel level formatted to 1 decimal, or "—".</summary>
-        public string FuelFormatted => FuelLevel > 0 ? FuelLevel.ToString("F1") : "\u2014";
+        // ── Unit conversions ──
+        private bool IsImperial => DisplayUnits == 0;
+        private static double LitersToGallons(double l) => l * 0.264172;
+        private string FuelUnitLabel => IsImperial ? "gal" : "L";
+
+        /// <summary>Fuel level formatted to 1 decimal with unit, or "—".</summary>
+        public string FuelFormatted => FuelLevel > 0
+            ? (IsImperial ? LitersToGallons(FuelLevel) : FuelLevel).ToString("F1")
+            : "\u2014";
 
         /// <summary>Fuel per lap formatted to 2 decimals, or "—".</summary>
-        public string FuelPerLapFormatted => FuelPerLap > 0 ? FuelPerLap.ToString("F2") : "\u2014";
+        public string FuelPerLapFormatted => FuelPerLap > 0
+            ? (IsImperial ? LitersToGallons(FuelPerLap) : FuelPerLap).ToString("F2")
+            : "\u2014";
 
         /// <summary>Pit fuel suggestion like "PIT in ~5 laps", or empty if not applicable.</summary>
         public string PitSuggestion
@@ -402,19 +548,29 @@ namespace K10Motorsports.Plugin.Engine
         /// <summary>True when windshield tearoff is selected.</summary>
         public bool PitWindshieldRequested => (PitSvFlags & PIT_SV_WINDSHIELD) != 0;
 
-        /// <summary>Pit fuel formatted as liters: "45.2L", or "—".</summary>
-        public string PitFuelDisplay => PitFuelRequested && PitSvFuel > 0 ? PitSvFuel.ToString("F1") + "L" : "\u2014";
+        /// <summary>Pit fuel formatted with user's unit preference, or "—".</summary>
+        public string PitFuelDisplay => PitFuelRequested && PitSvFuel > 0
+            ? (IsImperial ? LitersToGallons(PitSvFuel) : PitSvFuel).ToString("F1") + " " + FuelUnitLabel
+            : "\u2014";
 
         /// <summary>Convert kPa to PSI for display.</summary>
         private static double KpaToPsi(double kpa) => kpa * 0.14503773773;
+        private string PressureUnitLabel => IsImperial ? "psi" : "kPa";
 
-        /// <summary>LF pressure in PSI formatted, or "—".</summary>
-        public string PitPressureLFDisplay => PitTireLF && PitSvLFP > 0 ? KpaToPsi(PitSvLFP).ToString("F1") : "\u2014";
-        /// <summary>RF pressure in PSI formatted, or "—".</summary>
-        public string PitPressureRFDisplay => PitTireRF && PitSvRFP > 0 ? KpaToPsi(PitSvRFP).ToString("F1") : "\u2014";
-        /// <summary>LR pressure in PSI formatted, or "—".</summary>
-        public string PitPressureLRDisplay => PitTireLR && PitSvLRP > 0 ? KpaToPsi(PitSvLRP).ToString("F1") : "\u2014";
-        /// <summary>RR pressure in PSI formatted, or "—".</summary>
-        public string PitPressureRRDisplay => PitTireRR && PitSvRRP > 0 ? KpaToPsi(PitSvRRP).ToString("F1") : "\u2014";
+        /// <summary>Format pit pressure in user's unit (psi for imperial, kPa for metric).</summary>
+        private string FormatPitPressure(bool changing, double kpa)
+        {
+            if (!changing || kpa <= 0) return "\u2014";
+            return IsImperial ? KpaToPsi(kpa).ToString("F1") : kpa.ToString("F0");
+        }
+
+        /// <summary>LF pit pressure formatted, or "—".</summary>
+        public string PitPressureLFDisplay => FormatPitPressure(PitTireLF, PitSvLFP);
+        /// <summary>RF pit pressure formatted, or "—".</summary>
+        public string PitPressureRFDisplay => FormatPitPressure(PitTireRF, PitSvRFP);
+        /// <summary>LR pit pressure formatted, or "—".</summary>
+        public string PitPressureLRDisplay => FormatPitPressure(PitTireLR, PitSvLRP);
+        /// <summary>RR pit pressure formatted, or "—".</summary>
+        public string PitPressureRRDisplay => FormatPitPressure(PitTireRR, PitSvRRP);
     }
 }

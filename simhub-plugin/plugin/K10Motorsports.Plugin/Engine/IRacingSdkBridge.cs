@@ -344,7 +344,7 @@ namespace K10Motorsports.Plugin.Engine
                 }
 
                 // Track country
-                TrackCountry = si.WeekendInfo.TrackCountry ?? "";
+                TrackCountry = TelemetrySnapshot.NormalizeCountryCode(si.WeekendInfo.TrackCountry ?? "");
             }
 
             // ── Sector boundaries from SplitTimeInfo ──

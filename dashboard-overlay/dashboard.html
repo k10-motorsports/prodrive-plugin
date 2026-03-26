@@ -477,84 +477,102 @@
   </div>
 </div>
 
-<!-- COMPONENT: Pit Box Panel (iRacing pit stop selections) -->
+<!-- COMPONENT: Pit Box Panel (driver panel — tyres, fuel, weather, adjustments) -->
 <div class="pitbox-panel pb-bottom pb-left" id="pitBoxPanel">
   <div class="pb-inner">
 
-    <div class="pb-no-data" id="pbNoData" style="display:none;">iRacing only</div>
+    <div class="pb-no-data" id="pbNoData" style="display:none;">No data</div>
 
-    <div id="pbContent" class="pb-content-side-by-side">
-      <!-- Pit Stop Section -->
-      <div class="pb-section-container" id="pbTabPit">
-        <div class="pb-section">
-          <div class="pb-section-label">Fuel</div>
-          <div class="pb-row">
-            <span class="pb-label">Add</span>
-            <span class="pb-value inactive" id="pbFuelVal">—</span>
-          </div>
+    <div id="pbContent" class="pb-content">
+      <!-- ── TAB BAR ── -->
+      <div class="pb-tabs" id="pbTabs">
+        <div class="pb-tab active" data-pb-tab="tyres" onclick="switchPbTab(this)">Tyres</div>
+        <div class="pb-tab" data-pb-tab="fuel" onclick="switchPbTab(this)">Fuel</div>
+        <div class="pb-tab" data-pb-tab="weather" onclick="switchPbTab(this)">Weather</div>
+        <div class="pb-tab" data-pb-tab="adj" onclick="switchPbTab(this)">Setup</div>
+        <div class="pb-tab" data-pb-tab="camera" onclick="switchPbTab(this)">Camera</div>
+      </div>
+
+      <!-- ═══ TYRES TAB ═══ -->
+      <div class="pb-page active" id="pbPageTyres" data-pb-page="tyres">
+        <!-- Pit tyre selections (2×2 grid) -->
+        <div class="pb-section-label">Pit Selections</div>
+        <div class="pb-tire-grid">
+          <div class="pb-tire-cell"><span class="pb-tire-pos">LF</span><span class="pb-tire-status keeping" id="pbTireLF">KEEP</span><span class="pb-tire-pressure" id="pbPressLF">—</span></div>
+          <div class="pb-tire-cell"><span class="pb-tire-pos">RF</span><span class="pb-tire-status keeping" id="pbTireRF">KEEP</span><span class="pb-tire-pressure" id="pbPressRF">—</span></div>
+          <div class="pb-tire-cell"><span class="pb-tire-pos">LR</span><span class="pb-tire-status keeping" id="pbTireLR">KEEP</span><span class="pb-tire-pressure" id="pbPressLR">—</span></div>
+          <div class="pb-tire-cell"><span class="pb-tire-pos">RR</span><span class="pb-tire-status keeping" id="pbTireRR">KEEP</span><span class="pb-tire-pressure" id="pbPressRR">—</span></div>
         </div>
-
-        <!-- Tires -->
-        <div class="pb-section">
-          <div class="pb-section-label">Tires</div>
-          <div class="pb-tire-grid">
-            <div class="pb-tire-cell">
-              <span class="pb-tire-pos">LF</span>
-              <span class="pb-tire-status keeping" id="pbTireLF">KEEP</span>
-              <span class="pb-tire-pressure" id="pbPressLF">—</span>
-            </div>
-            <div class="pb-tire-cell">
-              <span class="pb-tire-pos">RF</span>
-              <span class="pb-tire-status keeping" id="pbTireRF">KEEP</span>
-              <span class="pb-tire-pressure" id="pbPressRF">—</span>
-            </div>
-            <div class="pb-tire-cell">
-              <span class="pb-tire-pos">LR</span>
-              <span class="pb-tire-status keeping" id="pbTireLR">KEEP</span>
-              <span class="pb-tire-pressure" id="pbPressLR">—</span>
-            </div>
-            <div class="pb-tire-cell">
-              <span class="pb-tire-pos">RR</span>
-              <span class="pb-tire-status keeping" id="pbTireRR">KEEP</span>
-              <span class="pb-tire-pressure" id="pbPressRR">—</span>
-            </div>
-          </div>
+        <!-- Live tyre data -->
+        <div class="pb-section-label" style="margin-top:8px">Wear</div>
+        <div class="pb-tire-grid">
+          <div class="pb-tire-cell"><span class="pb-tire-pos">LF</span><span class="pb-tire-bar"><span class="pb-tire-bar-fill" id="pbWearLF"></span></span><span class="pb-tire-pct" id="pbWearLFVal">—</span></div>
+          <div class="pb-tire-cell"><span class="pb-tire-pos">RF</span><span class="pb-tire-bar"><span class="pb-tire-bar-fill" id="pbWearRF"></span></span><span class="pb-tire-pct" id="pbWearRFVal">—</span></div>
+          <div class="pb-tire-cell"><span class="pb-tire-pos">LR</span><span class="pb-tire-bar"><span class="pb-tire-bar-fill" id="pbWearLR"></span></span><span class="pb-tire-pct" id="pbWearLRVal">—</span></div>
+          <div class="pb-tire-cell"><span class="pb-tire-pos">RR</span><span class="pb-tire-bar"><span class="pb-tire-bar-fill" id="pbWearRR"></span></span><span class="pb-tire-pct" id="pbWearRRVal">—</span></div>
         </div>
-
-        <!-- Services -->
-        <div class="pb-section">
-          <div class="pb-section-label">Services</div>
-          <div class="pb-row">
-            <span class="pb-label">Fast Repair</span>
-            <span class="pb-value off" id="pbFastRepair">NO</span>
-          </div>
-          <div class="pb-row">
-            <span class="pb-label">Tearoff</span>
-            <span class="pb-value off" id="pbWindshield">NO</span>
-          </div>
+        <div class="pb-section-label" style="margin-top:8px">Temp</div>
+        <div class="pb-tire-grid">
+          <div class="pb-tire-cell"><span class="pb-tire-pos">LF</span><span class="pb-tire-temp" id="pbTempLF">—</span></div>
+          <div class="pb-tire-cell"><span class="pb-tire-pos">RF</span><span class="pb-tire-temp" id="pbTempRF">—</span></div>
+          <div class="pb-tire-cell"><span class="pb-tire-pos">LR</span><span class="pb-tire-temp" id="pbTempLR">—</span></div>
+          <div class="pb-tire-cell"><span class="pb-tire-pos">RR</span><span class="pb-tire-temp" id="pbTempRR">—</span></div>
         </div>
       </div>
 
-      <!-- Car Setup Section -->
-      <div class="pb-section-container" id="pbTabSetup">
-        <div class="pb-section">
-          <div class="pb-adj-grid" id="pbAdjGrid">
-            <div class="pb-adj-item" id="pbRowBB"><span class="pb-adj-label">BB</span><span class="pb-adj-val zero" id="pbAdjBB">—</span></div>
-            <div class="pb-adj-item" id="pbRowTC"><span class="pb-adj-label">TC</span><span class="pb-adj-val zero" id="pbAdjTC">—</span></div>
-            <div class="pb-adj-item" id="pbRowABS"><span class="pb-adj-label">ABS</span><span class="pb-adj-val zero" id="pbAdjABS">—</span></div>
-            <div class="pb-adj-item" id="pbRowARBF"><span class="pb-adj-label">ARB F</span><span class="pb-adj-val zero" id="pbAdjARBF">—</span></div>
-            <div class="pb-adj-item" id="pbRowARBR"><span class="pb-adj-label">ARB R</span><span class="pb-adj-val zero" id="pbAdjARBR">—</span></div>
-            <div class="pb-adj-item" id="pbRowEng"><span class="pb-adj-label">ENG</span><span class="pb-adj-val zero" id="pbAdjEng">—</span></div>
-            <div class="pb-adj-item" id="pbRowFuel"><span class="pb-adj-label">FUEL MIX</span><span class="pb-adj-val zero" id="pbAdjFuel">—</span></div>
-            <div class="pb-adj-item" id="pbRowWJL"><span class="pb-adj-label">WJ L</span><span class="pb-adj-val zero" id="pbAdjWJL">—</span></div>
-            <div class="pb-adj-item" id="pbRowWJR"><span class="pb-adj-label">WJ R</span><span class="pb-adj-val zero" id="pbAdjWJR">—</span></div>
-            <div class="pb-adj-item" id="pbRowWingF"><span class="pb-adj-label">WING F</span><span class="pb-adj-val zero" id="pbAdjWingF">—</span></div>
-            <div class="pb-adj-item" id="pbRowWingR"><span class="pb-adj-label">WING R</span><span class="pb-adj-val zero" id="pbAdjWingR">—</span></div>
-          </div>
+      <!-- ═══ FUEL TAB ═══ -->
+      <div class="pb-page" id="pbPageFuel" data-pb-page="fuel">
+        <div class="pb-fuel-gauge">
+          <div class="pb-fuel-bar-bg"><div class="pb-fuel-bar-fill" id="pbFuelBar"></div></div>
+          <div class="pb-fuel-level" id="pbFuelLevel">—</div>
+          <div class="pb-fuel-unit" id="pbFuelUnit"></div>
+        </div>
+        <div class="pb-row"><span class="pb-label">Per lap</span><span class="pb-value" id="pbFuelPerLap">—</span></div>
+        <div class="pb-row"><span class="pb-label">Laps left</span><span class="pb-value" id="pbFuelLaps">—</span></div>
+        <div class="pb-row"><span class="pb-label">Pit add</span><span class="pb-value" id="pbFuelVal">—</span></div>
+        <div class="pb-divider"></div>
+        <div class="pb-row"><span class="pb-label">Fast repair</span><span class="pb-value off" id="pbFastRepair">NO</span></div>
+        <div class="pb-row"><span class="pb-label">Tearoff</span><span class="pb-value off" id="pbWindshield">NO</span></div>
+      </div>
+
+      <!-- ═══ WEATHER TAB ═══ -->
+      <div class="pb-page" id="pbPageWeather" data-pb-page="weather">
+        <div class="pb-weather-hero">
+          <div class="pb-weather-icon" id="pbWeatherIcon">☀</div>
+          <div class="pb-weather-temp" id="pbAirTemp">—</div>
+        </div>
+        <div class="pb-row"><span class="pb-label">Track</span><span class="pb-value" id="pbTrackTemp">—</span></div>
+        <div class="pb-row"><span class="pb-label">Conditions</span><span class="pb-value" id="pbConditions">Dry</span></div>
+      </div>
+
+      <!-- ═══ SETUP / ADJUSTMENTS TAB ═══ -->
+      <div class="pb-page" id="pbPageAdj" data-pb-page="adj">
+        <div class="pb-adj-grid" id="pbAdjGrid">
+          <div class="pb-adj-item" id="pbRowBB"><span class="pb-adj-label">BB</span><span class="pb-adj-val zero" id="pbAdjBB">—</span></div>
+          <div class="pb-adj-item" id="pbRowTC"><span class="pb-adj-label">TC</span><span class="pb-adj-val zero" id="pbAdjTC">—</span></div>
+          <div class="pb-adj-item" id="pbRowABS"><span class="pb-adj-label">ABS</span><span class="pb-adj-val zero" id="pbAdjABS">—</span></div>
+          <div class="pb-adj-item" id="pbRowARBF"><span class="pb-adj-label">ARB F</span><span class="pb-adj-val zero" id="pbAdjARBF">—</span></div>
+          <div class="pb-adj-item" id="pbRowARBR"><span class="pb-adj-label">ARB R</span><span class="pb-adj-val zero" id="pbAdjARBR">—</span></div>
+          <div class="pb-adj-item" id="pbRowEng"><span class="pb-adj-label">ENG</span><span class="pb-adj-val zero" id="pbAdjEng">—</span></div>
+          <div class="pb-adj-item" id="pbRowFuel"><span class="pb-adj-label">FUEL MIX</span><span class="pb-adj-val zero" id="pbAdjFuel">—</span></div>
+          <div class="pb-adj-item" id="pbRowWJL"><span class="pb-adj-label">WJ L</span><span class="pb-adj-val zero" id="pbAdjWJL">—</span></div>
+          <div class="pb-adj-item" id="pbRowWJR"><span class="pb-adj-label">WJ R</span><span class="pb-adj-val zero" id="pbAdjWJR">—</span></div>
+          <div class="pb-adj-item" id="pbRowWingF"><span class="pb-adj-label">WING F</span><span class="pb-adj-val zero" id="pbAdjWingF">—</span></div>
+          <div class="pb-adj-item" id="pbRowWingR"><span class="pb-adj-label">WING R</span><span class="pb-adj-val zero" id="pbAdjWingR">—</span></div>
         </div>
       </div>
+
+      <!-- ═══ CAMERA / FFB TAB ═══ -->
+      <div class="pb-page" id="pbPageCamera" data-pb-page="camera">
+        <div class="pb-section-label">Force Feedback</div>
+        <div class="pb-row"><span class="pb-label">Max force</span><span class="pb-value" id="pbFFBMax">—</span></div>
+        <div class="pb-divider"></div>
+        <div class="pb-section-label">Mirrors</div>
+        <div class="pb-row"><span class="pb-label">Rearview</span><span class="pb-value" id="pbMirror">—</span></div>
+        <div class="pb-info">Camera and mirror settings are controlled in-sim</div>
+      </div>
+
     </div>
-
   </div>
 </div>
 
