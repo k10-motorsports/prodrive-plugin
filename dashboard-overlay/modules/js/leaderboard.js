@@ -8,51 +8,8 @@
   const _sparkHistory = {};
   const SPARK_MAX = 12;
   let _lbLastJson = '';
-  let _demoLbFrame = 0;
 
-  // ── Demo leaderboard data ──
-  // Generated client-side so leaderboard settings (max rows, focus, expand)
-  // can be tested without the live plugin running.
-  // Entry format: [pos, name, irating, bestLap, lastLap, gapToPlayer, inPit, isPlayer]
-  const _DEMO_LB_DRIVERS = [
-    { name: 'M. Verstappen', ir: 8900, base: 78.2 },
-    { name: 'L. Norris',     ir: 7600, base: 78.5 },
-    { name: 'C. Leclerc',    ir: 7100, base: 78.8 },
-    { name: 'O. Piastri',    ir: 6800, base: 79.0 },
-    { name: 'L. Hamilton',   ir: 6500, base: 79.2 },
-    { name: 'C. Sainz',      ir: 6200, base: 79.4 },
-    { name: 'G. Russell',    ir: 5900, base: 79.6 },
-    { name: 'K. Conboy',     ir: 5100, base: 79.9, isPlayer: true },
-    { name: 'F. Alonso',     ir: 4800, base: 80.1 },
-    { name: 'P. Gasly',      ir: 4500, base: 80.3 },
-    { name: 'A. Albon',      ir: 4200, base: 80.6 },
-    { name: 'D. Ricciardo',  ir: 3900, base: 80.8 },
-    { name: 'V. Bottas',     ir: 3600, base: 81.0 },
-    { name: 'Y. Tsunoda',    ir: 3300, base: 81.3 },
-    { name: 'K. Magnussen',  ir: 3000, base: 81.5 },
-    { name: 'L. Stroll',     ir: 2800, base: 81.8 },
-    { name: 'Z. Guanyu',     ir: 2500, base: 82.0 },
-    { name: 'E. Ocon',       ir: 2200, base: 82.3 },
-    { name: 'N. Hulkenberg', ir: 2000, base: 82.5 },
-    { name: 'L. Sargeant',   ir: 1800, base: 82.8 },
-  ];
-
-  function _buildDemoLeaderboard() {
-    _demoLbFrame++;
-    const playerIdx = _DEMO_LB_DRIVERS.findIndex(d => d.isPlayer);
-    return _DEMO_LB_DRIVERS.map((d, i) => {
-      // Slight lap-time jitter so sparklines build up over time
-      const jitter = (Math.sin(_demoLbFrame * 0.07 + i * 1.7) * 0.4)
-                   + (Math.cos(_demoLbFrame * 0.13 + i * 2.3) * 0.2);
-      const lastLap = +(d.base + jitter).toFixed(1);
-      const bestLap = d.base;
-      const gap = playerIdx >= 0 ? +((d.base - _DEMO_LB_DRIVERS[playerIdx].base) * (2 + Math.sin(_demoLbFrame * 0.03) * 0.5)).toFixed(1) : 0;
-      const inPit = (i === 14 && (_demoLbFrame % 80 < 15)); // one driver pits periodically
-      return [i + 1, d.name, d.ir, bestLap, lastLap, d.isPlayer ? 0 : gap, inPit, !!d.isPlayer];
-    });
-  }
-
-  function updateLeaderboard(p, isDemo) {
+  function updateLeaderboard(p) {
     const lbPanel = document.getElementById('leaderboardPanel');
     if (!lbPanel || lbPanel.classList.contains('section-hidden')) return;
     // Leaderboard comes as raw JSON array from the plugin
@@ -60,11 +17,6 @@
     // If plugin sends leaderboard as a JSON string, parse it
     if (typeof raw === 'string') {
       try { raw = JSON.parse(raw); } catch(e) { console.warn('[K10 LB] Failed to parse leaderboard string:', e); return; }
-    }
-    // In demo mode, always use the 20-driver client-side grid so all
-    // layout settings (max rows, focus, expand-to-fill) can be tested.
-    if (isDemo) {
-      raw = _buildDemoLeaderboard();
     }
     if (_pollFrame > 0 && _pollFrame <= 3) console.log('[K10 LB] raw type:', typeof raw, 'isArray:', Array.isArray(raw), 'length:', raw ? raw.length : 0, 'sample:', raw ? JSON.stringify(raw).slice(0, 200) : 'null');
     if (!raw || !Array.isArray(raw) || raw.length === 0) return;
@@ -262,44 +214,3 @@
   }
 
   function escHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-
-  // ── Offline demo: keep leaderboard alive when plugin server is unreachable ──
-  // Only active when opened directly in a browser with no server (truly offline).
-  // Does NOT auto-start — only starts if no poll data arrives within 5 seconds.
-  let _offlineLbTimer = null;
-  let _lbHasLiveData = false;
-
-  // Called by pollUpdate when we get real data — suppresses offline demo
-  function _markLbLive() {
-    const wasOffline = !_lbHasLiveData && _offlineLbTimer;
-    _lbHasLiveData = true;
-    // Kill offline demo if it was running
-    if (_offlineLbTimer) {
-      clearInterval(_offlineLbTimer);
-      _offlineLbTimer = null;
-    }
-    // Clear stale demo rows so they don't persist when real data has no leaderboard
-    if (wasOffline) {
-      const c = document.getElementById('lbRows');
-      if (c) c.innerHTML = '';
-      _lbLastJson = '';
-    }
-  }
-
-  function _startOfflineLbDemo() {
-    if (_offlineLbTimer || _lbHasLiveData) return;
-    _offlineLbTimer = setInterval(() => {
-      if (_lbHasLiveData) {
-        clearInterval(_offlineLbTimer);
-        _offlineLbTimer = null;
-        return;
-      }
-      const lbPanel = document.getElementById('leaderboardPanel');
-      if (!lbPanel || lbPanel.classList.contains('section-hidden')) return;
-      const raw = _buildDemoLeaderboard();
-      updateLeaderboard({ 'K10Motorsports.Plugin.Leaderboard': raw }, true);
-    }, 250);
-  }
-
-  // Only start offline demo if no server data arrives within 5 seconds
-  setTimeout(() => { if (!_lbHasLiveData) _startOfflineLbDemo(); }, 5000);
