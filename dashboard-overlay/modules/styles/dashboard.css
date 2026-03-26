@@ -855,25 +855,25 @@
     margin-top: 1px;
   }
   .sector-cell.sector-pb {
-    background: hsla(280,60%,45%,0.25);
+    background: hsla(280,60%,45%,0.4);
   }
-  .sector-cell.sector-pb .sector-time { color: var(--purple); }
-  .sector-cell.sector-pb .sector-delta { color: var(--purple); }
+  .sector-cell.sector-pb .sector-time { color: hsl(280,80%,78%); }
+  .sector-cell.sector-pb .sector-delta { color: hsl(280,80%,78%); }
   .sector-cell.sector-faster {
-    background: hsla(130,55%,40%,0.25);
+    background: hsla(130,55%,40%,0.4);
   }
-  .sector-cell.sector-faster .sector-time { color: var(--green); }
-  .sector-cell.sector-faster .sector-delta { color: var(--green); }
+  .sector-cell.sector-faster .sector-time { color: hsl(130,75%,72%); }
+  .sector-cell.sector-faster .sector-delta { color: hsl(130,75%,72%); }
   .sector-cell.sector-slower {
-    background: hsla(45,80%,40%,0.2);
+    background: hsla(45,80%,40%,0.35);
   }
-  .sector-cell.sector-slower .sector-time { color: var(--amber); }
-  .sector-cell.sector-slower .sector-delta { color: var(--amber); }
+  .sector-cell.sector-slower .sector-time { color: hsl(45,95%,68%); }
+  .sector-cell.sector-slower .sector-delta { color: hsl(45,95%,68%); }
   .sector-cell.sector-invalid {
-    background: hsla(0,65%,45%,0.25);
+    background: hsla(0,65%,45%,0.4);
   }
-  .sector-cell.sector-invalid .sector-time { color: var(--red); }
-  .sector-cell.sector-invalid .sector-delta { color: var(--red); }
+  .sector-cell.sector-invalid .sector-time { color: hsl(0,80%,72%); }
+  .sector-cell.sector-invalid .sector-delta { color: hsl(0,80%,72%); }
   .sector-cell.sector-active {
     border: 1px solid hsla(0,0%,100%,0.15);
   }

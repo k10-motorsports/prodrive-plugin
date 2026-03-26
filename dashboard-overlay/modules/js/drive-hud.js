@@ -56,16 +56,40 @@
       else deltaEl.classList.add('dh-neutral');
     }
 
-    // Best / Last / Current lap
+    // Last / Current lap number
     var bestLap = isDemo ? (+v('K10Motorsports.Plugin.Demo.BestLapTime') || 0) : (+v('DataCorePlugin.GameData.BestLapTime') || 0);
     var lastLap = isDemo ? (+v('K10Motorsports.Plugin.Demo.LastLapTime') || 0) : (+v('DataCorePlugin.GameData.LastLapTime') || 0);
     var curLap = isDemo ? (+v('K10Motorsports.Plugin.Demo.CurrentLap') || 0) : (+v('DataCorePlugin.GameData.CurrentLap') || 0);
-    var bestEl = document.getElementById('dhBestLap');
     var lastEl = document.getElementById('dhLastLap');
     var lapEl = document.getElementById('dhCurrentLap');
-    if (bestEl) bestEl.textContent = bestLap > 0 ? _fmtLapTime(bestLap) : '—';
     if (lastEl) lastEl.textContent = lastLap > 0 ? _fmtLapTime(lastLap) : '—';
     if (lapEl) lapEl.textContent = curLap > 0 ? curLap : '—';
+
+    // Live lap time + delta to best (absolutely positioned, centered)
+    var liveCurrentTime = isDemo
+      ? (+(p['K10Motorsports.Plugin.Demo.CurrentLapTime']) || 0)
+      : (+(p['DataCorePlugin.GameData.CurrentLapTime']) || 0);
+    var liveTimeEl = document.getElementById('dhLiveTime');
+    var liveDeltaEl = document.getElementById('dhLiveDelta');
+    if (liveTimeEl) {
+      liveTimeEl.textContent = liveCurrentTime > 0.5 ? _fmtLapTime(liveCurrentTime) : '—';
+    }
+    if (liveDeltaEl && liveCurrentTime > 0.5) {
+      // Use the real-time delta from the big display (same source, already computed)
+      if (liveCurrentTime > 5 && Math.abs(lapDelta) < 300) {
+        var sign = lapDelta >= 0 ? '+' : '';
+        liveDeltaEl.textContent = sign + lapDelta.toFixed(3);
+        liveDeltaEl.className = 'dh-live-delta';
+        if (lapDelta <= -0.5) liveDeltaEl.classList.add('dh-delta-pb');
+        else if (lapDelta < 0) liveDeltaEl.classList.add('dh-delta-faster');
+        else if (lapDelta < 1.0) liveDeltaEl.classList.add('dh-delta-slower');
+        else liveDeltaEl.classList.add('dh-delta-much-slower');
+      } else {
+        liveDeltaEl.textContent = '';
+      }
+    } else if (liveDeltaEl) {
+      liveDeltaEl.textContent = '';
+    }
 
     // Sectors (from plugin — N-sector support)
     var curSector = +(p[dsPre + 'CurrentSector']) || 1;
@@ -210,13 +234,24 @@
         dhPlayer.setAttribute('cy', py.toFixed(1));
       }
 
-      // Zoom viewBox: track the player with a ±15 unit window
+      // Zoom viewBox: always centered on player, no edge clamping
+      // Use a wider view (±22 units) and rotate so driving direction is up
       var dhSvg = document.getElementById('dhMapSvg');
       if (dhSvg) {
-        var zr = 15;
-        var vx = Math.max(0, Math.min(100 - zr * 2, px - zr));
-        var vy = Math.max(0, Math.min(100 - zr * 2, py - zr));
+        var zr = 22; // wider zoom — less claustrophobic
+        // Center on player without clamping — no premature cropping
+        var vx = px - zr;
+        var vy = py - zr;
         dhSvg.setAttribute('viewBox', vx.toFixed(1) + ' ' + vy.toFixed(1) + ' ' + (zr * 2) + ' ' + (zr * 2));
+
+        // Rotate map so driving direction always points up
+        var heading = +(p['K10Motorsports.Plugin.TrackMap.PlayerHeading']) || 0;
+        // heading is degrees clockwise from north (0=up); rotate map opposite to keep player facing up
+        var rot = -heading;
+        dhSvg.style.transform = 'rotate(' + rot.toFixed(1) + 'deg)';
+        dhSvg.style.transformOrigin = 'center center';
+        // Counter-rotate the player dot so it stays a circle not rotated
+        if (dhPlayer) dhPlayer.style.transform = 'rotate(' + (-rot).toFixed(1) + 'deg)';
       }
 
       // Opponents

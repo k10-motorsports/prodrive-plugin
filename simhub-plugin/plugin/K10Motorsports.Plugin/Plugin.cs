@@ -290,33 +290,33 @@ namespace K10Motorsports.Plugin
             // ── Actions ───────────────────────────────────────────────────────
 
             // Manually dismiss the current prompt
-            this.AddAction("DismissPrompt", (a, b) =>
+            this.AddAction("K10Motorsports.DismissPrompt", (a, b) =>
             {
                 _engine.ClearPrompt();
                 SimHub.Logging.Current.Info("[K10Motorsports] Prompt dismissed by user action");
             });
 
             // Feedback actions — bind to a button box or SimHub Control Mapper
-            this.AddAction("ThumbsUp", (a, b) =>
+            this.AddAction("K10Motorsports.ThumbsUp", (a, b) =>
             {
                 _feedback.Record(_engine.CurrentTopicId, _engine.CurrentText, +1);
                 SimHub.Logging.Current.Info($"[K10Motorsports] ThumbsUp: {_engine.CurrentTopicId}");
             });
 
-            this.AddAction("ThumbsDown", (a, b) =>
+            this.AddAction("K10Motorsports.ThumbsDown", (a, b) =>
             {
                 _feedback.Record(_engine.CurrentTopicId, _engine.CurrentText, -1);
                 SimHub.Logging.Current.Info($"[K10Motorsports] ThumbsDown: {_engine.CurrentTopicId}");
             });
 
             // Pitbox wheel button actions — bind in SimHub Control Mapper
-            this.AddAction("CyclePitboxTab",     (a, b) => { _pitboxTabCycle++;    });
-            this.AddAction("CyclePitboxTabBack", (a, b) => { _pitboxTabCycleBack++; });
-            this.AddAction("PitboxNext",         (a, b) => { _pitboxNext++;        });
-            this.AddAction("PitboxPrev",         (a, b) => { _pitboxPrev++;        });
-            this.AddAction("PitboxIncrement",    (a, b) => { _pitboxIncrement++;   });
-            this.AddAction("PitboxDecrement",    (a, b) => { _pitboxDecrement++;   });
-            this.AddAction("PitboxToggle",       (a, b) => { _pitboxToggle++;      });
+            this.AddAction("K10Motorsports.CyclePitboxTab",     (a, b) => { _pitboxTabCycle++;    });
+            this.AddAction("K10Motorsports.CyclePitboxTabBack", (a, b) => { _pitboxTabCycleBack++; });
+            this.AddAction("K10Motorsports.PitboxNext",         (a, b) => { _pitboxNext++;        });
+            this.AddAction("K10Motorsports.PitboxPrev",         (a, b) => { _pitboxPrev++;        });
+            this.AddAction("K10Motorsports.PitboxIncrement",    (a, b) => { _pitboxIncrement++;   });
+            this.AddAction("K10Motorsports.PitboxDecrement",    (a, b) => { _pitboxDecrement++;   });
+            this.AddAction("K10Motorsports.PitboxToggle",       (a, b) => { _pitboxToggle++;      });
 
             // Expose pitbox counters so dashboard can detect changes
             this.AttachDelegate("DS.PitboxTabCycle",     () => _pitboxTabCycle);

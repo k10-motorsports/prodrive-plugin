@@ -176,6 +176,7 @@
     background: hsla(0,0%,100%,0.02);
     position: relative;
     overflow: hidden;
+    border-radius: var(--corner-r);
   }
   .dh-map-name {
     position: absolute;
@@ -191,6 +192,7 @@
   .dh-map-svg {
     width: 100%;
     height: 100%;
+    transition: transform 0.15s ease-out;
   }
   .dh-map-svg .map-track { stroke-width: 2; }
   .dh-map-svg .map-player {
@@ -278,21 +280,22 @@
     color: hsla(0,0%,100%,0.35);
     margin-top: 4px;
   }
-  .dh-sector.dh-s-pb { background: hsla(280,60%,45%,0.3); }
-  .dh-sector.dh-s-pb .dh-sec-time, .dh-sector.dh-s-pb .dh-sec-delta { color: var(--purple); }
-  .dh-sector.dh-s-faster { background: hsla(130,55%,40%,0.3); }
-  .dh-sector.dh-s-faster .dh-sec-time, .dh-sector.dh-s-faster .dh-sec-delta { color: var(--green); }
-  .dh-sector.dh-s-slower { background: hsla(45,80%,40%,0.25); }
-  .dh-sector.dh-s-slower .dh-sec-time, .dh-sector.dh-s-slower .dh-sec-delta { color: var(--amber); }
-  .dh-sector.dh-s-invalid { background: hsla(0,65%,45%,0.3); }
-  .dh-sector.dh-s-invalid .dh-sec-time, .dh-sector.dh-s-invalid .dh-sec-delta { color: var(--red); }
-  .dh-sector.dh-s-active { border: 2px solid hsla(0,0%,100%,0.2); }
+  .dh-sector.dh-s-pb { background: hsla(280,60%,45%,0.45); }
+  .dh-sector.dh-s-pb .dh-sec-time, .dh-sector.dh-s-pb .dh-sec-delta { color: hsl(280,80%,78%); }
+  .dh-sector.dh-s-faster { background: hsla(130,55%,40%,0.45); }
+  .dh-sector.dh-s-faster .dh-sec-time, .dh-sector.dh-s-faster .dh-sec-delta { color: hsl(130,75%,72%); }
+  .dh-sector.dh-s-slower { background: hsla(45,80%,40%,0.4); }
+  .dh-sector.dh-s-slower .dh-sec-time, .dh-sector.dh-s-slower .dh-sec-delta { color: hsl(45,95%,68%); }
+  .dh-sector.dh-s-invalid { background: hsla(0,65%,45%,0.45); }
+  .dh-sector.dh-s-invalid .dh-sec-time, .dh-sector.dh-s-invalid .dh-sec-delta { color: hsl(0,80%,72%); }
+  .dh-sector.dh-s-active { border: 2px solid hsla(0,0%,100%,0.3); }
 
   .dh-lap-times {
     display: flex;
     flex-direction: column;
     gap: 6px;
     width: 100%;
+    position: relative;
   }
   .dh-lap-row {
     display: flex;
@@ -315,6 +318,32 @@
     font-weight: 600;
   }
   .dh-purple { color: var(--purple); }
+  /* Live lap time + delta — absolutely positioned, never affects lap number layout */
+  .dh-live-lap {
+    position: absolute;
+    bottom: -4.5vh;
+    left: 0;
+    right: 0;
+    text-align: center;
+    pointer-events: none;
+  }
+  .dh-live-time {
+    font-family: var(--ff-mono);
+    font-size: 2.8vh;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .dh-live-delta {
+    font-family: var(--ff-mono);
+    font-size: 2.2vh;
+    font-weight: 700;
+    margin-left: 8px;
+    transition: color 0.2s;
+  }
+  .dh-live-delta.dh-delta-pb     { color: var(--purple); }
+  .dh-live-delta.dh-delta-faster { color: var(--green); }
+  .dh-live-delta.dh-delta-slower { color: var(--amber); }
+  .dh-live-delta.dh-delta-much-slower { color: var(--red); }
 
   /* ── Right: incidents — fills column vertically ── */
   .dh-right {

@@ -50,6 +50,7 @@ namespace K10Motorsports.Plugin.Engine
         // ── iRating estimator (legacy shared memory reader, kept as fallback) ────
         private static IRatingEstimator _irEstimator;
         private static SectorTracker _sectorTracker = new SectorTracker();
+        private static string _lastSectorTrackId = "";
 
         // ── Fix #2: Caching for iRating / SR / license string ──────────────────
         // iRating and SR don't change mid-session, so caching last non-zero is safe.
@@ -144,6 +145,15 @@ namespace K10Motorsports.Plugin.Engine
                 s.SessionLapsRemaining = (int)GetPluginProp<double>(pm, "DataCorePlugin.GameData.RemainingLaps");
 
             // ── Sector splits (using iRacing native boundaries from session YAML) ──
+            // Reset sector tracker when the track changes (prevents stale N-sector data
+            // from previous track bleeding into new track, e.g. Sebring 7→Daytona 3)
+            string trackIdForSectors = GetPluginProp<string>(pm, "DataCorePlugin.GameData.TrackName") ?? "";
+            if (!string.IsNullOrEmpty(trackIdForSectors) && trackIdForSectors != _lastSectorTrackId)
+            {
+                _lastSectorTrackId = trackIdForSectors;
+                _sectorTracker.Reset();
+            }
+
             // Feed iRacing's SplitTimeInfo sector boundaries to the tracker if available
             // Prefer IRacingSdkBridge (full N-sector support) over legacy IRatingEstimator
             if (_sdkBridge != null && _sdkBridge.SectorBoundaries.Length > 0 && !_sectorTracker.HasNativeBoundaries)

@@ -181,7 +181,9 @@ namespace K10Motorsports.Plugin.Engine
         /// <summary>Reset all sector data (session change, track change).</summary>
         public void Reset()
         {
-            AllocArrays(SectorCount);
+            _hasNativeBoundaries = false;
+            _boundaries = null;
+            AllocArrays(3); // revert to default 3 sectors until new boundaries arrive
             ResetState();
         }
 
