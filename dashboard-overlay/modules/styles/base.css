@@ -192,7 +192,8 @@
   .dh-map-svg {
     width: 100%;
     height: 100%;
-    transition: transform 0.15s ease-out;
+    /* Rotation is now applied to the inner <g> via SVG attribute transforms,
+       so no CSS transition on the element itself is needed. */
   }
   .dh-map-svg .map-track { stroke-width: 2; }
   .dh-map-svg .map-player {

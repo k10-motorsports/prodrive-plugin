@@ -8,6 +8,7 @@
   'use strict';
 
   let _active = false;
+  let _dhHeadingSmooth = 0; // LERP-smoothed heading (degrees) to reduce judder
 
   function toggleDriveMode() {
     _active = !_active;
@@ -207,18 +208,18 @@
         if (typeof _splitPathIntoSectors === 'function') {
           var boundaryPcts = Array.isArray(window._sectorBoundaries) ? window._sectorBoundaries : null;
           var sPaths = _splitPathIntoSectors(svgPath, boundaryPcts);
-          // Dynamically create/update sector paths in the drive HUD SVG
-          var dhSvg = document.getElementById('dhMapSvg');
-          if (dhSvg) {
-            dhSvg.querySelectorAll('.map-sector').forEach(function(el) { el.remove(); });
+          // Dynamically create/update sector paths inside the rotate group
+          var dhRotateGrp = document.getElementById('dhMapRotateGroup');
+          if (dhRotateGrp) {
+            dhRotateGrp.querySelectorAll('.map-sector').forEach(function(el) { el.remove(); });
             var dhOpp = document.getElementById('dhMapOpponents');
             for (var i = 0; i < sPaths.length; i++) {
               var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
               path.classList.add('map-sector');
               path.id = 'dhSector' + (i + 1);
               path.setAttribute('d', sPaths[i]);
-              if (dhOpp) dhSvg.insertBefore(path, dhOpp);
-              else dhSvg.appendChild(path);
+              if (dhOpp) dhRotateGrp.insertBefore(path, dhOpp);
+              else dhRotateGrp.appendChild(path);
             }
           }
         }
@@ -244,14 +245,28 @@
         var vy = py - zr;
         dhSvg.setAttribute('viewBox', vx.toFixed(1) + ' ' + vy.toFixed(1) + ' ' + (zr * 2) + ' ' + (zr * 2));
 
-        // Rotate map so driving direction always points up
-        var heading = +(p['K10Motorsports.Plugin.TrackMap.PlayerHeading']) || 0;
-        // heading is degrees clockwise from north (0=up); rotate map opposite to keep player facing up
-        var rot = -heading;
-        dhSvg.style.transform = 'rotate(' + rot.toFixed(1) + 'deg)';
-        dhSvg.style.transformOrigin = 'center center';
-        // Counter-rotate the player dot so it stays a circle not rotated
-        if (dhPlayer) dhPlayer.style.transform = 'rotate(' + (-rot).toFixed(1) + 'deg)';
+        // Rotate map so driving direction always points up.
+        // Apply LERP smoothing to eliminate heading judder, with correct
+        // wrap-around handling at the 0°/360° boundary.
+        var rawHeading = +(p['K10Motorsports.Plugin.TrackMap.PlayerHeading']) || 0;
+        var diff = rawHeading - _dhHeadingSmooth;
+        // Normalise diff to [-180, 180] to pick the shortest rotation arc
+        while (diff > 180) diff -= 360;
+        while (diff < -180) diff += 360;
+        _dhHeadingSmooth += diff * 0.18; // LERP factor — tweak for more/less lag
+        _dhHeadingSmooth = ((_dhHeadingSmooth % 360) + 360) % 360;
+
+        // Rotate the inner group around the player's SVG coordinate, NOT the
+        // SVG element itself (element rotation caused rectangular crop artefacts).
+        var dhRotateGroup = document.getElementById('dhMapRotateGroup');
+        if (dhRotateGroup) {
+          var rotDeg = (-_dhHeadingSmooth).toFixed(2);
+          dhRotateGroup.setAttribute('transform',
+            'rotate(' + rotDeg + ',' + px.toFixed(1) + ',' + py.toFixed(1) + ')');
+        }
+        // Player dot stays outside the rotate group, so no counter-rotation needed
+        dhSvg.style.transform = '';
+        dhSvg.style.transformOrigin = '';
       }
 
       // Opponents

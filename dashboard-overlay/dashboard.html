@@ -74,12 +74,18 @@
   <div class="dh-left">
     <div class="dh-map">
       <div class="dh-map-name" id="dhMapName"></div>
-      <svg class="dh-map-svg" id="dhMapSvg" viewBox="35 35 30 30">
-        <path class="map-track" id="dhMapTrack" d="" />
-        <path class="map-sector" id="dhSector1" d="" />
-        <path class="map-sector" id="dhSector2" d="" />
-        <path class="map-sector" id="dhSector3" d="" />
-        <g id="dhMapOpponents"></g>
+      <svg class="dh-map-svg" id="dhMapSvg" viewBox="35 35 30 30" overflow="visible">
+        <!-- dhMapRotateGroup rotates around the player's SVG coordinate so the
+             driving direction always points up, without rotating the SVG element
+             itself (which caused rectangular clipping + crop artifacts). -->
+        <g id="dhMapRotateGroup">
+          <path class="map-track" id="dhMapTrack" d="" />
+          <path class="map-sector" id="dhSector1" d="" />
+          <path class="map-sector" id="dhSector2" d="" />
+          <path class="map-sector" id="dhSector3" d="" />
+          <g id="dhMapOpponents"></g>
+        </g>
+        <!-- Player dot is outside the rotate group so it stays upright -->
         <circle class="map-player" id="dhMapPlayer" cx="50" cy="50" r="2" />
       </svg>
     </div>
