@@ -51,47 +51,6 @@ jobs:
           path: dashboard-overlay/dist/win-arm64-unpacked/
 
   # ---------------------------------------------------------------
-  # Build the Electron overlay for macOS (optional — does not block)
-  # ---------------------------------------------------------------
-  build-overlay-mac:
-    name: Build Overlay (macOS)
-    runs-on: macos-latest
-    continue-on-error: true
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: dashboard-overlay/package-lock.json
-
-      - name: Install dependencies
-        working-directory: dashboard-overlay
-        run: npm ci
-
-      - name: Build overlay (mac)
-        working-directory: dashboard-overlay
-        run: npx electron-builder --mac --config electron-builder.yml --publish never
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Skip code signing on CI (no Apple Developer cert configured)
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-          # Workaround: arm64 APFS DMG creation can flake on GitHub Actions
-          # runners due to hdiutil race condition. Increase retry delay.
-          ELECTRON_BUILDER_TMP_DIR: ${{ runner.temp }}/eb-tmp
-
-      - name: Upload macOS artifacts (DMG + zip fallback)
-        uses: actions/upload-artifact@v4
-        with:
-          name: overlay-mac
-          path: |
-            dashboard-overlay/dist/*.dmg
-            dashboard-overlay/dist/*.zip
-          if-no-files-found: warn
-
-  # ---------------------------------------------------------------
   # Build plugin + compile the Inno Setup combined installer
   # SimHub SDK DLLs are committed in lib/simhub-refs/ so the
   # plugin compiles on CI without a SimHub installation.
@@ -214,8 +173,6 @@ jobs:
           generate_release_notes: true
           files: |
             release-artifacts/installer/*.exe
-            release-artifacts/overlay-mac/*.dmg
-            release-artifacts/overlay-mac/*.zip
           draft: false
           prerelease: false
         env:
