@@ -195,11 +195,16 @@
         if (!_isDragging) return;
         var rawLeft = e.clientX - _dragOffX;
         var rawTop  = e.clientY - _dragOffY;
-        // Clamp so the panel can't be dragged fully off-screen
-        var maxLeft = window.innerWidth  - 40;
-        var maxTop  = window.innerHeight - 40;
+        // Clamp aggressively: keep at least half the panel width and the
+        // full titlebar height visible on-screen at all times. The previous
+        // 40px margin was too loose — the panel could be dragged almost
+        // entirely off-screen in all directions.
+        var minVisible = Math.max(200, Math.round(panel.offsetWidth * 0.5));
+        var maxLeft = window.innerWidth  - minVisible;
+        var minLeft = -(panel.offsetWidth - minVisible);
+        var maxTop  = window.innerHeight - 60; // keep titlebar reachable
         panel.style.position = 'fixed';
-        panel.style.left = Math.max(-panel.offsetWidth + 40, Math.min(maxLeft, rawLeft)) + 'px';
+        panel.style.left = Math.max(minLeft, Math.min(maxLeft, rawLeft)) + 'px';
         panel.style.top  = Math.max(0, Math.min(maxTop, rawTop)) + 'px';
         panel.style.margin = '0';
       });

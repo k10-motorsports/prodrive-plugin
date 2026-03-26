@@ -463,6 +463,8 @@ function openSettingsWindow() {
     alwaysOnTop: true,
     transparent: false,
     backgroundColor: '#1a1a1a',
+    // Skip taskbar so it doesn't fight with the sim for alt-tab focus
+    skipTaskbar: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -473,17 +475,73 @@ function openSettingsWindow() {
     }
   });
 
+  // Use 'screen-saver' level so the window stays above fullscreen sims
+  settingsWindow.setAlwaysOnTop(true, 'screen-saver');
+
   // Load the same dashboard with a query flag so renderer knows to show settings only
   settingsWindow.loadFile(path.join(__dirname, getDashboardFile()), {
     query: { settingsPopout: '1' }
   });
 
-  const onDisplayRemoved = (display) => {
-    if (settingsWindow && !settingsWindow.isDestroyed() && settingsWindow.webContents.getURL().includes(getDashboardFile())) {
-      const displays = screen.getAllDisplays();
-      const settingsDisplay = displays.find(d => d.id === secondary.id);
-      if (!settingsDisplay) {
-        closeSettingsWindow();
+  // Recover visibility: when the window is ready, force it visible and
+  // on top in case the sim stole focus during load.
+  settingsWindow.once('ready-to-show', () => {
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+      settingsWindow.show();
+      settingsWindow.setAlwaysOnTop(true, 'screen-saver');
+    }
+  });
+
+  // If the sim steals focus and the window somehow gets hidden, restore it
+  settingsWindow.on('hide', () => {
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+      settingsWindow.show();
+    }
+  });
+
+  // Verify the window ended up on a valid display; if the target display
+  // has unexpected bounds (e.g., removed between detection and creation),
+  // move it to center of primary display.
+  settingsWindow.once('show', () => {
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+      const bounds = settingsWindow.getBounds();
+      const allDisplays = screen.getAllDisplays();
+      const onAnyDisplay = allDisplays.some(d => {
+        return bounds.x < d.bounds.x + d.bounds.width &&
+               bounds.x + bounds.width > d.bounds.x &&
+               bounds.y < d.bounds.y + d.bounds.height &&
+               bounds.y + bounds.height > d.bounds.y;
+      });
+      if (!onAnyDisplay) {
+        const pri = screen.getPrimaryDisplay();
+        settingsWindow.setPosition(
+          pri.bounds.x + Math.round((pri.bounds.width - winW) / 2),
+          pri.bounds.y + Math.round((pri.bounds.height - winH) / 2)
+        );
+        logToFile('[K10] Settings window was off-screen, moved to primary display');
+      }
+    }
+  });
+
+  const onDisplayRemoved = () => {
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+      // Check if the window is still on a valid display
+      const bounds = settingsWindow.getBounds();
+      const allDisplays = screen.getAllDisplays();
+      const onAnyDisplay = allDisplays.some(d => {
+        return bounds.x < d.bounds.x + d.bounds.width &&
+               bounds.x + bounds.width > d.bounds.x &&
+               bounds.y < d.bounds.y + d.bounds.height &&
+               bounds.y + bounds.height > d.bounds.y;
+      });
+      if (!onAnyDisplay) {
+        // Display was removed — move to primary instead of closing
+        const pri = screen.getPrimaryDisplay();
+        settingsWindow.setPosition(
+          pri.bounds.x + Math.round((pri.bounds.width - winW) / 2),
+          pri.bounds.y + Math.round((pri.bounds.height - winH) / 2)
+        );
+        logToFile('[K10] Display removed, moved settings to primary display');
       }
     }
   };
