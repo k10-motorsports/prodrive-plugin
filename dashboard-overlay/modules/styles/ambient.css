@@ -134,10 +134,11 @@ body.ambient-plastic .spotter-panel::before {
   display: block;
 }
 
-/* Plastic mode: clip ::before to panel bounds + edge bloom.
-   overflow:hidden clips the rotated pseudo-element to the panel's
-   rounded rect. The outer box-shadow is painted outside the overflow
-   clip by the browser, so it remains visible. */
+/* Plastic mode: clip ::before to panel bounds.
+   overflow:hidden clips the rotated pseudo-element to the panel's rounded rect.
+   All box-shadows are inset so the glow never escapes the module boundaries —
+   outer box-shadow bleeds through overflow:hidden by CSS spec, which is what
+   caused the "front and back lit" look. Inset-only keeps it front-lit. */
 body.ambient-plastic .panel,
 body.ambient-plastic .tacho-block,
 body.ambient-plastic .commentary-inner,
@@ -148,9 +149,9 @@ body.ambient-plastic .incidents-panel,
 body.ambient-plastic .spotter-panel {
   overflow: hidden;
   box-shadow:
-    0 0 28px 8px rgba(var(--ambient-r), var(--ambient-g), var(--ambient-b),
-      calc((0.10 + var(--plastic-phase) * 0.12) * var(--ambient-lum))),
-    inset 0 1px 0 rgba(var(--ambient-r), var(--ambient-g), var(--ambient-b), 0.14);
+    inset 0 0 32px 10px rgba(var(--ambient-r), var(--ambient-g), var(--ambient-b),
+      calc((0.15 + var(--plastic-phase) * 0.15) * var(--ambient-lum))),
+    inset 0 1px 0 rgba(var(--ambient-r), var(--ambient-g), var(--ambient-b), 0.18);
   transition: box-shadow 600ms ease;
 }
 
