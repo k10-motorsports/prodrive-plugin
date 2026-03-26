@@ -32,17 +32,23 @@ jobs:
         working-directory: dashboard-overlay
         run: npm ci
 
-      - name: Build overlay (win)
+      - name: Build overlay (win x64 + arm64)
         working-directory: dashboard-overlay
         run: npx electron-builder --win --config electron-builder.yml --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload win-unpacked for Inno Setup
+      - name: Upload win-unpacked (x64) for Inno Setup
         uses: actions/upload-artifact@v4
         with:
           name: overlay-win-unpacked
           path: dashboard-overlay/dist/win-unpacked/
+
+      - name: Upload win-arm64-unpacked for Inno Setup
+        uses: actions/upload-artifact@v4
+        with:
+          name: overlay-win-arm64-unpacked
+          path: dashboard-overlay/dist/win-arm64-unpacked/
 
   # ---------------------------------------------------------------
   # Build the Electron overlay for macOS (optional — does not block)
@@ -98,11 +104,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download overlay (win-unpacked)
+      - name: Download overlay (win x64)
         uses: actions/download-artifact@v4
         with:
           name: overlay-win-unpacked
           path: dashboard-overlay/dist/win-unpacked/
+
+      - name: Download overlay (win arm64)
+        uses: actions/download-artifact@v4
+        with:
+          name: overlay-win-arm64-unpacked
+          path: dashboard-overlay/dist/win-arm64-unpacked/
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4

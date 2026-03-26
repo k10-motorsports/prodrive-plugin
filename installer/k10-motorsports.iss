@@ -2,11 +2,15 @@
 ; K10 Motorsports — Inno Setup Installer Script
 ; Installs the SimHub plugin (telemetry engine, commentary, strategy)
 ; and the Electron overlay app (transparent HUD with WebGL effects).
+;
+; Supports both x64 and arm64 Windows. The installer bundles both
+; architecture builds and installs the one matching the host OS.
 ; ═══════════════════════════════════════════════════════════════
 ;
 ; Prerequisites (build these BEFORE compiling this installer):
 ;   1. dotnet build the plugin  → produces K10Motorsports.Plugin.dll
 ;   2. npm run build:win        → produces dashboard-overlay/dist/win-unpacked/
+;                                  and    dashboard-overlay/dist/win-arm64-unpacked/
 ;
 ; Compile with:
 ;   iscc installer/k10-motorsports.iss
@@ -38,8 +42,9 @@ Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
-ArchitecturesAllowed=x64
-ArchitecturesInstallIn64BitMode=x64
+; Accept both x64 and arm64 machines
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 
 [Languages]
@@ -61,10 +66,13 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "startmenu";   Description: "Create Start Menu shortcut"; GroupDescription: "{cm:AdditionalIcons}"; Components: overlay
 
 [Files]
-; ── Overlay application (electron-builder win-unpacked output) ──
-Source: "..\dashboard-overlay\dist\win-unpacked\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: overlay
+; ── Overlay application: x64 build (installed on x64 machines) ──
+Source: "..\dashboard-overlay\dist\win-unpacked\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: overlay; Check: not IsArm64
 
-; ── SimHub plugin DLL ──
+; ── Overlay application: arm64 build (installed on arm64 machines) ──
+Source: "..\dashboard-overlay\dist\win-arm64-unpacked\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs solidbreak; Components: overlay; Check: IsArm64
+
+; ── SimHub plugin DLL (AnyCPU — works on both architectures) ──
 Source: "..\simhub-plugin\K10Motorsports.Plugin.dll"; DestDir: "{code:GetSimHubDir}"; Flags: ignoreversion; Components: plugin
 Source: "..\simhub-plugin\K10Motorsports.Plugin.pdb"; DestDir: "{code:GetSimHubDir}"; Flags: ignoreversion skipifsourcedoesntexist; Components: plugin
 
@@ -95,6 +103,14 @@ var
 function GetSimHubDir(Param: String): String;
 begin
   Result := SimHubDir;
+end;
+
+// ── Architecture detection ──────────────────────────────────────
+// Inno Setup 6.3+ has IsArm64 built in. For older versions we
+// fall back to checking the PROCESSOR_ARCHITECTURE env var.
+function IsArm64: Boolean;
+begin
+  Result := (ProcessorArchitecture = paARM64);
 end;
 
 function FindSimHub(): String;
