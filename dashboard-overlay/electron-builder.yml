@@ -34,10 +34,21 @@ mac:
       arch:
         - x64
         - arm64
+    - target: zip
+      arch:
+        - arm64
 
 dmg:
   title: K10Motorsports
   artifactName: K10-Motorsports-${version}-${arch}.${ext}
+  # Explicit window config avoids electron-builder trying to apply a
+  # background image, which triggers the hdiutil APFS race condition
+  # on arm64 macOS runners ("Above command failed, retrying N times").
+  window:
+    x: 200
+    "y": 120
+    width: 540
+    height: 380
   contents:
     - x: 130
       "y": 220
