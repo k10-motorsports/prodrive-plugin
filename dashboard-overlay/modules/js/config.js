@@ -237,6 +237,7 @@ const PROP_KEYS = [
   'K10Motorsports.Plugin.Demo.DS.GapBehindFormatted',
   // Track map
   'K10Motorsports.Plugin.TrackMap.Ready',
+  'K10Motorsports.Plugin.TrackMap.TrackName',
   'K10Motorsports.Plugin.TrackMap.SvgPath',
   'K10Motorsports.Plugin.TrackMap.PlayerX',
   'K10Motorsports.Plugin.TrackMap.PlayerY',

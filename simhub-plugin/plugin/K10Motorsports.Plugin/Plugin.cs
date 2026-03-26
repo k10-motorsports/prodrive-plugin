@@ -260,6 +260,7 @@ namespace K10Motorsports.Plugin
 
             // ── Track map properties — SVG path + car positions ────────────────
             this.AttachDelegate("TrackMap.Ready",      () => _trackMap.IsReady ? 1 : 0);
+            this.AttachDelegate("TrackMap.TrackName",  () => _trackMap.TrackName ?? "");
             this.AttachDelegate("TrackMap.SvgPath",    () => _trackMap.SvgPath);
             this.AttachDelegate("TrackMap.PlayerX",    () => _trackMap.PlayerX);
             this.AttachDelegate("TrackMap.PlayerY",    () => _trackMap.PlayerY);
@@ -1290,6 +1291,7 @@ namespace K10Motorsports.Plugin
 
                     // ── Track map ──
                     Jp(sb, "K10Motorsports.Plugin.TrackMap.Ready", _trackMap.IsReady ? 1 : 0);
+                    Jp(sb, "K10Motorsports.Plugin.TrackMap.TrackName", Escape(_trackMap.TrackName ?? ""));
                     Jp(sb, "K10Motorsports.Plugin.TrackMap.SvgPath", Escape(_trackMap.SvgPath ?? ""));
                     Jp(sb, "K10Motorsports.Plugin.TrackMap.PlayerX", _trackMap.PlayerX, ic);
                     Jp(sb, "K10Motorsports.Plugin.TrackMap.PlayerY", _trackMap.PlayerY, ic);

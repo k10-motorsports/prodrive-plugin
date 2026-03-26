@@ -67,6 +67,9 @@ namespace K10Motorsports.Plugin.Engine
         /// <summary>True when we have a valid track outline (recorded or loaded).</summary>
         public bool IsReady => _ready;
 
+        /// <summary>The track ID / name used to key the current map (matches the name the plugin saved/loaded under).</summary>
+        public string TrackName => _currentTrackId;
+
         /// <summary>SVG path data string for the track outline, in a 0 0 100 100 viewBox.</summary>
         public string SvgPath => _demoMode ? DemoSvgPath : _svgPath;
 

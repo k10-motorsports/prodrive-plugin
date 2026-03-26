@@ -314,18 +314,35 @@
     const pos = +d('DataCorePlugin.GameData.Position', 'Demo.Position') || 0;
     const lap = +d('DataCorePlugin.GameData.CurrentLap', 'Demo.CurrentLap') || 0;
     const bestLap = +d('DataCorePlugin.GameData.BestLapTime', 'Demo.BestLapTime') || 0;
+    const curLapTime = _demo
+      ? (+(p['K10Motorsports.Plugin.Demo.CurrentLapTime']) || 0)
+      : (+(p['DataCorePlugin.GameData.CurrentLapTime']) || 0);
     document.querySelectorAll('.pos-number').forEach(el => {
       const sp = el.querySelector('.skew-accent');
       if (sp) sp.textContent = pos > 0 ? 'P' + pos : 'P—';
     });
     document.querySelectorAll('.pos-meta-row .val').forEach(el => {
       if (el.closest('.best-row')) {
-        el.textContent = fmtLap(bestLap);
-        // Green = personal best, purple = session best of everyone
-        const sb = window._sessionBestLap || 0;
-        const isSessionBest = bestLap > 0 && sb > 0 && Math.abs(bestLap - sb) < 0.05;
-        el.classList.remove('purple', 'green');
-        if (bestLap > 0) el.classList.add(isSessionBest ? 'purple' : 'green');
+        // Show current lap time; when running, also show differential vs best
+        if (curLapTime > 0.5) {
+          const diff = bestLap > 0 ? curLapTime - bestLap : null;
+          let label = fmtLap(curLapTime);
+          if (diff !== null) {
+            label += '  ' + (diff >= 0 ? '+' : '') + diff.toFixed(3);
+          }
+          el.textContent = label;
+          el.classList.remove('purple', 'green');
+          if (diff !== null && diff < 0) el.classList.add('green');
+        } else {
+          // Between laps: show best lap for reference
+          el.textContent = bestLap > 0 ? fmtLap(bestLap) : '—:——.———';
+          const sb = window._sessionBestLap || 0;
+          const isSessionBest = bestLap > 0 && sb > 0 && Math.abs(bestLap - sb) < 0.05;
+          el.classList.remove('purple', 'green');
+          if (bestLap > 0) el.classList.add(isSessionBest ? 'purple' : 'green');
+        }
+        // Centre-align this row
+        el.closest('.pos-meta-row').style.textAlign = 'center';
       }
       else el.textContent = lap > 0 ? lap : '—';
     });
@@ -629,17 +646,31 @@
             }
           }
         } else if (splits[si - 1] > 0) {
-          // Completed sector: show sector time + delta to my best
+          // Completed sector: show sector time + delta to my best.
+          // Sanity check: a single sector time must never be >= the sum of
+          // all other known sector splits — that would mean the plugin
+          // accidentally sent the cumulative lap time here instead.
           const split = splits[si - 1];
-          const m = Math.floor(split / 60);
-          const s = (split % 60);
-          timeEl.textContent = (m > 0 ? m + ':' : '') + (m > 0 && s < 10 ? '0' : '') + s.toFixed(1);
-          if (!_lapInvalid && stateClass[states[si - 1]]) cell.classList.add(stateClass[states[si - 1]]);
-          if (deltaEl) {
-            const d = deltas[si - 1];
-            if (d !== 0) deltaEl.textContent = (d >= 0 ? '+' : '') + d.toFixed(2);
-            else if (states[si - 1] === 1) deltaEl.textContent = 'PB';
-            else deltaEl.textContent = '';
+          let sumOtherSplits = 0;
+          for (let k = 0; k < sectorCount; k++) {
+            if (k !== si - 1 && splits[k] > 0) sumOtherSplits += splits[k];
+          }
+          const looksLikeFullLap = sumOtherSplits > 0 && split >= sumOtherSplits;
+          if (looksLikeFullLap) {
+            // Suppress — never show a full lap time inside a sector cell
+            timeEl.textContent = '—';
+            if (deltaEl) deltaEl.textContent = '';
+          } else {
+            const m = Math.floor(split / 60);
+            const s = (split % 60);
+            timeEl.textContent = (m > 0 ? m + ':' : '') + (m > 0 && s < 10 ? '0' : '') + s.toFixed(1);
+            if (!_lapInvalid && stateClass[states[si - 1]]) cell.classList.add(stateClass[states[si - 1]]);
+            if (deltaEl) {
+              const d = deltas[si - 1];
+              if (d !== 0) deltaEl.textContent = (d >= 0 ? '+' : '') + d.toFixed(2);
+              else if (states[si - 1] === 1) deltaEl.textContent = 'PB';
+              else deltaEl.textContent = '';
+            }
           }
         } else {
           timeEl.textContent = '—';
@@ -867,7 +898,11 @@
     }
     const mapNameEl = document.getElementById('mapTrackName');
     if (mapNameEl) {
-      const trackName = vs('DataCorePlugin.GameData.TrackName') || '';
+      // Prefer the plugin's TrackMap.TrackName (always matches the saved map file),
+      // fall back to GameData.TrackName from SimHub.
+      const trackName = vs('K10Motorsports.Plugin.TrackMap.TrackName')
+                     || vs('DataCorePlugin.GameData.TrackName')
+                     || '';
       if (trackName && trackName !== mapNameEl.textContent) mapNameEl.textContent = trackName;
     }
 
