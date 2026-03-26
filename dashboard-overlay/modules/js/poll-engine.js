@@ -16,6 +16,26 @@
   // Connection status, fetchProps, applyGameMode are in game-detect.js
   // Settings persistence and Discord state are in connections.js
 
+  // ─── Time value parser — handles both numeric seconds and TimeSpan strings ───
+  function _parseTimeValue(val) {
+    if (val == null || val === '') return 0;
+    // Try numeric first (most common case)
+    var n = +val;
+    if (!isNaN(n)) return n;
+    // Try TimeSpan string format "HH:MM:SS.fff" or "MM:SS.fff"
+    if (typeof val === 'string') {
+      var parts = val.split(':');
+      if (parts.length === 3) {
+        // HH:MM:SS.fff
+        return (+parts[0] || 0) * 3600 + (+parts[1] || 0) * 60 + (parseFloat(parts[2]) || 0);
+      } else if (parts.length === 2) {
+        // MM:SS.fff
+        return (+parts[0] || 0) * 60 + (parseFloat(parts[1]) || 0);
+      }
+    }
+    return 0;
+  }
+
   // ─── Main update loop ───
   async function pollUpdate() {
     if (_pollActive) return;
@@ -314,9 +334,13 @@
     const pos = +d('DataCorePlugin.GameData.Position', 'Demo.Position') || 0;
     const lap = +d('DataCorePlugin.GameData.CurrentLap', 'Demo.CurrentLap') || 0;
     const bestLap = +d('DataCorePlugin.GameData.BestLapTime', 'Demo.BestLapTime') || 0;
+    // Parse CurrentLapTime robustly — SimHub may send this as a number
+    // (seconds), a TimeSpan string ("00:01:23.456"), or null. Fall back
+    // to iRacing raw telemetry LapCurrentLapTime if GameData fails.
     const curLapTime = _demo
       ? (+(p['K10Motorsports.Plugin.Demo.CurrentLapTime']) || 0)
-      : (+(p['DataCorePlugin.GameData.CurrentLapTime']) || 0);
+      : (_parseTimeValue(p['DataCorePlugin.GameData.CurrentLapTime'])
+         || +(p['DataCorePlugin.GameRawData.Telemetry.LapCurrentLapTime']) || 0);
     document.querySelectorAll('.pos-number').forEach(el => {
       const sp = el.querySelector('.skew-accent');
       if (sp) sp.textContent = pos > 0 ? 'P' + pos : 'P—';
