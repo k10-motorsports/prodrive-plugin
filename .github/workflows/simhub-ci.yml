@@ -84,19 +84,8 @@ jobs:
       - name: Run tests (200+ tests)
         run: dotnet test simhub-plugin/tests/K10Motorsports.Tests/K10Motorsports.Tests.csproj --no-build --verbosity normal
 
-  # ---------------------------------------------------------------
-  # Windows-only: live .bat execution against fake SimHub directory
-  # ---------------------------------------------------------------
-  windows-installer:
-    name: Windows Installer (live)
-    runs-on: windows-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Run live installer tests (3 tests)
-        run: python simhub-plugin/tools/test_installer.py --live -v
+  # Windows Installer (live) job removed.
+  # install.bat / export.bat are developer convenience scripts, not the
+  # release artifact. The real installer is the Inno Setup .exe compiled
+  # by release.yml on version tags. The live .bat CI job was broken from
+  # the start and only generated noise on every simhub-plugin PR.
