@@ -1,0 +1,41 @@
+name: Dashboard CI
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "dashboard-overlay/**"
+  pull_request:
+    branches: [main, master]
+    paths:
+      - "dashboard-overlay/**"
+
+jobs:
+
+  # ---------------------------------------------------------------
+  # Electron dashboard: install deps + Playwright unit tests
+  # ---------------------------------------------------------------
+  dashboard-tests:
+    name: Dashboard Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: dashboard-overlay/package-lock.json
+
+      - name: Install dependencies
+        working-directory: dashboard-overlay
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: dashboard-overlay
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright unit tests
+        working-directory: dashboard-overlay
+        run: npm test

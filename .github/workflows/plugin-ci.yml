@@ -1,0 +1,42 @@
+name: SimHub Plugin CI
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "simhub-plugin/**"
+  pull_request:
+    branches: [main, master]
+    paths:
+      - "simhub-plugin/**"
+
+jobs:
+
+  # ---------------------------------------------------------------
+  # C# .NET 4.8 plugin build — uses SimHub stubs from lib/simhub-refs/
+  # ---------------------------------------------------------------
+  plugin-build:
+    name: Build SimHub Plugin
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.x"
+
+      - name: Restore NuGet packages
+        working-directory: simhub-plugin/plugin/K10Motorsports.Plugin
+        run: dotnet restore
+
+      - name: Build plugin
+        working-directory: simhub-plugin/plugin/K10Motorsports.Plugin
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: K10Motorsports.Plugin
+          path: simhub-plugin/build/K10Motorsports.Plugin.dll
