@@ -164,7 +164,7 @@ jobs:
           Set-Content dashboard-overlay/package.json $pkg
           # dashboard.html settings footer
           $html = Get-Content dashboard-overlay/dashboard.html -Raw
-          $html = $html -replace 'K10 Motorsports v[\d.]+ —', "K10 Motorsports v$ver —"
+          $html = $html -replace 'K10 Motorsports[^<]*—[^<]*', "K10 Motorsports v$ver — Media Overlay"
           Set-Content dashboard-overlay/dashboard.html $html
           Write-Host "Stamped overlay version: $ver"
         shell: pwsh
