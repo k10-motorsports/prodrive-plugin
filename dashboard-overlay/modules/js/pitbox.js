@@ -26,6 +26,7 @@
   let _lastDecrement = -1;
   let _lastToggle = -1;
   var _tabOrder = ['tyres', 'fuel', 'weather', 'adj', 'camera'];
+  var _pbHidden = false;  // "off" state — pitbox dismissed via tab cycling past the edges
 
   function cacheElements() {
     var $ = function(id) { return document.getElementById(id); };
@@ -322,12 +323,30 @@
       if (tabCycle !== _lastTabCycle)         { _lastTabCycle = tabCycle; tabDir = 1; }
       if (tabCycleBack !== _lastTabCycleBack) { _lastTabCycleBack = tabCycleBack; tabDir = -1; }
       if (tabDir !== 0) {
-        var activeTab = document.querySelector('.pb-tab.active');
-        var currentKey = activeTab ? activeTab.dataset.pbTab : _tabOrder[0];
-        var idx = _tabOrder.indexOf(currentKey);
-        var nextIdx = (idx + tabDir + _tabOrder.length) % _tabOrder.length;
-        var nextTab = document.querySelector('.pb-tab[data-pb-tab="' + _tabOrder[nextIdx] + '"]');
-        if (nextTab) switchPbTab(nextTab);
+        var panel = document.getElementById('pitBoxPanel');
+        if (_pbHidden) {
+          // Re-show: next → first tab, prev → last tab
+          _pbHidden = false;
+          if (panel) panel.classList.remove('pb-dismissed');
+          var revealIdx = tabDir === 1 ? 0 : _tabOrder.length - 1;
+          var revealTab = document.querySelector('.pb-tab[data-pb-tab="' + _tabOrder[revealIdx] + '"]');
+          if (revealTab) switchPbTab(revealTab);
+        } else {
+          var activeTab = document.querySelector('.pb-tab.active');
+          var currentKey = activeTab ? activeTab.dataset.pbTab : _tabOrder[0];
+          var idx = _tabOrder.indexOf(currentKey);
+          // Check if cycling past an edge → dismiss
+          var atEnd   = (tabDir === 1  && idx === _tabOrder.length - 1);
+          var atStart = (tabDir === -1 && idx === 0);
+          if (atEnd || atStart) {
+            _pbHidden = true;
+            if (panel) panel.classList.add('pb-dismissed');
+          } else {
+            var nextIdx = idx + tabDir;
+            var nextTab = document.querySelector('.pb-tab[data-pb-tab="' + _tabOrder[nextIdx] + '"]');
+            if (nextTab) switchPbTab(nextTab);
+          }
+        }
       }
 
       // Element navigation / value adjustment — actions stubbed for future mapping

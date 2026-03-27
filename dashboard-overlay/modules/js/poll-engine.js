@@ -184,10 +184,8 @@
       if (cltLayer) cltLayer.style.display = '';
     }
 
-    if (_pollFrame % 2 === 0) {
-      // Update DOM histogram bars + 2D canvas trace
-      renderPedalTrace(thr, brk, _clutchHidden ? 0 : clt);
-    }
+    // Push every sample — rAF gate in webgl-helpers coalesces to display rate
+    renderPedalTrace(thr, brk, _clutchHidden ? 0 : clt);
 
     // ─── Pedal curve overlay (response curves from active profile) ───
     if (window.updatePedalCurves) window.updatePedalCurves(p);

@@ -178,16 +178,19 @@
     inset: 0;
     display: flex;
     gap: 1px;
-    align-items: flex-end;
+    align-items: stretch;
   }
   .pedal-viz-layer.throttle-layer { z-index: 1; }
   .pedal-viz-layer.brake-layer { z-index: 2; flex-direction: row-reverse; }
   .pedal-viz-layer.clutch-layer { z-index: 3; }
   .pedal-hist-bar {
     flex: 1;
+    height: 100%;
     border-radius: 1px 1px 0 0;
-    min-height: 1px;
-    transition: height 60ms linear;
+    transform-origin: bottom;
+    transform: scaleY(0.01);
+    transition: transform 60ms linear;
+    will-change: transform;
   }
   .pedal-hist-bar.throttle { background: var(--green); opacity: 0.54; }
   .pedal-hist-bar.brake { background: var(--red); opacity: 0.66; }

@@ -76,7 +76,7 @@
     if (!el) return;
     const bars = el.children;
     for (let i = 0; i < data.length && i < bars.length; i++)
-      bars[i].style.height = Math.max(1, data[i] * 100) + '%';
+      bars[i].style.transform = 'scaleY(' + Math.max(0.01, data[i]) + ')';
   }
   // Initialize empty
   renderHist('throttleHist', new Array(HIST_BARS).fill(0));
@@ -98,7 +98,27 @@
   const _ptCanvas = document.getElementById('pedalTraceCanvas');
   const _ptCtx = _ptCanvas ? _ptCanvas.getContext('2d') : null;
 
+  // ─── rAF-gated pedal rendering ───
+  // Poll engine pushes samples here; we only flush to DOM inside rAF
+  let _pedalRafId = 0;
+  let _pedalPending = false;
+  let _pendingThr = 0, _pendingBrk = 0, _pendingClt = 0;
+
   function renderPedalTrace(thr, brk, clt) {
+    // Always capture latest sample (overwrites if rAF hasn't flushed yet)
+    _pendingThr = thr;
+    _pendingBrk = brk;
+    _pendingClt = clt;
+    if (!_pedalPending) {
+      _pedalPending = true;
+      _pedalRafId = requestAnimationFrame(_flushPedalFrame);
+    }
+  }
+
+  function _flushPedalFrame() {
+    _pedalPending = false;
+    const thr = _pendingThr, brk = _pendingBrk, clt = _pendingClt;
+
     // Shift rolling histogram and add new sample
     _thrHist.shift(); _thrHist.push(thr);
     _brkHist.shift(); _brkHist.push(brk);
