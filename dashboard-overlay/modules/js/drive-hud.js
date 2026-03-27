@@ -143,17 +143,46 @@
 
       if (si === curSector) {
         cell.classList.add('dh-s-active');
+        // Calculate sector entry time — only if ALL previous splits are valid.
+        // iRacing clears splits at lap-cross in quali; without this guard the
+        // full currentLapTime leaks into the sector cell.
         var entryTime = 0;
-        for (var k = 0; k < si - 1; k++) entryTime += splits[k] || 0;
-        var elapsed = currentLapTime > entryTime ? currentLapTime - entryTime : currentLapTime;
-        var em = Math.floor(elapsed / 60);
-        var es = elapsed % 60;
-        timeEl.textContent = elapsed > 0 ? ((em > 0 ? em + ':' : '') + (em > 0 && es < 10 ? '0' : '') + es.toFixed(1)) : '—';
-        if (sDeltaEl) {
-          if (lapDelta !== 0) {
-            sDeltaEl.textContent = (lapDelta >= 0 ? '+' : '') + lapDelta.toFixed(2);
-            cell.classList.add(lapDelta < 0 ? 'dh-s-faster' : 'dh-s-slower');
-          } else { sDeltaEl.textContent = ''; }
+        var hasPrevSplits = true;
+        for (var k = 0; k < si - 1; k++) {
+          if (!splits[k] || splits[k] <= 0) { hasPrevSplits = false; break; }
+          entryTime += splits[k];
+        }
+        if (hasPrevSplits && currentLapTime > entryTime) {
+          var elapsed = currentLapTime - entryTime;
+          // Extra guard: no single sector should approach full lap length
+          if (bestLap > 0 && elapsed >= bestLap * 0.85) {
+            timeEl.textContent = '—';
+            if (sDeltaEl) sDeltaEl.textContent = '';
+          } else {
+            var em = Math.floor(elapsed / 60);
+            var es = elapsed % 60;
+            timeEl.textContent = (em > 0 ? em + ':' : '') + (em > 0 && es < 10 ? '0' : '') + es.toFixed(1);
+            if (sDeltaEl) {
+              if (lapDelta !== 0) {
+                sDeltaEl.textContent = (lapDelta >= 0 ? '+' : '') + lapDelta.toFixed(2);
+                cell.classList.add(lapDelta < 0 ? 'dh-s-faster' : 'dh-s-slower');
+              } else { sDeltaEl.textContent = ''; }
+            }
+          }
+        } else if (si === 1 && currentLapTime > 0 && currentLapTime < 120) {
+          // S1 is always valid — entry time is lap start (0)
+          var em = Math.floor(currentLapTime / 60);
+          var es = currentLapTime % 60;
+          timeEl.textContent = (em > 0 ? em + ':' : '') + (em > 0 && es < 10 ? '0' : '') + es.toFixed(1);
+          if (sDeltaEl) {
+            if (lapDelta !== 0) {
+              sDeltaEl.textContent = (lapDelta >= 0 ? '+' : '') + lapDelta.toFixed(2);
+              cell.classList.add(lapDelta < 0 ? 'dh-s-faster' : 'dh-s-slower');
+            } else { sDeltaEl.textContent = ''; }
+          }
+        } else {
+          timeEl.textContent = '—';
+          if (sDeltaEl) sDeltaEl.textContent = '';
         }
       } else if (splits[si - 1] > 0) {
         var split = splits[si - 1];
