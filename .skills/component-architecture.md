@@ -36,6 +36,27 @@ Dashboard (root)
 └── SettingsOverlay (modal with toggles, dropdowns, sliders)
 ```
 
+## DOM Class Map — Shared Names, Different Panels
+
+Several CSS classes are reused across different panels. When writing
+`querySelector`/`querySelectorAll` calls, **always scope to the parent panel**
+to avoid cross-panel collisions.
+
+| Class | Panels that use it | Scope selector |
+|-------|-------------------|----------------|
+| `.panel-label` | fuel-block, tyres-block, gaps-block, rating pages | `.gaps-block .panel-label` etc. |
+| `.panel` | Every major block | Always scope by specific sub-class |
+| `.val` | pos-meta-row, datastream rows, gap rows | `.pos-meta-row .val` etc. |
+| `.bar-inner` | fuel, tyres, iRating, controls | `.fuel-block .bar-inner` etc. |
+
+**Key DOM order in dashboard.html** (affects `querySelectorAll` index):
+1. `.fuel-block` (line ~136) — contains `.panel-label` "Fuel"
+2. `.tyres-block` (line ~148) — contains `.panel-label` "Tyres °F"
+3. `.gaps-block` (line ~303) — contains `.panel-label` "Ahead" / "Behind"
+
+**Rule**: Never use bare `.panel-label` or `.val` selectors. Always prefix with
+the parent panel class to avoid writing data into the wrong module.
+
 ## Shared Patterns for Extraction
 - `TabularNums`: font-variant-numeric: tabular-nums (used 17+ times)
 - `PanelBase`: background + border + border-radius + overflow:hidden
