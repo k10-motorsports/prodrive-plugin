@@ -184,9 +184,9 @@
           <div class="pedal-viz-layer brake-layer" id="brakeHist"></div>
           <div class="pedal-viz-layer clutch-layer" id="clutchHist"></div>
           <canvas class="pedal-trace-canvas" id="pedalTraceCanvas" width="240" height="80"></canvas>
+          <!-- Pedal curve overlay: response curves fill the histogram space -->
+          <canvas class="pedal-curve-canvas" id="pedalCurveCanvas" width="240" height="80"></canvas>
         </div>
-        <!-- Pedal curve overlay: shows response curves from active profile -->
-        <canvas class="pedal-curve-canvas" id="pedalCurveCanvas" width="80" height="80"></canvas>
         <div class="pedal-profile-label" id="pedalProfileLabel"></div>
       </div>
     </div>
@@ -1123,6 +1123,20 @@
       </div>
       <div class="settings-info-text" id="mozaInfoText">
         Moza Pithouse integration lets you save pedal curves per car and auto-load them when you switch cars.
+      </div>
+
+      <div class="settings-group-label">Debug</div>
+      <div class="moza-debug-panel" id="mozaDebugPanel">
+        <div class="moza-debug-row"><span class="moza-debug-key">Moza Detected</span><span class="moza-debug-val" id="dbgMozaDetected">—</span></div>
+        <div class="moza-debug-row"><span class="moza-debug-key">Profile Source</span><span class="moza-debug-val" id="dbgProfileSource">—</span></div>
+        <div class="moza-debug-row"><span class="moza-debug-key">Profile Name</span><span class="moza-debug-val" id="dbgProfileName">—</span></div>
+        <div class="moza-debug-row"><span class="moza-debug-key">Car</span><span class="moza-debug-val" id="dbgCarName">—</span></div>
+        <div class="moza-debug-row"><span class="moza-debug-key">Throttle Curve Pts</span><span class="moza-debug-val" id="dbgThrottlePts">—</span></div>
+        <div class="moza-debug-row"><span class="moza-debug-key">Brake Curve Pts</span><span class="moza-debug-val" id="dbgBrakePts">—</span></div>
+        <div class="moza-debug-row"><span class="moza-debug-key">Clutch Curve Pts</span><span class="moza-debug-val" id="dbgClutchPts">—</span></div>
+        <div class="moza-debug-row"><span class="moza-debug-key">Throttle Deadzone</span><span class="moza-debug-val" id="dbgThrottleDz">—</span></div>
+        <div class="moza-debug-row"><span class="moza-debug-key">Brake Deadzone</span><span class="moza-debug-val" id="dbgBrakeDz">—</span></div>
+        <div class="moza-debug-row"><span class="moza-debug-key">Raw JSON</span><span class="moza-debug-val moza-debug-json" id="dbgRawJson">—</span></div>
       </div>
     </div>
 

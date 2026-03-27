@@ -88,7 +88,9 @@
   const _brkHist = new Array(HIST_BARS).fill(0);
   const _cltHist = new Array(HIST_BARS).fill(0);
 
-  // ═══ PEDAL TRACE — smooth trailing waveforms (2D canvas) ═══
+  // ═══ PEDAL TRACE — curve-following dots + trail (2D canvas) ═══
+  // When a pedal profile is active, dots travel along the response curves.
+  // Falls back to time-series waveforms when no profile is loaded.
   const _pedalTraceLen = 120;
   const _ptThr = new Float32Array(_pedalTraceLen);
   const _ptBrk = new Float32Array(_pedalTraceLen);
@@ -98,14 +100,18 @@
   const _ptCanvas = document.getElementById('pedalTraceCanvas');
   const _ptCtx = _ptCanvas ? _ptCanvas.getContext('2d') : null;
 
+  // Trail history for curve-following dots (stores canvas positions)
+  const _trailLen = 16;
+  const _thrTrail = [];
+  const _brkTrail = [];
+  const _cltTrail = [];
+
   // ─── rAF-gated pedal rendering ───
-  // Poll engine pushes samples here; we only flush to DOM inside rAF
   let _pedalRafId = 0;
   let _pedalPending = false;
   let _pendingThr = 0, _pendingBrk = 0, _pendingClt = 0;
 
   function renderPedalTrace(thr, brk, clt) {
-    // Always capture latest sample (overwrites if rAF hasn't flushed yet)
     _pendingThr = thr;
     _pendingBrk = brk;
     _pendingClt = clt;
@@ -135,16 +141,8 @@
       labels[2].textContent = Math.round(clt * 100) + '%';
     }
 
-    // Circular buffer for trace waveform
-    _ptThr[_ptIdx] = thr;
-    _ptBrk[_ptIdx] = brk;
-    _ptClt[_ptIdx] = clt;
-    _ptIdx = (_ptIdx + 1) % _pedalTraceLen;
-    _ptCount++;
-
     if (!_ptCtx) return;
     const c = _ptCanvas;
-    // Match canvas resolution to display size
     const rect = c.getBoundingClientRect();
     if (c.width !== Math.round(rect.width) || c.height !== Math.round(rect.height)) {
       c.width = Math.round(rect.width);
@@ -154,14 +152,27 @@
     const ctx = _ptCtx;
     ctx.clearRect(0, 0, w, h);
 
+    // ── Curve-following mode: dots travel along response curves ──
+    const curvePos = window.getCurvePositions ? window.getCurvePositions(thr, brk, clt) : null;
+    if (curvePos && curvePos.length > 0) {
+      _renderCurveDots(ctx, curvePos, thr, brk, clt);
+      return;
+    }
+
+    // ── Fallback: time-series waveforms (no profile loaded) ──
+    _ptThr[_ptIdx] = thr;
+    _ptBrk[_ptIdx] = brk;
+    _ptClt[_ptIdx] = clt;
+    _ptIdx = (_ptIdx + 1) % _pedalTraceLen;
+    _ptCount++;
+
     const count = Math.min(_ptCount, _pedalTraceLen);
     if (count < 3) return;
 
-    // Draw each pedal trace as a smooth line with gradient fade
     const traces = [
-      { buf: _ptThr, color: [76, 175, 80],  label: 'thr' },   // green
-      { buf: _ptBrk, color: [244, 67, 54],   label: 'brk' },   // red
-      { buf: _ptClt, color: [66, 165, 245],   label: 'clt' },   // blue
+      { buf: _ptThr, color: [76, 175, 80] },
+      { buf: _ptBrk, color: [244, 67, 54] },
+      { buf: _ptClt, color: [66, 165, 245] },
     ];
 
     for (const tr of traces) {
@@ -173,7 +184,6 @@
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
-      // Gradient stroke: fades in from left (oldest) to right (newest)
       const grad = ctx.createLinearGradient(0, 0, w, 0);
       const [r, g, b] = tr.color;
       grad.addColorStop(0, `rgba(${r},${g},${b},0.0)`);
@@ -185,7 +195,6 @@
       ctx.lineJoin = 'round';
       ctx.stroke();
 
-      // Subtle glow at the leading edge (newest sample)
       const lastIdx = (_ptIdx - 1 + _pedalTraceLen) % _pedalTraceLen;
       const lastVal = tr.buf[lastIdx];
       if (lastVal > 0.02) {
@@ -196,6 +205,80 @@
         ctx.fillStyle = `rgba(${r},${g},${b},0.6)`;
         ctx.fill();
       }
+    }
+  }
+
+  // ── Curve-following dot renderer ──
+  // Each dot sits on the response curve at the current pedal input position.
+  // A fading trail of recent positions shows movement along the curve.
+  function _renderCurveDots(ctx, positions, thr, brk, clt) {
+    // Update trails — map pedal values to their corresponding trail arrays
+    const trailMap = [
+      { trail: _thrTrail, val: thr },
+      { trail: _brkTrail, val: brk },
+      { trail: _cltTrail, val: clt },
+    ];
+
+    // Push new positions into trail buffers
+    for (const pos of positions) {
+      let trail;
+      if (pos.rgb[0] === 76) trail = _thrTrail;        // green = throttle
+      else if (pos.rgb[0] === 244) trail = _brkTrail;   // red = brake
+      else trail = _cltTrail;                            // blue = clutch
+
+      trail.push({ x: pos.x, y: pos.y });
+      while (trail.length > _trailLen) trail.shift();
+    }
+
+    // Clear trails for pedals not in positions (below threshold)
+    if (thr <= 0.01) _thrTrail.length = 0;
+    if (brk <= 0.01) _brkTrail.length = 0;
+    if (clt <= 0.01) _cltTrail.length = 0;
+
+    // Draw trails + dots
+    const allTrails = [
+      { trail: _thrTrail, rgb: [76, 175, 80] },
+      { trail: _brkTrail, rgb: [244, 67, 54] },
+      { trail: _cltTrail, rgb: [66, 165, 245] },
+    ];
+
+    for (const { trail, rgb } of allTrails) {
+      if (trail.length < 1) continue;
+      const [r, g, b] = rgb;
+
+      // Draw fading trail line
+      if (trail.length >= 2) {
+        for (let i = 1; i < trail.length; i++) {
+          const alpha = (i / trail.length) * 0.35;
+          ctx.beginPath();
+          ctx.moveTo(trail[i - 1].x, trail[i - 1].y);
+          ctx.lineTo(trail[i].x, trail[i].y);
+          ctx.strokeStyle = `rgba(${r},${g},${b},${alpha})`;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+      }
+
+      // Draw glowing dot at current position
+      const cur = trail[trail.length - 1];
+
+      // Outer glow
+      ctx.beginPath();
+      ctx.arc(cur.x, cur.y, 6, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${r},${g},${b},0.15)`;
+      ctx.fill();
+
+      // Inner glow
+      ctx.beginPath();
+      ctx.arc(cur.x, cur.y, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${r},${g},${b},0.5)`;
+      ctx.fill();
+
+      // Core dot
+      ctx.beginPath();
+      ctx.arc(cur.x, cur.y, 2, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${r},${g},${b},0.9)`;
+      ctx.fill();
     }
   }
 
