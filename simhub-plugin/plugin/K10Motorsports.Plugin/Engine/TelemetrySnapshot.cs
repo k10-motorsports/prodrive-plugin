@@ -78,6 +78,8 @@ namespace K10Motorsports.Plugin.Engine
         public double SessionTimeRemain { get; set; }
         /// <summary>Laps remaining in session (iRacing SessionLapsRemainEx, avoids off-by-one).</summary>
         public int    SessionLapsRemaining { get; set; }
+        /// <summary>Total laps in session (iRacing SessionLapsTotal, 0 for timed races).</summary>
+        public int    SessionLapsTotal { get; set; }
 
         // ── World-space velocity (for track map dead reckoning) ──────────────
         // iRacing: VelocityX (lateral, car-local), VelocityZ (forward, car-local)

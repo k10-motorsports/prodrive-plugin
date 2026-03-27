@@ -55,6 +55,10 @@ namespace K10Motorsports.Plugin.Engine
         private static TrackPoint[] _demoOutline;
         private static string _demoSvgPath;
         private bool _demoMode = false;
+        private bool _demoUsesRealMap = false;  // true when demo loaded a bundled CSV instead of the fake circuit
+
+        /// <summary>Default track ID used when demo mode starts (matches a bundled CSV).</summary>
+        private const string DemoDefaultTrackId = "sebring international";
 
         // Min distance² between samples (world units) to avoid over-sampling
         private const double MinSampleDistSq = 4.0; // ~2m apart
@@ -71,7 +75,7 @@ namespace K10Motorsports.Plugin.Engine
         public string TrackName => _currentTrackId;
 
         /// <summary>SVG path data string for the track outline, in a 0 0 100 100 viewBox.</summary>
-        public string SvgPath => _demoMode ? DemoSvgPath : _svgPath;
+        public string SvgPath => _demoMode && !_demoUsesRealMap ? DemoSvgPath : _svgPath;
 
         /// <summary>Player X position in SVG coords (0–100).</summary>
         public double PlayerX => _playerX;
@@ -108,6 +112,9 @@ namespace K10Motorsports.Plugin.Engine
         /// </summary>
         public void OnTrackChanged(string trackId)
         {
+            // Don't let a stale track-change event nuke demo mode
+            if (_demoMode) return;
+
             _currentTrackId = trackId ?? "";
             _samples.Clear();
             _outline = new TrackPoint[0];
@@ -115,7 +122,6 @@ namespace K10Motorsports.Plugin.Engine
             _ready = false;
             _recording = false;
             _lastSampleDist = -1;
-            _demoMode = false;
             _drX = 0; _drZ = 0;
             _drLastTick = DateTime.MinValue;
             _lastYaw = double.NaN;
@@ -147,14 +153,34 @@ namespace K10Motorsports.Plugin.Engine
         }
 
         /// <summary>
-        /// Enable demo mode with a fake track outline and animated positions.
+        /// Enable demo mode. Attempts to load a real bundled track map first;
+        /// falls back to the hardcoded fictitious circuit if none is found.
         /// </summary>
         public void SetDemoMode(bool enabled)
         {
             _demoMode = enabled;
+            _demoUsesRealMap = false;
             if (enabled)
             {
-                EnsureDemoOutline();
+                // Try to load a real bundled map for the demo track
+                if (TryLoadFromBundledMaps(DemoDefaultTrackId))
+                {
+                    _demoUsesRealMap = true;
+                    _currentTrackId = DemoDefaultTrackId;
+                    SimHub.Logging.Current.Info($"[K10Motorsports] Demo mode: loaded bundled map '{DemoDefaultTrackId}'");
+                }
+                else if (TryLoadFromOwnCache(DemoDefaultTrackId))
+                {
+                    _demoUsesRealMap = true;
+                    _currentTrackId = DemoDefaultTrackId;
+                    SimHub.Logging.Current.Info($"[K10Motorsports] Demo mode: loaded cached map '{DemoDefaultTrackId}'");
+                }
+                else
+                {
+                    // No real map available — use hardcoded fallback
+                    EnsureDemoOutline();
+                    SimHub.Logging.Current.Info("[K10Motorsports] Demo mode: no bundled map found, using fallback circuit");
+                }
                 _ready = true;
             }
         }
@@ -344,11 +370,34 @@ namespace K10Motorsports.Plugin.Engine
         public void UpdateDemo(double playerTrackPct, int carCount, double elapsed)
         {
             if (!_demoMode) return;
-            EnsureDemoOutline();
 
-            var pp = InterpolateOnOutline(_demoOutline, playerTrackPct);
+            // Pick the right outline: real bundled map if loaded, else hardcoded fallback
+            TrackPoint[] outline;
+            if (_demoUsesRealMap && _outline != null && _outline.Length >= 2)
+            {
+                outline = _outline;
+            }
+            else
+            {
+                EnsureDemoOutline();
+                outline = _demoOutline;
+            }
+
+            var pp = InterpolateOnOutline(outline, playerTrackPct);
             _playerX = pp.X;
             _playerY = pp.Y;
+
+            // Compute heading from a small forward sample on the outline
+            double aheadPct = (playerTrackPct + 0.005) % 1.0;
+            var ahead = InterpolateOnOutline(outline, aheadPct);
+            double dx = ahead.X - pp.X;
+            double dy = ahead.Y - pp.Y;
+            if (dx != 0 || dy != 0)
+            {
+                // atan2 gives angle from positive X axis; convert to compass (0=north, CW positive)
+                double angleRad = Math.Atan2(dx, -dy); // -dy because SVG Y increases downward
+                PlayerHeadingDeg = angleRad * (180.0 / Math.PI);
+            }
 
             // Simulate opponents spread around the track
             _opponents.Clear();
@@ -359,7 +408,7 @@ namespace K10Motorsports.Plugin.Engine
                 double drift = Math.Sin(elapsed * 0.3 + i * 1.7) * 0.015;
                 double pos = (playerTrackPct + offset + drift) % 1.0;
                 if (pos < 0) pos += 1.0;
-                var op = InterpolateOnOutline(_demoOutline, pos);
+                var op = InterpolateOnOutline(outline, pos);
                 _opponents.Add(new OpponentPos { X = op.X, Y = op.Y, InPit = false });
             }
 
@@ -1076,20 +1125,31 @@ namespace K10Motorsports.Plugin.Engine
         {
             if (_demoOutline != null) return;
 
-            // A fictitious circuit resembling a classic European road course
-            // 48 points, normalised to 0–100 viewBox
+            // Sebring International — 80 points sampled from bundled CSV,
+            // normalised to 0–100 viewBox with 5% padding.
+            // Third value is LapDistPct from the original recording.
             double[][] raw = new double[][]
             {
-                new[]{35.0, 95.0}, new[]{25.0, 93.0}, new[]{15.0, 88.0}, new[]{8.0, 80.0},
-                new[]{5.0, 70.0},  new[]{6.0, 60.0},  new[]{10.0, 50.0}, new[]{8.0, 40.0},
-                new[]{5.0, 32.0},  new[]{8.0, 22.0},  new[]{15.0, 14.0}, new[]{25.0, 8.0},
-                new[]{35.0, 5.0},  new[]{45.0, 5.0},  new[]{52.0, 8.0},  new[]{55.0, 15.0},
-                new[]{53.0, 22.0}, new[]{48.0, 28.0},  new[]{50.0, 35.0}, new[]{56.0, 40.0},
-                new[]{65.0, 38.0}, new[]{72.0, 32.0},  new[]{78.0, 25.0}, new[]{85.0, 20.0},
-                new[]{92.0, 22.0}, new[]{95.0, 30.0},  new[]{93.0, 40.0}, new[]{88.0, 48.0},
-                new[]{82.0, 52.0}, new[]{78.0, 58.0},  new[]{80.0, 65.0}, new[]{85.0, 70.0},
-                new[]{90.0, 75.0}, new[]{92.0, 82.0},  new[]{88.0, 88.0}, new[]{80.0, 92.0},
-                new[]{70.0, 94.0}, new[]{60.0, 93.0},  new[]{52.0, 90.0}, new[]{45.0, 95.0},
+                new[]{58.9, 71.8, 0.0481}, new[]{64.0, 72.1, 0.0596}, new[]{69.0, 72.2, 0.0708}, new[]{73.7, 71.2, 0.0805},
+                new[]{76.3, 67.1, 0.0900}, new[]{77.0, 62.1, 0.1010}, new[]{76.5, 56.9, 0.1129}, new[]{75.5, 51.8, 0.1251},
+                new[]{74.8, 46.5, 0.1374}, new[]{74.9, 41.3, 0.1492}, new[]{74.0, 36.4, 0.1609}, new[]{69.7, 34.5, 0.1720},
+                new[]{65.0, 32.4, 0.1840}, new[]{60.3, 31.8, 0.1958}, new[]{57.3, 35.6, 0.2070}, new[]{55.0, 40.1, 0.2187},
+                new[]{51.3, 44.0, 0.2311}, new[]{47.3, 46.8, 0.2424}, new[]{42.4, 49.0, 0.2546}, new[]{36.8, 50.2, 0.2679},
+                new[]{30.9, 50.4, 0.2815}, new[]{24.8, 50.3, 0.2956}, new[]{18.5, 50.4, 0.3100}, new[]{12.9, 50.4, 0.3230},
+                new[]{8.0, 50.4, 0.3344},  new[]{5.1, 47.3, 0.3453},  new[]{7.4, 43.0, 0.3563},  new[]{9.9, 38.7, 0.3680},
+                new[]{13.9, 35.1, 0.3804}, new[]{18.8, 32.8, 0.3929}, new[]{23.9, 30.9, 0.4055}, new[]{28.7, 28.9, 0.4176},
+                new[]{32.5, 26.2, 0.4284}, new[]{36.0, 22.9, 0.4395}, new[]{39.4, 19.5, 0.4504}, new[]{43.1, 15.7, 0.4628},
+                new[]{47.0, 12.7, 0.4743}, new[]{50.9, 14.8, 0.4852}, new[]{54.6, 18.0, 0.4965}, new[]{59.3, 19.2, 0.5079},
+                new[]{64.5, 17.8, 0.5203}, new[]{69.0, 16.0, 0.5313}, new[]{73.9, 15.5, 0.5427}, new[]{79.1, 15.5, 0.5549},
+                new[]{82.2, 19.0, 0.5662}, new[]{82.1, 24.0, 0.5776}, new[]{81.9, 29.6, 0.5905}, new[]{81.8, 34.5, 0.6018},
+                new[]{81.6, 39.5, 0.6133}, new[]{81.3, 44.2, 0.6242}, new[]{81.6, 49.0, 0.6352}, new[]{83.4, 53.7, 0.6467},
+                new[]{86.2, 58.4, 0.6592}, new[]{90.2, 62.4, 0.6724}, new[]{93.8, 66.5, 0.6850}, new[]{94.9, 71.1, 0.6958},
+                new[]{92.4, 75.4, 0.7070}, new[]{91.2, 80.4, 0.7188}, new[]{89.6, 85.4, 0.7313}, new[]{85.3, 87.4, 0.7422},
+                new[]{80.4, 87.0, 0.7535}, new[]{75.1, 86.7, 0.7658}, new[]{70.2, 86.9, 0.7771}, new[]{64.8, 86.9, 0.7894},
+                new[]{59.1, 86.8, 0.8027}, new[]{53.1, 86.8, 0.8164}, new[]{46.9, 86.7, 0.8310}, new[]{40.8, 86.8, 0.8448},
+                new[]{35.6, 86.8, 0.8569}, new[]{30.4, 86.7, 0.8688}, new[]{25.6, 86.7, 0.8801}, new[]{20.1, 86.5, 0.8929},
+                new[]{15.3, 84.8, 0.9043}, new[]{11.4, 81.5, 0.9161}, new[]{10.1, 76.7, 0.9280}, new[]{12.3, 72.5, 0.9391},
+                new[]{17.0, 70.8, 0.9508}, new[]{22.1, 70.1, 0.9629}, new[]{27.0, 70.0, 0.9743}, new[]{32.3, 70.2, 0.9866},
             };
 
             _demoOutline = new TrackPoint[raw.Length];
@@ -1099,7 +1159,7 @@ namespace K10Motorsports.Plugin.Engine
                 {
                     X = raw[i][0],
                     Y = raw[i][1],
-                    LapDistPct = (double)i / raw.Length
+                    LapDistPct = raw[i][2]
                 };
             }
 

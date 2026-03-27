@@ -32,7 +32,6 @@ namespace K10Motorsports.Plugin.Engine.Strategy
 
         // ── Per-lap accumulator for tire temps ──────────────────────────
         private double[] _tempAccumFL = new double[0];
-        private int _tempSampleCount;
 
         // ── Validation: previous-frame wear for spike rejection ─────────
         private double[] _prevWear = new double[4];

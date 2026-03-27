@@ -140,6 +140,7 @@ namespace K10Motorsports.Plugin.Engine
         public int    Position       { get; private set; } = 4;
         public int    CurrentLap     { get; private set; } = 1;
         public double BestLapTime    { get; private set; } = 92.410;
+        public double CurrentLapTime => _trackPos * _lapTime;
         public string CarModel       { get; private set; } = "BMW M4 GT3";
 
         // Cycle through different car models in demo to exercise the logo system

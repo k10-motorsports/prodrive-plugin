@@ -1209,7 +1209,7 @@
   .map-svg { width: 92%; height: 92%; }
   .map-track {
     fill: none;
-    stroke: hsla(0,0%,100%,0.12);
+    stroke: hsla(0,0%,100%,0.35);
     stroke-width: 3;
     stroke-linecap: round;
     stroke-linejoin: round;
@@ -1240,7 +1240,6 @@
   .map-zoom-svg {
     width: 280px;
     height: 280px;
-    transition: transform 0.3s ease;
   }
   .map-zoom-label {
     position: absolute;

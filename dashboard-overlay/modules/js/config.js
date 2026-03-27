@@ -241,6 +241,7 @@ const PROP_KEYS = [
   'K10Motorsports.Plugin.TrackMap.SvgPath',
   'K10Motorsports.Plugin.TrackMap.PlayerX',
   'K10Motorsports.Plugin.TrackMap.PlayerY',
+  'K10Motorsports.Plugin.TrackMap.PlayerHeading',
   'K10Motorsports.Plugin.TrackMap.Opponents',
   'DataCorePlugin.GameData.TrackName',
   // Leaderboard

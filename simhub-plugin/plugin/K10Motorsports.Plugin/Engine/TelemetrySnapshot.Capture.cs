@@ -178,6 +178,9 @@ namespace K10Motorsports.Plugin.Engine
             s.SessionLapsRemaining = GetRaw<int>(pm, "SessionLapsRemainEx");
             if (s.SessionLapsRemaining == 0)
                 s.SessionLapsRemaining = (int)GetPluginProp<double>(pm, "DataCorePlugin.GameData.RemainingLaps");
+            s.SessionLapsTotal = GetRaw<int>(pm, "SessionLapsTotal");
+            if (s.SessionLapsTotal == 0)
+                s.SessionLapsTotal = (int)GetPluginProp<double>(pm, "DataCorePlugin.GameData.TotalLaps");
 
             // ── Sector splits (using iRacing native boundaries from session YAML) ──
             // Reset sector tracker when the track changes (prevents stale N-sector data

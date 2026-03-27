@@ -256,6 +256,7 @@ namespace K10Motorsports.Plugin
             this.AttachDelegate("Demo.Position",   () => dt.Position);
             this.AttachDelegate("Demo.CurrentLap", () => dt.CurrentLap);
             this.AttachDelegate("Demo.BestLapTime",() => dt.BestLapTime);
+            this.AttachDelegate("Demo.CurrentLapTime",() => dt.CurrentLapTime);
             this.AttachDelegate("Demo.CarModel",   () => dt.CarModel);
             this.AttachDelegate("Demo.SessionTime",   () => dt.SessionTime);
             this.AttachDelegate("Demo.LastLapTime",   () => dt.LastLapTime);
@@ -1026,16 +1027,19 @@ namespace K10Motorsports.Plugin
                     sb.Append("{\n");
 
                     // ── Game data (live telemetry from snapshot) ──
-                    Jp(sb, "DataCorePlugin.GameRunning", s.GameRunning ? 1 : 0);
-                    Jp(sb, "K10Motorsports.Plugin.GameId", Escape(s.GameName ?? ""));
+                    // Demo mode always reports as iRacing so the dashboard enables
+                    // all features (track map, iRating, incidents, etc.) without
+                    // requiring a live game connection or Discord gating.
+                    Jp(sb, "DataCorePlugin.GameRunning", (demo || s.GameRunning) ? 1 : 0);
+                    Jp(sb, "K10Motorsports.Plugin.GameId", demo ? "iRacing" : Escape(s.GameName ?? ""));
                     Jp(sb, "K10Motorsports.Plugin.SessionTypeName", Escape(s.SessionTypeName ?? ""));
                     Jp(sb, "DataCorePlugin.GameData.Gear", Escape(s.Gear ?? "N"));
                     Jp(sb, "DataCorePlugin.GameData.Rpms", s.Rpms, ic);
-                    Jp(sb, "DataCorePlugin.GameData.CarSettings_MaxRPM", 8000.0, ic); // fallback; snapshot doesn't carry maxRPM
+                    Jp(sb, "DataCorePlugin.GameData.CarSettings_MaxRPM", s.MaxRpm, ic);
                     Jp(sb, "DataCorePlugin.GameData.SpeedMph", s.SpeedKmh * 0.621371, ic);
-                    Jp(sb, "DataCorePlugin.GameData.Throttle", s.Throttle * 100, ic);
-                    Jp(sb, "DataCorePlugin.GameData.Brake", s.Brake * 100, ic);
-                    Jp(sb, "DataCorePlugin.GameData.Clutch", 0.0, ic); // not in snapshot currently
+                    Jp(sb, "DataCorePlugin.GameData.Throttle", s.Throttle, ic);
+                    Jp(sb, "DataCorePlugin.GameData.Brake", s.Brake, ic);
+                    Jp(sb, "DataCorePlugin.GameData.Clutch", s.Clutch, ic);
                     Jp(sb, "DataCorePlugin.GameData.Fuel", s.FuelLevel, ic);
                     double fuelPct = Math.Max(0.01, Math.Min(1.0, s.FuelPercent));
                     Jp(sb, "DataCorePlugin.GameData.MaxFuel", s.FuelLevel > 0 ? s.FuelLevel / fuelPct : 0, ic);
@@ -1099,6 +1103,7 @@ namespace K10Motorsports.Plugin
                     Jp(sb, "DataCorePlugin.GameData.Position", s.Position);
                     Jp(sb, "DataCorePlugin.GameData.CurrentLap", s.CurrentLap);
                     Jp(sb, "DataCorePlugin.GameData.BestLapTime", s.LapBestTime, ic);
+                    Jp(sb, "DataCorePlugin.GameData.CurrentLapTime", s.LapCurrentTime, ic);
                     Jp(sb, "DataCorePlugin.GameData.LastLapTime", s.LapLastTime, ic);
                     // Estimate session elapsed: current lap time + completed laps × average lap
                     double avgLap = s.LapBestTime > 0 ? s.LapBestTime : (s.LapLastTime > 0 ? s.LapLastTime : 90);
@@ -1106,7 +1111,7 @@ namespace K10Motorsports.Plugin
                     Jp(sb, "DataCorePlugin.GameData.SessionTimeSpan", sessionElapsed, ic);
                     Jp(sb, "DataCorePlugin.GameData.RemainingTime", s.SessionTimeRemain, ic);
                     Jp(sb, "K10Motorsports.Plugin.DS.SessionLapsRemaining", s.SessionLapsRemaining);
-                    Jp(sb, "DataCorePlugin.GameData.TotalLaps", 0);  // populated from game data when available
+                    Jp(sb, "DataCorePlugin.GameData.TotalLaps", s.SessionLapsTotal);
                     Jp(sb, "DataCorePlugin.GameData.CarModel", Escape(s.CarModel ?? ""));
                     Jp(sb, "IRacingExtraProperties.iRacing_DriverInfo_IRating", s.IRating);
                     Jp(sb, "IRacingExtraProperties.iRacing_DriverInfo_SafetyRating", s.SafetyRating, ic);
@@ -1274,6 +1279,7 @@ namespace K10Motorsports.Plugin
                     Jp(sb, "K10Motorsports.Plugin.Demo.Position", dt.Position);
                     Jp(sb, "K10Motorsports.Plugin.Demo.CurrentLap", dt.CurrentLap);
                     Jp(sb, "K10Motorsports.Plugin.Demo.BestLapTime", dt.BestLapTime, ic);
+                    Jp(sb, "K10Motorsports.Plugin.Demo.CurrentLapTime", dt.CurrentLapTime, ic);
                     Jp(sb, "K10Motorsports.Plugin.Demo.CarModel", Escape(dt.CarModel ?? ""));
                     Jp(sb, "K10Motorsports.Plugin.Demo.SessionTime", dt.SessionTime, ic);
                     Jp(sb, "K10Motorsports.Plugin.Demo.LastLapTime", dt.LastLapTime, ic);

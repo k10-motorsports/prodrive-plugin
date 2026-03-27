@@ -213,19 +213,25 @@
         <div class="map-zoom-label">Full</div>
       </div>
       <div class="panel map-zoom-panel">
-        <svg class="map-zoom-svg" id="zoomMapSvg" viewBox="0 0 100 100">
-          <path class="map-track" id="zoomMapTrack" d="" style="stroke-width:1.5;" />
-          <g id="zoomMapSF" class="map-sf" style="display:none;">
-            <line x1="0" y1="-2" x2="0" y2="2" stroke="#fff" stroke-width="0.6" stroke-linecap="round"/>
-            <rect x="-2.5" y="-1.25" width="2.5" height="1.25" fill="#fff" opacity="0.9"/>
-            <rect x="0" y="-1.25" width="2.5" height="1.25" fill="#111" stroke="#fff" stroke-width="0.15"/>
-            <rect x="-2.5" y="0" width="2.5" height="1.25" fill="#111" stroke="#fff" stroke-width="0.15"/>
-            <rect x="0" y="0" width="2.5" height="1.25" fill="#fff" opacity="0.9"/>
+        <svg class="map-zoom-svg" id="zoomMapSvg" viewBox="0 0 100 100" overflow="visible">
+          <!-- Rotate group: track + opponents rotate around the player so
+               driving direction always points up. Player dot is OUTSIDE
+               this group so it stays upright and visually centered. -->
+          <g id="zoomMapRotateGroup">
+            <path class="map-track" id="zoomMapTrack" d="" style="stroke-width:1.5;" />
+            <g id="zoomMapSF" class="map-sf" style="display:none;">
+              <line x1="0" y1="-2" x2="0" y2="2" stroke="#fff" stroke-width="0.6" stroke-linecap="round"/>
+              <rect x="-2.5" y="-1.25" width="2.5" height="1.25" fill="#fff" opacity="0.9"/>
+              <rect x="0" y="-1.25" width="2.5" height="1.25" fill="#111" stroke="#fff" stroke-width="0.15"/>
+              <rect x="-2.5" y="0" width="2.5" height="1.25" fill="#111" stroke="#fff" stroke-width="0.15"/>
+              <rect x="0" y="0" width="2.5" height="1.25" fill="#fff" opacity="0.9"/>
+            </g>
+            <g id="zoomMapOpponents"></g>
           </g>
-          <g id="zoomMapOpponents"></g>
+          <!-- Player dot outside rotate group — always upright at center -->
           <circle class="map-player" id="zoomMapPlayer" cx="50" cy="50" r="2" />
         </svg>
-        <div class="map-zoom-label">Local</div>
+        <div class="map-zoom-label" id="zoomMapLabel">Local</div>
       </div>
     </div>
 

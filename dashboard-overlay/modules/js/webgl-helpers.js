@@ -680,33 +680,45 @@
       zoomPlayer.setAttribute('cy', sy.toFixed(1));
     }
 
-    // Update zoom map viewBox — speed-dependent zoom radius
-    // Slow/stopped → very tight zoom (4), fast → moderate zoom (14)
-    // Locked to driving direction via CSS rotation on the SVG container.
+    // Update zoom map — player always centered, track rotates so
+    // driving direction always points UP. Zoom out when slow to
+    // reveal nearby opponents; zoom in when fast for detail.
     const zoomSvg = document.getElementById('zoomMapSvg');
     if (zoomSvg) {
       const spd = typeof speedMph === 'number' ? speedMph : 0;
-      // Map speed 0–150mph to zoom radius 4–14 (much tighter than before)
-      const targetZR = 4 + Math.min(spd / 150, 1.0) * 10;
-      // Fast LERP (0.25) for responsive zoom changes
-      _mapZoomRadius += (targetZR - _mapZoomRadius) * 0.25;
+      // Zoom: slow → wider view (radius 24) to see nearby/oncoming cars,
+      //        fast → still fairly wide (radius 16) so you see oncoming traffic
+      const targetZR = 24 - Math.min(spd / 150, 1.0) * 8;
+      _mapZoomRadius += (targetZR - _mapZoomRadius) * 0.15;
       const zr = _mapZoomRadius;
-      const vx = Math.max(0, Math.min(100 - zr * 2, sx - zr));
-      const vy = Math.max(0, Math.min(100 - zr * 2, sy - zr));
+
+      // ViewBox always centered on player — NO clamping, overflow="visible"
+      // handles content outside the 0-100 range. Player is always at center.
+      const vx = sx - zr;
+      const vy = sy - zr;
       zoomSvg.setAttribute('viewBox', vx.toFixed(1) + ' ' + vy.toFixed(1) + ' ' + (zr * 2).toFixed(1) + ' ' + (zr * 2).toFixed(1));
 
-      // Rotate local map to lock driving direction up
-      // iRacing yaw: 0 = north, positive = clockwise → CSS rotation = -heading
-      if (typeof headingDeg === 'number' && headingDeg !== 0) {
-        // Smooth heading to prevent jitter (LERP with wrapping for 360° boundary)
+      // Clear any legacy CSS rotation on the SVG element
+      zoomSvg.style.transform = '';
+      zoomSvg.style.transformOrigin = '';
+
+      // Rotate the inner group around the player's SVG coordinate so
+      // the driving direction always points up. Player dot is outside
+      // the group so it stays upright and visually centered.
+      if (typeof headingDeg === 'number') {
         let diff = headingDeg - _mapSmoothedHeading;
         if (diff > 180) diff -= 360;
         if (diff < -180) diff += 360;
-        _mapSmoothedHeading += diff * 0.3;
-        // Normalize to 0-360
+        // Dead-zone: ignore sub-degree jitter
+        if (Math.abs(diff) < 0.5) diff = 0;
+        _mapSmoothedHeading += diff * 0.15;
         _mapSmoothedHeading = ((_mapSmoothedHeading % 360) + 360) % 360;
-        zoomSvg.style.transform = 'rotate(' + (-_mapSmoothedHeading).toFixed(1) + 'deg)';
-        zoomSvg.style.transformOrigin = sx.toFixed(1) + '% ' + sy.toFixed(1) + '%';
+
+        const rotGrp = document.getElementById('zoomMapRotateGroup');
+        if (rotGrp) {
+          rotGrp.setAttribute('transform',
+            'rotate(' + (-_mapSmoothedHeading).toFixed(2) + ',' + sx.toFixed(1) + ',' + sy.toFixed(1) + ')');
+        }
       }
     }
 
