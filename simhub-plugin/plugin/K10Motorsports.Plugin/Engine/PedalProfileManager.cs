@@ -103,8 +103,12 @@ namespace K10Motorsports.Plugin.Engine
                 _global = _profiles.Values.First(p => string.IsNullOrEmpty(p.CarModel));
             }
 
-            // Detect Moza Pithouse
+            // Detect Moza Pithouse and auto-import if found
             DetectMoza();
+            if (MozaDetected)
+            {
+                AutoImportFromMoza();
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -274,6 +278,59 @@ namespace K10Motorsports.Plugin.Engine
             {
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Auto-import from Moza on startup. Imports if no Moza-sourced profile
+        /// exists yet, or refreshes the existing one if the Pithouse config file
+        /// is newer than the last import.
+        /// </summary>
+        private void AutoImportFromMoza()
+        {
+            try
+            {
+                var existing = _profiles.Values.FirstOrDefault(p => p.Source == "moza");
+
+                // Check if Pithouse config has been updated since last import
+                var configFile = GetNewestMozaConfigFile();
+                if (configFile == null) return;
+
+                var configModified = File.GetLastWriteTimeUtc(configFile);
+                if (existing != null && existing.LastModified >= configModified)
+                    return; // already up to date
+
+                var imported = ImportFromMoza();
+                if (imported == null) return;
+
+                // If updating an existing Moza profile, keep the same ID
+                if (existing != null)
+                    imported.Id = existing.Id;
+
+                SaveProfile(imported);
+                _profiles[imported.Id] = imported;
+
+                // Make it active if no other profile is explicitly active
+                if (_active == null || _active == _global || (_active.Source == "moza"))
+                    _active = imported;
+            }
+            catch { /* silent — don't break startup */ }
+        }
+
+        /// <summary>
+        /// Returns the newest Moza Pithouse config file, or null.
+        /// </summary>
+        private string GetNewestMozaConfigFile()
+        {
+            if (!MozaDetected || string.IsNullOrEmpty(MozaPithousePath)) return null;
+
+            var configDir = Path.Combine(MozaPithousePath, "DeviceConfig");
+            if (!Directory.Exists(configDir))
+                configDir = Path.Combine(MozaPithousePath, "profiles");
+            if (!Directory.Exists(configDir)) return null;
+
+            return Directory.GetFiles(configDir, "*.json")
+                .OrderByDescending(f => File.GetLastWriteTimeUtc(f))
+                .FirstOrDefault();
         }
 
         /// <summary>
