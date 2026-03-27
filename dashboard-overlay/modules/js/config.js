@@ -371,6 +371,8 @@ let _strategyWasVisible = false;
 let _tcSeen = false;
 let _absSeen = false;
 let _carAdj = null;  // result from getCarAdjustability() for current car
+let _tcFlashFrames = 0;   // TC active glow countdown (frames)
+let _absFlashFrames = 0;  // ABS active glow countdown (frames)
 
 // Grid / Formation
 let _gridActive = false;

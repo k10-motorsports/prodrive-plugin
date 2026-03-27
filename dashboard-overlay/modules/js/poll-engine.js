@@ -259,7 +259,8 @@
     const bb = _demo ? +v('K10Motorsports.Plugin.Demo.BrakeBias') : (+v('DataCorePlugin.GameRawData.Telemetry.dcBrakeBias') || 0);
     const tc = _demo ? +v('K10Motorsports.Plugin.Demo.TC') : p['DataCorePlugin.GameRawData.Telemetry.dcTractionControl'];
     const abs = _demo ? +v('K10Motorsports.Plugin.Demo.ABS') : p['DataCorePlugin.GameRawData.Telemetry.dcABS'];
-    const absActive = +v(dsPre + 'AbsActive') || 0; // Track ABS activation even if not adjustable
+    const absActive = +v(dsPre + 'AbsActive') || 0;
+    const tcActive  = +v(dsPre + 'TcActive')  || 0;
     const carModel = ds('DataCorePlugin.GameData.CarModel', 'Demo.CarModel');
     if (carModel !== _lastCarModel) {
       _tcSeen = false; _absSeen = false;
@@ -276,9 +277,9 @@
       if (abs != null && +abs >= 0) _absSeen = true;
     }
     // If car is in the no-adjust list, hide the module entirely for absent systems
-    // Otherwise: show if we've seen the value (even 0 → "FIXED")
-    // For cars with absNoAdjust (ABS exists but not adjustable), show if ABS is active OR we've seen dcABS
-    const tcOk = _demo || (_carAdj && _carAdj.noTC ? false : _tcSeen);
+    // tcNoAdjust / absNoAdjust: electronic exists but isn't driver-adjustable → show "Fixed" + flash when active
+    // Adjustable car with value 0 → driver turned it off → show "Off"
+    const tcOk = _demo || (_carAdj && _carAdj.noTC ? false : (_tcSeen || (_carAdj && _carAdj.tcNoAdjust && tcActive > 0)));
     const absOk = _demo || (_carAdj && _carAdj.noABS ? false : (_absSeen || (_carAdj && _carAdj.absNoAdjust && absActive > 0)));
     const bbOk = _demo || (_carAdj && _carAdj.noBB ? false : (bb > 0));
     setCtrlVisibility(bbOk, tcOk, absOk);
@@ -289,9 +290,14 @@
       const el = document.querySelector('#ctrlTC .ctrl-value');
       const tcBox = document.getElementById('ctrlTC');
       if (el) {
-        if (+tc === 0) {
-          el.textContent = 'Off';
+        if (_carAdj && _carAdj.tcNoAdjust) {
+          // TC exists but not adjustable — show "Fixed", flash when active
+          el.textContent = 'Fixed';
           el.classList.add('ctrl-value-fixed');
+          tcBox.style.setProperty('--ctrl-pct', tcActive > 0 ? '100%' : '0%');
+        } else if (+tc === 0) {
+          el.textContent = 'Off';
+          el.classList.remove('ctrl-value-fixed');
           tcBox.style.setProperty('--ctrl-pct', '0%');
         } else {
           el.textContent = Math.round(+tc);
@@ -304,20 +310,14 @@
       const el = document.querySelector('#ctrlABS .ctrl-value');
       const absBox = document.getElementById('ctrlABS');
       if (el) {
-        // For cars with absNoAdjust (ABS exists but not adjustable), show bar state only
         if (_carAdj && _carAdj.absNoAdjust) {
-          if (absActive > 0) {
-            el.textContent = '';
-            el.classList.remove('ctrl-value-fixed');
-            absBox.style.setProperty('--ctrl-pct', '100%');
-          } else {
-            el.textContent = '';
-            el.classList.add('ctrl-value-fixed');
-            absBox.style.setProperty('--ctrl-pct', '0%');
-          }
+          // ABS exists but not adjustable — show "Fixed", flash when active
+          el.textContent = 'Fixed';
+          el.classList.add('ctrl-value-fixed');
+          absBox.style.setProperty('--ctrl-pct', absActive > 0 ? '100%' : '0%');
         } else if (+abs === 0) {
           el.textContent = 'Off';
-          el.classList.add('ctrl-value-fixed');
+          el.classList.remove('ctrl-value-fixed');
           absBox.style.setProperty('--ctrl-pct', '0%');
         } else {
           el.textContent = Math.round(+abs);
@@ -326,6 +326,13 @@
         }
       }
     }
+    // TC / ABS active flash — runs on main dashboard, not gated behind datastream visibility
+    const tcBoxEl = document.getElementById('ctrlTC');
+    const absBoxEl = document.getElementById('ctrlABS');
+    if (tcActive > 0) _tcFlashFrames = 8;
+    if (absActive > 0) _absFlashFrames = 8;
+    if (tcBoxEl) { tcBoxEl.classList.toggle('ctrl-active', _tcFlashFrames > 0); if (_tcFlashFrames > 0) _tcFlashFrames--; }
+    if (absBoxEl) { absBoxEl.classList.toggle('ctrl-active', _absFlashFrames > 0); if (_absFlashFrames > 0) _absFlashFrames--; }
 
     // Flash control bars on value change + announce via spotter
     if (_prevBB >= 0 && bb > 0 && Math.abs(bb - _prevBB) > 0.05) {
