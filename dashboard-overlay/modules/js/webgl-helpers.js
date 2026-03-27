@@ -503,7 +503,8 @@
     return 'danger';                       // > 132°C
   }
 
-  // Update a single tyre cell: temp value + color class + wear bar
+  // Update a single tyre cell: temp value + color class + wear bar.
+  // wearPct is REMAINING life: 100 = brand new, 0 = destroyed.
   function updateTyreCell(index, tempF, wearPct) {
     const cells = document.querySelectorAll('.tyre-cell');
     const wearFills = document.querySelectorAll('.tyre-wear-fill');
@@ -513,7 +514,7 @@
     cell.className = 'tyre-cell ' + getTyreTempClass(tempF);
     if (index < wearFills.length) {
       wearFills[index].style.width = Math.max(0, Math.min(100, wearPct)) + '%';
-      // Color wear bar: green > 50%, amber > 25%, red below
+      // Color by remaining life: > 50% green, > 25% amber, below = red
       if (wearPct > 50) wearFills[index].style.background = 'var(--green)';
       else if (wearPct > 25) wearFills[index].style.background = 'var(--amber)';
       else wearFills[index].style.background = 'var(--red)';
