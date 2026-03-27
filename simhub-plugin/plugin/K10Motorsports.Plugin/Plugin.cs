@@ -159,7 +159,7 @@ namespace K10Motorsports.Plugin
                 "SimHub", "PluginsData", "K10Motorsports");
             _pedalProfiles = new PedalProfileManager(pedalDataDir);
             _pedalProfiles.Load();
-            SimHub.Logging.Current.Info($"[K10Motorsports] Pedal profiles loaded — Moza detected: {_pedalProfiles.MozaDetected}");
+            SimHub.Logging.Current.Info($"[K10Motorsports] Pedal profiles loaded — Moza detected: {_pedalProfiles.MozaDetected}, active: {_pedalProfiles.ActiveProfile?.Name ?? "(none)"}, profiles: {_pedalProfiles.Profiles.Count}");
 
             // Initialise track map provider
             // The DLL is output directly into the SimHub root folder (not a Plugins\ subfolder),
