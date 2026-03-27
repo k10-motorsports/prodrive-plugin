@@ -241,16 +241,18 @@
     }
 
     // ─── Tyres ───
+    // Backend sends wear as 0=new, 1=gone. Convert to remaining % for display
+    // (100 = full life, 0 = destroyed) so bar width + color thresholds are correct.
     if (_demo) {
-      updateTyreCell(0, +v('K10Motorsports.Plugin.Demo.TyreTempFL'), (+v('K10Motorsports.Plugin.Demo.TyreWearFL') || 1) * 100);
-      updateTyreCell(1, +v('K10Motorsports.Plugin.Demo.TyreTempFR'), (+v('K10Motorsports.Plugin.Demo.TyreWearFR') || 1) * 100);
-      updateTyreCell(2, +v('K10Motorsports.Plugin.Demo.TyreTempRL'), (+v('K10Motorsports.Plugin.Demo.TyreWearRL') || 1) * 100);
-      updateTyreCell(3, +v('K10Motorsports.Plugin.Demo.TyreTempRR'), (+v('K10Motorsports.Plugin.Demo.TyreWearRR') || 1) * 100);
+      updateTyreCell(0, +v('K10Motorsports.Plugin.Demo.TyreTempFL'), (1 - (+v('K10Motorsports.Plugin.Demo.TyreWearFL') || 0)) * 100);
+      updateTyreCell(1, +v('K10Motorsports.Plugin.Demo.TyreTempFR'), (1 - (+v('K10Motorsports.Plugin.Demo.TyreWearFR') || 0)) * 100);
+      updateTyreCell(2, +v('K10Motorsports.Plugin.Demo.TyreTempRL'), (1 - (+v('K10Motorsports.Plugin.Demo.TyreWearRL') || 0)) * 100);
+      updateTyreCell(3, +v('K10Motorsports.Plugin.Demo.TyreTempRR'), (1 - (+v('K10Motorsports.Plugin.Demo.TyreWearRR') || 0)) * 100);
     } else {
-      updateTyreCell(0, +v('DataCorePlugin.GameData.TyreTempFrontLeft'), (p['DataCorePlugin.GameData.TyreWearFrontLeft'] != null ? +p['DataCorePlugin.GameData.TyreWearFrontLeft'] * 100 : 100));
-      updateTyreCell(1, +v('DataCorePlugin.GameData.TyreTempFrontRight'), (p['DataCorePlugin.GameData.TyreWearFrontRight'] != null ? +p['DataCorePlugin.GameData.TyreWearFrontRight'] * 100 : 100));
-      updateTyreCell(2, +v('DataCorePlugin.GameData.TyreTempRearLeft'), (p['DataCorePlugin.GameData.TyreWearRearLeft'] != null ? +p['DataCorePlugin.GameData.TyreWearRearLeft'] * 100 : 100));
-      updateTyreCell(3, +v('DataCorePlugin.GameData.TyreTempRearRight'), (p['DataCorePlugin.GameData.TyreWearRearRight'] != null ? +p['DataCorePlugin.GameData.TyreWearRearRight'] * 100 : 100));
+      updateTyreCell(0, +v('DataCorePlugin.GameData.TyreTempFrontLeft'), (p['DataCorePlugin.GameData.TyreWearFrontLeft'] != null ? (1 - +p['DataCorePlugin.GameData.TyreWearFrontLeft']) * 100 : 100));
+      updateTyreCell(1, +v('DataCorePlugin.GameData.TyreTempFrontRight'), (p['DataCorePlugin.GameData.TyreWearFrontRight'] != null ? (1 - +p['DataCorePlugin.GameData.TyreWearFrontRight']) * 100 : 100));
+      updateTyreCell(2, +v('DataCorePlugin.GameData.TyreTempRearLeft'), (p['DataCorePlugin.GameData.TyreWearRearLeft'] != null ? (1 - +p['DataCorePlugin.GameData.TyreWearRearLeft']) * 100 : 100));
+      updateTyreCell(3, +v('DataCorePlugin.GameData.TyreTempRearRight'), (p['DataCorePlugin.GameData.TyreWearRearRight'] != null ? (1 - +p['DataCorePlugin.GameData.TyreWearRearRight']) * 100 : 100));
     }
 
     // ─── Controls (BB / TC / ABS) ───
@@ -971,8 +973,8 @@
           ? [+v('K10Motorsports.Plugin.Demo.TyreTempFL'), +v('K10Motorsports.Plugin.Demo.TyreTempFR'), +v('K10Motorsports.Plugin.Demo.TyreTempRL'), +v('K10Motorsports.Plugin.Demo.TyreTempRR')]
           : [+v('DataCorePlugin.GameData.TyreTempFrontLeft'), +v('DataCorePlugin.GameData.TyreTempFrontRight'), +v('DataCorePlugin.GameData.TyreTempRearLeft'), +v('DataCorePlugin.GameData.TyreTempRearRight')],
         tyreWears: _demo
-          ? [(+v('K10Motorsports.Plugin.Demo.TyreWearFL') || 1) * 100, (+v('K10Motorsports.Plugin.Demo.TyreWearFR') || 1) * 100, (+v('K10Motorsports.Plugin.Demo.TyreWearRL') || 1) * 100, (+v('K10Motorsports.Plugin.Demo.TyreWearRR') || 1) * 100]
-          : [(p['DataCorePlugin.GameData.TyreWearFrontLeft'] != null ? +p['DataCorePlugin.GameData.TyreWearFrontLeft'] * 100 : 100), (p['DataCorePlugin.GameData.TyreWearFrontRight'] != null ? +p['DataCorePlugin.GameData.TyreWearFrontRight'] * 100 : 100), (p['DataCorePlugin.GameData.TyreWearRearLeft'] != null ? +p['DataCorePlugin.GameData.TyreWearRearLeft'] * 100 : 100), (p['DataCorePlugin.GameData.TyreWearRearRight'] != null ? +p['DataCorePlugin.GameData.TyreWearRearRight'] * 100 : 100)]
+          ? [(1 - (+v('K10Motorsports.Plugin.Demo.TyreWearFL') || 0)) * 100, (1 - (+v('K10Motorsports.Plugin.Demo.TyreWearFR') || 0)) * 100, (1 - (+v('K10Motorsports.Plugin.Demo.TyreWearRL') || 0)) * 100, (1 - (+v('K10Motorsports.Plugin.Demo.TyreWearRR') || 0)) * 100]
+          : [(p['DataCorePlugin.GameData.TyreWearFrontLeft'] != null ? (1 - +p['DataCorePlugin.GameData.TyreWearFrontLeft']) * 100 : 100), (p['DataCorePlugin.GameData.TyreWearFrontRight'] != null ? (1 - +p['DataCorePlugin.GameData.TyreWearFrontRight']) * 100 : 100), (p['DataCorePlugin.GameData.TyreWearRearLeft'] != null ? (1 - +p['DataCorePlugin.GameData.TyreWearRearLeft']) * 100 : 100), (p['DataCorePlugin.GameData.TyreWearRearRight'] != null ? (1 - +p['DataCorePlugin.GameData.TyreWearRearRight']) * 100 : 100)]
       });
     }
 
