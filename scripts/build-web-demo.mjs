@@ -288,6 +288,42 @@ ${dashboardHTML}
 ${allJS}
 </script>
 
+<script>
+// ─── Zoom-to-fit: scale dashboard to fill iframe viewport ───
+// Measures .dashboard's natural width, applies CSS zoom so it
+// fills window.innerWidth, then tells the parent the final height.
+(function() {
+  function applyZoom() {
+    var dash = document.querySelector('.dashboard');
+    if (!dash) return;
+    // Natural width of the dashboard at zoom=1
+    document.body.style.zoom = 1;
+    var nw = dash.scrollWidth;
+    if (nw < 100) return; // not laid out yet
+    var z = window.innerWidth / nw;
+    document.body.style.zoom = z;
+    // Tell parent the zoomed height so it can size the iframe container
+    var h = document.documentElement.scrollHeight * z;
+    window.parent.postMessage({ type: 'k10-resize', height: h }, '*');
+  }
+  // Run after layout settles, then on every resize
+  window.addEventListener('resize', applyZoom);
+  // Initial: wait for fonts + layout
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function() { setTimeout(applyZoom, 50); });
+  } else {
+    setTimeout(applyZoom, 200);
+  }
+  // Re-run periodically for the first 2s in case layout shifts
+  var t = 0;
+  var iv = setInterval(function() {
+    applyZoom();
+    t += 200;
+    if (t >= 2000) clearInterval(iv);
+  }, 200);
+})();
+</script>
+
 </body>
 </html>`;
 

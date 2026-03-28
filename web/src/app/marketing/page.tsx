@@ -47,10 +47,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Live dashboard demo — real HUD panels fed by mock telemetry API */}
-      <section className="px-6 pt-4 pb-12 max-w-5xl mx-auto w-full">
-        <DashboardEmbed />
-      </section>
+      {/* Live dashboard demo — full bleed, no margins */}
+      <DashboardEmbed />
 
       {/* Features grid */}
       <section id="features" className="px-6 py-20 max-w-6xl mx-auto w-full">
