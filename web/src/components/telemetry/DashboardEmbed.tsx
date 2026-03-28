@@ -1,25 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTelemetry } from './TelemetryProvider'
 
-// ── Ambient light presets ────────────────────────────────────────
-
-const AMBIENT_PRESETS = {
-  off:        { mode: 0, r: 0,    g: 0,    b: 0,    lum: 0    },
-  matte:      { mode: 1, r: 0.35, g: 0.15, b: 0.08, lum: 0.22 },
-  reflective: { mode: 2, r: 0.45, g: 0.18, b: 0.10, lum: 0.30 },
-} as const
-
-type AmbientMode = keyof typeof AMBIENT_PRESETS
-
-// Color cycling speed (radians per second) — fast enough to notice changes
-const COLOR_CYCLE_SPEED = 0.8
-
-// The dashboard is designed for a 1920px-wide viewport. We render the
-// iframe at this native width and scale it down to fit the container.
-const NATIVE_W = 1920
-const NATIVE_H = 280   // ~200px dash-h + timer-row + gap
+// The dashboard content is ~1200px wide at native size. We render the
+// iframe at this width and scale it to fit whatever container we're in.
+const NATIVE_W = 1200
+const NATIVE_H = 260
 
 /**
  * Embeds the real dashboard HUD in an iframe, feeding it telemetry
@@ -30,13 +17,7 @@ export function DashboardEmbed() {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const { data, status } = useTelemetry()
-  const [ambientMode, setAmbientMode] = useState<AmbientMode>('off')
   const [scale, setScale] = useState(1)
-  const ambientRef = useRef<AmbientMode>('off')
-  const animRef = useRef<number>(0)
-
-  // Keep ref in sync for RAF loop
-  ambientRef.current = ambientMode
 
   // ── Responsive scaling: observe container width ──
   useEffect(() => {
@@ -59,65 +40,13 @@ export function DashboardEmbed() {
     )
   }, [data])
 
-  // ── Ambient light color cycling loop ──
-  const tickAmbient = useCallback(() => {
-    const iframe = iframeRef.current
-    if (iframe?.contentWindow) {
-      const preset = AMBIENT_PRESETS[ambientRef.current]
-      if (preset.mode > 0) {
-        // Slowly cycle hue for a living-room demo feel
-        const t = Date.now() / 1000
-        const hueShift = Math.sin(t * COLOR_CYCLE_SPEED) * 0.5 + 0.5
-        const r = preset.r + Math.sin(t * COLOR_CYCLE_SPEED) * 0.12
-        const g = preset.g + Math.sin(t * COLOR_CYCLE_SPEED + 2.1) * 0.08
-        const b = preset.b + Math.sin(t * COLOR_CYCLE_SPEED + 4.2) * 0.06
-        iframe.contentWindow.postMessage({
-          type: 'k10-ambient',
-          mode: preset.mode,
-          r: Math.max(0, Math.min(1, r)),
-          g: Math.max(0, Math.min(1, g)),
-          b: Math.max(0, Math.min(1, b)),
-          lum: preset.lum + hueShift * 0.05,
-        }, '*')
-      } else {
-        iframe.contentWindow.postMessage({
-          type: 'k10-ambient',
-          mode: 0, r: 0, g: 0, b: 0, lum: 0,
-        }, '*')
-      }
-    }
-    animRef.current = requestAnimationFrame(tickAmbient)
-  }, [])
-
-  useEffect(() => {
-    animRef.current = requestAnimationFrame(tickAmbient)
-    return () => cancelAnimationFrame(animRef.current)
-  }, [tickAmbient])
-
   return (
     <div className="flex flex-col gap-3">
-      {/* Ambient mode selector */}
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
-          Live Dashboard Demo
-        </span>
-        <div className="flex items-center gap-2">
-          <span className="text-[9px] uppercase tracking-wider text-[var(--text-muted)]">
-            Ambient
-          </span>
-          <select
-            value={ambientMode}
-            onChange={(e) => setAmbientMode(e.target.value as AmbientMode)}
-            className="text-[10px] bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded px-2 py-1 text-[var(--text-secondary)] font-mono cursor-pointer"
-          >
-            <option value="off">Off</option>
-            <option value="matte">Matte</option>
-            <option value="reflective">Reflective</option>
-          </select>
-        </div>
-      </div>
+      <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+        Live Dashboard Demo
+      </span>
 
-      {/* Dashboard iframe — rendered at native 1920px, scaled down to fit */}
+      {/* Dashboard iframe — rendered at native size, scaled to fit container */}
       <div
         ref={containerRef}
         className="relative rounded-xl overflow-hidden border border-[var(--border-subtle)]"

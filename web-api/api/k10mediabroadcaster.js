@@ -40,7 +40,7 @@ const DRIVERS = [
   { name: 'M. Verstappen', ir: 5200, car: 'Ferrari 296 GT3',  baseGap: -8.2,  jitter: 1.5 },
   { name: 'L. Hamilton',   ir: 4800, car: 'Mercedes-AMG GT3',  baseGap: -4.1,  jitter: 1.2 },
   { name: 'C. Leclerc',    ir: 4500, car: 'Porsche 911 GT3 R', baseGap: -1.8,  jitter: 0.8 },
-  { name: 'K. Alternate',  ir: 2850, car: 'BMW M4 GT3',        baseGap:  0,    jitter: 0,   isPlayer: true },
+  { name: 'K. Alternate',  ir: 2850, car: 'McLaren 720S GT3',   baseGap:  0,    jitter: 0,   isPlayer: true },
   { name: 'L. Norris',     ir: 3900, car: 'McLaren 720S GT3',  baseGap:  2.3,  jitter: 1.0 },
   { name: 'O. Piastri',    ir: 3200, car: 'Audi R8 LMS GT3',   baseGap:  5.6,  jitter: 1.8 },
   { name: 'G. Russell',    ir: 2900, car: 'Lamborghini GT3',   baseGap:  9.4,  jitter: 2.2 },
@@ -148,7 +148,7 @@ const COMMENTARY_SCHEDULE = [
     start: 150, end: 163,
     topicId: 'prerace_car', category: 'game_feel',
     title: 'Car Profile',
-    text: 'The BMW M4 GT3 brings serious straight-line speed to Sebring\'s long back straight. Its inline-six turbo loves the high-speed sections, but the heavy front end demands patience through the tight Turn 1-2 complex.',
+    text: 'The McLaren 720S GT3 combines mid-engine balance with a twin-turbo V8 that delivers brutal speed through Sebring\'s long back straight. Light and agile, it rewards smooth inputs through the technical sections but demands respect on the curbs.',
     color: 'hsl(200, 65%, 45%)', severity: 3,
   },
   // Circuit detail
@@ -423,7 +423,7 @@ function generateSnapshot(nowMs) {
   p['DataCorePlugin.GameData.Position'] = position;
   p['DataCorePlugin.GameData.CurrentLap'] = currentLap;
   p['DataCorePlugin.GameData.BestLapTime'] = +bestLapTime.toFixed(3);
-  p['DataCorePlugin.GameData.CarModel'] = 'BMW M4 GT3';
+  p['DataCorePlugin.GameData.CarModel'] = 'McLaren 720S GT3';
   p['DataCorePlugin.GameData.SessionTimeSpan'] = sessionTime;
   p['DataCorePlugin.GameData.CurrentLapTime'] = +currentLapTime.toFixed(3);
   p['DataCorePlugin.GameData.LastLapTime'] = completedLaps > 0 ? +lastLapTime.toFixed(3) : 0;
@@ -644,7 +644,7 @@ function generateSnapshot(nowMs) {
   p[demoPre + 'Position'] = position;
   p[demoPre + 'CurrentLap'] = currentLap;
   p[demoPre + 'BestLapTime'] = p['DataCorePlugin.GameData.BestLapTime'];
-  p[demoPre + 'CarModel'] = 'BMW M4 GT3';
+  p[demoPre + 'CarModel'] = 'McLaren 720S GT3';
   p[demoPre + 'SessionTime'] = sessionTime;
   p[demoPre + 'CurrentLapTime'] = p['DataCorePlugin.GameData.CurrentLapTime'];
   p[demoPre + 'LastLapTime'] = p['DataCorePlugin.GameData.LastLapTime'];

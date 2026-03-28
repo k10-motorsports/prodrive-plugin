@@ -15,7 +15,8 @@
 //   • Supports an ambient-light mock controlled via postMessage
 // ═══════════════════════════════════════════════════════════════════
 
-import { readFileSync, mkdirSync, writeFileSync } from 'fs';
+import { readFileSync, mkdirSync, writeFileSync, existsSync } from 'fs';
+import { execSync } from 'child_process';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -172,7 +173,6 @@ html, body {
   margin: 0; padding: 0;
   background: #000 !important;
   overflow: hidden;
-  width: 100vw; height: 100vh;
   /* Ensure dashboard fonts apply even if Google Fonts loads slowly */
   font-family: 'Barlow Condensed', 'Barlow Semi Condensed', system-ui, sans-serif;
 }
@@ -186,17 +186,20 @@ html, body {
 .drive-hud,
 #connBanner,
 #connStatus,
-#secContainer {
+#secContainer,
+#gameLogoOverlay {
   display: none !important;
 }
 
-/* Position dashboard at bottom of iframe, full width */
+/* Dashboard: take out of fixed positioning, flow naturally so
+   the iframe can size to content. Centered by body layout. */
 .dashboard {
-  position: absolute !important;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  width: 100% !important;
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  margin: 0 auto;
 }
 
 /* Ensure panels are visible (some toggled via settings) */
@@ -222,6 +225,15 @@ html, body {
 .startup-overlay,
 .logo-splash {
   display: none !important;
+}
+
+/* WebGL canvases — fill the iframe viewport, behind the dashboard */
+.ambient-canvas,
+#glareCanvas {
+  position: fixed !important;
+  inset: 0;
+  width: 100vw !important;
+  height: 100vh !important;
 }
 `;
 
@@ -283,6 +295,14 @@ ${allJS}
 
   mkdirSync(OUT_DIR, { recursive: true });
   writeFileSync(join(OUT_DIR, 'dashboard-embed.html'), html, 'utf-8');
+
+  // Copy images directory so relative paths (images/branding/, images/logos/) resolve
+  const imgSrc = join(OVERLAY, 'images');
+  const imgDest = join(OUT_DIR, 'images');
+  if (existsSync(imgSrc)) {
+    execSync(`rm -rf "${imgDest}" && cp -r "${imgSrc}" "${imgDest}"`);
+    console.log(`✓ Copied images/ to web/public/_demo/images/`);
+  }
 
   const sizeKB = Math.round(html.length / 1024);
   console.log(`✓ Built web/public/_demo/dashboard-embed.html (${sizeKB} KB)`);
