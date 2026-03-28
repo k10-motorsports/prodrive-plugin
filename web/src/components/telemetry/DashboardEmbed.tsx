@@ -3,6 +3,25 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useTelemetry } from './TelemetryProvider'
 
+/** Cars to cycle through — one every 10 seconds */
+const SHOWCASE_CARS = [
+  'McLaren 720S GT3',
+  'Ferrari 296 GT3',
+  'Porsche 911 GT3 R',
+  'Mercedes-AMG GT3',
+  'Audi R8 LMS GT3',
+  'Lamborghini Huracán GT3',
+  'Aston Martin Vantage GT3',
+  'BMW M4 GT3',
+  'Chevrolet Corvette Z06 GT3.R',
+  'Cadillac V-Series.R',
+  'Ford Mustang GT3',
+  'Toyota GR86',
+  'Honda Civic Type R',
+  'Lotus Emira GT4',
+  'Radical SR10',
+]
+
 /**
  * Full-bleed dashboard embed. The iframe loads the real HUD; a zoom-to-fit
  * script inside it scales the ~904px dashboard to fill whatever width we
@@ -21,6 +40,15 @@ export function DashboardEmbed() {
   const lastWidthRef = useRef(0)
   const { data, status } = useTelemetry()
   const [height, setHeight] = useState(280)
+  const [carIndex, setCarIndex] = useState(0)
+
+  // ── Cycle car model every 10 seconds ──
+  useEffect(() => {
+    const iv = setInterval(() => {
+      setCarIndex((i) => (i + 1) % SHOWCASE_CARS.length)
+    }, 10_000)
+    return () => clearInterval(iv)
+  }, [])
 
   // Send container width to iframe, but ONLY when width actually changes.
   // Height changes (from setHeight) must NOT re-trigger this.
@@ -62,15 +90,20 @@ export function DashboardEmbed() {
     return () => ro.disconnect()
   }, [sendWidth])
 
-  // ── Post telemetry data to iframe on every update ──
+  // ── Post telemetry data to iframe, with car model overridden ──
   useEffect(() => {
     const iframe = iframeRef.current
     if (!iframe?.contentWindow || !data) return
+    const snapshot = {
+      ...data,
+      'DataCorePlugin.GameData.CarModel': SHOWCASE_CARS[carIndex],
+      'K10Motorsports.Plugin.Demo.CarModel': SHOWCASE_CARS[carIndex],
+    }
     iframe.contentWindow.postMessage(
-      { type: 'k10-telemetry', snapshot: data },
+      { type: 'k10-telemetry', snapshot },
       '*',
     )
-  }, [data])
+  }, [data, carIndex])
 
   return (
     <div ref={containerRef} className="w-full" style={{ background: '#000' }}>
