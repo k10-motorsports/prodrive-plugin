@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { SITE_NAME, SITE_DESCRIPTION, DRIVE_URL } from '@/lib/constants'
+import { TelemetryProvider } from '@/components/telemetry/TelemetryProvider'
 
 export const metadata: Metadata = {
   title: SITE_NAME,
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    <TelemetryProvider>
       {/* Top nav */}
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-[var(--bg)]/80 border-b border-[var(--border-subtle)]">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
@@ -39,6 +40,6 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         </div>
       </nav>
       {children}
-    </>
+    </TelemetryProvider>
   )
 }

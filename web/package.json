@@ -4,6 +4,8 @@
   "description": "K10 Motorsports marketing site and Pro Drive members area — Next.js 16, React 19, Discord auth, Strapi CMS",
   "private": true,
   "scripts": {
+    "prebuild": "node ../scripts/build-web-demo.mjs",
+    "predev": "node ../scripts/build-web-demo.mjs",
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",

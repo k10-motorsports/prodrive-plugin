@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# generated demo embed (built by scripts/build-web-demo.mjs)
+/public/_demo/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -117,6 +117,150 @@ function computeHeading(pct) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// COMMENTARY ENGINE — cycles contextual prompts during the demo
+// ═══════════════════════════════════════════════════════════════
+
+const SEBRING_IMAGES = [
+  'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/2021_12_Hours_of_Sebring_-_Dodge_City.jpg/960px-2021_12_Hours_of_Sebring_-_Dodge_City.jpg',
+  'https://upload.wikimedia.org/wikipedia/commons/thumb/d/da/2021_12_Hours_of_Sebring_-_Signpost.jpg/960px-2021_12_Hours_of_Sebring_-_Signpost.jpg',
+  'https://upload.wikimedia.org/wikipedia/commons/5/57/Bandini_GT_Sebring-1960-03-26-067.jpg',
+  'https://upload.wikimedia.org/wikipedia/commons/thumb/2/29/Dodge_Viper_SRT_V10_88.jpg/960px-Dodge_Viper_SRT_V10_88.jpg',
+  'https://upload.wikimedia.org/wikipedia/commons/d/d0/Mechanics_checking_cars_at_the_Grand_Prix_race_-_Sebring%2C_Florida.jpg',
+  'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Sebring_International_Raceway_PNG.png/960px-Sebring_International_Raceway_PNG.png',
+  'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Sebring_satellite.png/960px-Sebring_satellite.png',
+  'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/Welcome_to_Sebring_448742717.jpg/960px-Welcome_to_Sebring_448742717.jpg',
+];
+
+// Commentary entries — each fires at a specific race-elapsed-time window.
+// { start, end } in seconds within the looping race duration.
+const COMMENTARY_SCHEDULE = [
+  // Track context — early in the race
+  {
+    start: 5, end: 18,
+    topicId: 'prerace_track', category: 'game_feel',
+    title: 'Track Preview',
+    text: 'Welcome to Sebring International. This historic Florida airfield circuit has hosted endurance racing since 1950 — its concrete-and-asphalt surface punishes both car and driver. Watch for Turn 17, where commitment separates the quick from the cautious.',
+    color: 'hsl(210, 60%, 50%)', severity: 3,
+    image: 0,
+  },
+  // Car context
+  {
+    start: 150, end: 163,
+    topicId: 'prerace_car', category: 'game_feel',
+    title: 'Car Profile',
+    text: 'The BMW M4 GT3 brings serious straight-line speed to Sebring\'s long back straight. Its inline-six turbo loves the high-speed sections, but the heavy front end demands patience through the tight Turn 1-2 complex.',
+    color: 'hsl(200, 65%, 45%)', severity: 3,
+  },
+  // Circuit detail
+  {
+    start: 350, end: 363,
+    topicId: 'prerace_circuit_detail', category: 'game_feel',
+    title: 'Circuit Detail',
+    text: 'Sebring\'s famously bumpy surface is a relic of its airfield origins — the concrete slabs shift and heave in the Florida heat. The Hairpin at Turn 7 is the slowest point on track at just 35 mph, demanding a precise late-apex to carry speed onto the back straight.',
+    color: 'hsl(210, 60%, 50%)', severity: 3,
+    image: 5,
+  },
+  // Gap management
+  {
+    start: 550, end: 562,
+    topicId: 'gap_management', category: 'racing',
+    title: 'Gap Analysis',
+    text: null, // Filled dynamically based on gap data
+    color: 'hsl(45, 90%, 50%)', severity: 4,
+  },
+  // Fuel warning
+  {
+    start: 900, end: 912,
+    topicId: 'fuel_management', category: 'strategy',
+    title: 'Fuel Strategy',
+    text: null, // Filled dynamically
+    color: 'hsl(35, 90%, 50%)', severity: 5,
+  },
+  // Tyre context
+  {
+    start: 1200, end: 1212,
+    topicId: 'tyre_management', category: 'strategy',
+    title: 'Tyre Condition',
+    text: null, // Filled dynamically
+    color: 'hsl(280, 50%, 50%)', severity: 4,
+  },
+  // Position change
+  {
+    start: 1600, end: 1612,
+    topicId: 'position_change', category: 'racing',
+    title: 'Race Update',
+    text: null, // Filled dynamically
+    color: 'hsl(140, 60%, 45%)', severity: 4,
+  },
+  // Track history
+  {
+    start: 2000, end: 2013,
+    topicId: 'track_context', category: 'game_feel',
+    title: 'Track History',
+    text: 'The 12 Hours of Sebring has been contested annually since 1952, making it the oldest sports car endurance race in America. The circuit\'s unique character comes from the original WWII airfield — its bumps and surface transitions create a challenge found nowhere else.',
+    color: 'hsl(210, 60%, 50%)', severity: 3,
+    image: 2,
+  },
+  // Mid-race insight
+  {
+    start: 2500, end: 2512,
+    topicId: 'race_insight', category: 'racing',
+    title: 'Race Insight',
+    text: 'Sebring rewards consistency over outright pace. The bumps destroy tires if you attack too hard early, and the long straights mean a small setup compromise costs tenths every lap. Smart drivers build their race — the circuit rewards patience.',
+    color: 'hsl(200, 55%, 50%)', severity: 3,
+    image: 3,
+  },
+  // Late-race push
+  {
+    start: 3000, end: 3012,
+    topicId: 'late_race', category: 'racing',
+    title: 'Late Race',
+    text: null, // Dynamic
+    color: 'hsl(0, 70%, 50%)', severity: 6,
+  },
+];
+
+function pickCommentary(elapsed, currentLap, position, fuel, fuelLapsRemaining, remainingLaps, wearBase, ahead, behind) {
+  for (const entry of COMMENTARY_SCHEDULE) {
+    if (elapsed >= entry.start && elapsed < entry.end) {
+      let text = entry.text;
+      let image = entry.image != null ? SEBRING_IMAGES[entry.image] : '';
+
+      // Dynamic text for entries that depend on race state
+      if (!text) {
+        switch (entry.topicId) {
+          case 'gap_management':
+            if (ahead) {
+              text = `K. Alternate is ${Math.abs(ahead.gap).toFixed(1)}s behind ${ahead.name}. ${Math.abs(ahead.gap) < 2 ? 'That gap is within striking distance — time to push.' : 'The gap is stable. Focus on consistency and wait for your opportunity.'}`;
+            } else {
+              text = 'Leading the race — maintaining a clean rhythm is the priority now.';
+            }
+            break;
+          case 'fuel_management':
+            text = `Fuel reads ${fuel.toFixed(1)}L with ${fuelLapsRemaining.toFixed(1)} laps of range. ${fuelLapsRemaining >= remainingLaps ? 'Enough to make it to the end without stopping.' : `A pit stop will be needed within ${Math.ceil(fuelLapsRemaining)} laps — start planning the window.`}`;
+            break;
+          case 'tyre_management': {
+            const gripPct = Math.round(wearBase * 100);
+            text = `Tyre grip at ${gripPct}%. ${gripPct > 80 ? 'Rubber is in good shape — push with confidence.' : gripPct > 60 ? 'Starting to feel the degradation. Smooth inputs through the Esses will preserve what\'s left.' : 'Significant deg now. The Hairpin and Turn 17 will start to slide — adjust your braking points.'}`;
+            break;
+          }
+          case 'position_change':
+            text = `Running P${position} after ${currentLap} laps. ${position <= 3 ? 'Strong showing — keep this clean and the podium is there for the taking.' : `P4 is ${behind ? behind.gap.toFixed(1) + 's behind' : 'right there'}. Consistency through the next stint is everything.`}`;
+            break;
+          case 'late_race':
+            text = `Final phase of the race — ${remainingLaps} laps remaining. ${position <= 3 ? 'A podium finish is on the line. Protect position, hit your marks, and bring it home.' : 'Still time to gain places. The drivers ahead will be managing tyres — that\'s your window to strike.'}`;
+            break;
+        }
+      }
+
+      if (!text) return null;
+      return { text, title: entry.title, topicId: entry.topicId, category: entry.category, color: entry.color, severity: entry.severity, image };
+    }
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // SNAPSHOT GENERATOR
 // ═══════════════════════════════════════════════════════════════
 
@@ -306,14 +450,16 @@ function generateSnapshot(nowMs) {
   p['K10Motorsports.Plugin.DriverFirstName'] = 'Kevin';
   p['K10Motorsports.Plugin.DriverLastName'] = 'Alternate';
 
-  // Commentary (off)
-  p['K10Motorsports.Plugin.CommentaryVisible'] = 0;
-  p['K10Motorsports.Plugin.CommentaryText'] = '';
-  p['K10Motorsports.Plugin.CommentaryTopicTitle'] = '';
-  p['K10Motorsports.Plugin.CommentaryTopicId'] = '';
-  p['K10Motorsports.Plugin.CommentaryCategory'] = '';
-  p['K10Motorsports.Plugin.CommentarySentimentColor'] = '';
-  p['K10Motorsports.Plugin.CommentarySeverity'] = 0;
+  // Commentary — cycles through race-contextual prompts
+  const commentary = pickCommentary(elapsed, currentLap, position, fuel, fuelLapsRemaining, remainingLaps, wearBase, ahead, behind);
+  p['K10Motorsports.Plugin.CommentaryVisible'] = commentary ? 1 : 0;
+  p['K10Motorsports.Plugin.CommentaryText'] = commentary ? commentary.text : '';
+  p['K10Motorsports.Plugin.CommentaryTopicTitle'] = commentary ? commentary.title : '';
+  p['K10Motorsports.Plugin.CommentaryTopicId'] = commentary ? commentary.topicId : '';
+  p['K10Motorsports.Plugin.CommentaryCategory'] = commentary ? commentary.category : '';
+  p['K10Motorsports.Plugin.CommentarySentimentColor'] = commentary ? commentary.color : '';
+  p['K10Motorsports.Plugin.CommentarySeverity'] = commentary ? commentary.severity : 0;
+  p['K10Motorsports.Plugin.CommentaryTrackImage'] = commentary ? (commentary.image || '') : '';
 
   // Strategy
   p['K10Motorsports.Plugin.Strategy.Visible'] = 0;

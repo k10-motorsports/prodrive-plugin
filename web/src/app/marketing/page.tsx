@@ -2,6 +2,8 @@ import { SITE_NAME, DRIVE_URL } from '@/lib/constants'
 import { getChannelInfo, getLatestVideos } from '@/lib/youtube'
 import { ChannelBanner } from '@/components/youtube/ChannelBanner'
 import { VideoGrid } from '@/components/youtube/VideoGrid'
+import { TelemetryStatus } from '@/components/telemetry/TelemetryStatus'
+import { DashboardEmbed } from '@/components/telemetry/DashboardEmbed'
 
 export default async function HomePage() {
   // Fetch YouTube data at build time / ISR (revalidates every 30 min)
@@ -43,6 +45,11 @@ export default async function HomePage() {
             K10 Pro Drive
           </a>
         </div>
+      </section>
+
+      {/* Live dashboard demo — real HUD panels fed by mock telemetry API */}
+      <section className="px-6 pt-4 pb-12 max-w-5xl mx-auto w-full">
+        <DashboardEmbed />
       </section>
 
       {/* Features grid */}
