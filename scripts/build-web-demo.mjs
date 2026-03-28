@@ -176,7 +176,7 @@ const DEMO_CSS = `
 /* ── Web demo overrides ── */
 html, body {
   margin: 0; padding: 0;
-  background: #000 !important;
+  background: transparent !important;
   overflow: hidden;
   /* Ensure dashboard fonts apply even if Google Fonts loads slowly */
   font-family: 'Barlow Condensed', 'Barlow Semi Condensed', system-ui, sans-serif;

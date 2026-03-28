@@ -13,6 +13,9 @@ export default async function HomePage() {
   ])
   return (
     <main className="flex flex-col min-h-screen">
+      {/* Live dashboard demo — full bleed, right beneath the nav */}
+      <DashboardEmbed />
+
       {/* Hero */}
       <section className="relative flex flex-col items-center justify-center px-6 py-32 text-center overflow-hidden">
         {/* Gradient background inspired by brand graphics — deep reds fading to dark */}
@@ -46,9 +49,6 @@ export default async function HomePage() {
           </a>
         </div>
       </section>
-
-      {/* Live dashboard demo — full bleed, no margins */}
-      <DashboardEmbed />
 
       {/* Features grid */}
       <section id="features" className="px-6 py-20 max-w-6xl mx-auto w-full">
