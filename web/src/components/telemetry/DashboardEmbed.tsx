@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTelemetry } from './TelemetryProvider'
 
-// The dashboard content is ~1200px wide at native size. We render the
-// iframe at this width and scale it to fit whatever container we're in.
-const NATIVE_W = 1200
-const NATIVE_H = 260
+// Initial iframe size — large enough that the dashboard won't clip.
+// Once the iframe loads, we measure the actual content and adjust.
+const INIT_W = 3000
+const INIT_H = 500
 
 /**
  * Embeds the real dashboard HUD in an iframe, feeding it telemetry
@@ -17,18 +17,36 @@ export function DashboardEmbed() {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const { data, status } = useTelemetry()
-  const [scale, setScale] = useState(1)
+  const [scale, setScale] = useState(0) // 0 = not measured yet
+  const [contentW, setContentW] = useState(INIT_W)
+  const [contentH, setContentH] = useState(INIT_H)
 
-  // ── Responsive scaling: observe container width ──
+  // ── Measure actual dashboard content size from inside the iframe ──
+  const measure = useCallback(() => {
+    const iframe = iframeRef.current
+    if (!iframe?.contentDocument) return
+    const dash = iframe.contentDocument.querySelector('.dashboard') as HTMLElement
+    if (!dash) return
+    const w = dash.scrollWidth
+    const h = dash.scrollHeight
+    if (w > 10 && h > 10) {
+      setContentW(w)
+      setContentH(h)
+    }
+  }, [])
+
+  // ── Responsive scaling: container width / content width ──
   useEffect(() => {
     const el = containerRef.current
-    if (!el) return
-    const observer = new ResizeObserver(([entry]) => {
-      setScale(entry.contentRect.width / NATIVE_W)
-    })
+    if (!el || contentW <= 10) return
+    const update = () => {
+      setScale(el.clientWidth / contentW)
+    }
+    update()
+    const observer = new ResizeObserver(() => update())
     observer.observe(el)
     return () => observer.disconnect()
-  }, [])
+  }, [contentW])
 
   // ── Post telemetry data to iframe on every update ──
   useEffect(() => {
@@ -40,17 +58,35 @@ export function DashboardEmbed() {
     )
   }, [data])
 
+  // ── Measure on iframe load, then periodically until stable ──
+  useEffect(() => {
+    const iframe = iframeRef.current
+    if (!iframe) return
+    const onLoad = () => {
+      // Measure a few times as JS inside the iframe initializes
+      measure()
+      setTimeout(measure, 200)
+      setTimeout(measure, 600)
+      setTimeout(measure, 1500)
+    }
+    iframe.addEventListener('load', onLoad)
+    return () => iframe.removeEventListener('load', onLoad)
+  }, [measure])
+
   return (
     <div className="flex flex-col gap-3">
       <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
         Live Dashboard Demo
       </span>
 
-      {/* Dashboard iframe — rendered at native size, scaled to fit container */}
+      {/* Dashboard iframe — rendered at content size, scaled to fill container */}
       <div
         ref={containerRef}
         className="relative rounded-xl overflow-hidden border border-[var(--border-subtle)]"
-        style={{ background: '#000', height: NATIVE_H * scale }}
+        style={{
+          background: '#000',
+          height: scale > 0 ? contentH * scale : 200,
+        }}
       >
         {status !== 'live' && (
           <div className="absolute inset-0 flex items-center justify-center z-10" style={{ background: '#000' }}>
@@ -69,9 +105,9 @@ export function DashboardEmbed() {
             background: '#000',
             opacity: status === 'live' ? 1 : 0,
             transition: 'opacity 0.5s ease',
-            width: NATIVE_W,
-            height: NATIVE_H,
-            transform: `scale(${scale})`,
+            width: contentW,
+            height: contentH,
+            transform: scale > 0 ? `scale(${scale})` : 'scale(1)',
             transformOrigin: 'top left',
           }}
         />
