@@ -20,9 +20,14 @@ namespace K10Motorsports.Plugin.Engine
         private PedalProfile _global; // fallback profile when no car-specific one exists
         private string _currentCarModel = "";
 
-        // ── Moza Pithouse paths ───────────────────────────────────────
+        // ── Moza Pit House paths (try both "MOZA Pit House" and legacy "Pithouse") ──
         private static readonly string[] MozaPithouseSearchPaths = new[]
         {
+            @"C:\Program Files (x86)\MOZA Pit House",
+            @"C:\Program Files\MOZA Pit House",
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MOZA Pit House"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MOZA Pit House"),
+            // Legacy paths (older installer naming)
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Pithouse"),
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Pithouse"),
             @"C:\Program Files\Pithouse",
@@ -423,15 +428,20 @@ namespace K10Motorsports.Plugin.Engine
         public string GetDashboardJson()
         {
             var p = ActiveProfile;
+            // Only send curve data when a real profile has been imported.
+            // The built-in fallback global profile (source "manual", no car)
+            // should not cause curves to render — "no profile = no curves".
+            bool hasRealProfile = _profiles.Values.Any(pr => pr.Source != "manual"
+                || !string.IsNullOrEmpty(pr.CarModel));
             var data = new Dictionary<string, object>
             {
-                ["profileName"] = p.Name,
-                ["carName"] = p.CarName,
-                ["source"] = p.Source,
+                ["profileName"] = hasRealProfile ? p.Name : "",
+                ["carName"] = hasRealProfile ? p.CarName : "",
+                ["source"] = hasRealProfile ? p.Source : "",
                 ["mozaDetected"] = MozaDetected,
-                ["throttleCurve"] = p.GetThrottleCurveDisplay(),
-                ["brakeCurve"] = p.GetBrakeCurveDisplay(),
-                ["clutchCurve"] = p.GetClutchCurveDisplay(),
+                ["throttleCurve"] = hasRealProfile ? p.GetThrottleCurveDisplay() : null,
+                ["brakeCurve"] = hasRealProfile ? p.GetBrakeCurveDisplay() : null,
+                ["clutchCurve"] = hasRealProfile ? p.GetClutchCurveDisplay() : null,
                 ["throttleDeadzone"] = p.ThrottleDeadzone,
                 ["brakeDeadzone"] = p.BrakeDeadzone,
                 ["throttleGamma"] = p.ThrottleGamma,
