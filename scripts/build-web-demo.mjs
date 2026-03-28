@@ -273,15 +273,6 @@ ${canvases}
 ${dashboardHTML}
 
 <script>
-// ── Pre-init: stub globals that scripts expect ──
-var _discordUser = null;
-var _currentGameId = 'iracing';
-var _isIRacing = true;
-var _isRally = false;
-var _rallyModeEnabled = false;
-</script>
-
-<script>
 ${allJS}
 </script>
 
