@@ -170,9 +170,11 @@ const DEMO_CSS = `
 /* ── Web demo overrides ── */
 html, body {
   margin: 0; padding: 0;
-  background: transparent !important;
+  background: #000 !important;
   overflow: hidden;
   width: 100vw; height: 100vh;
+  /* Ensure dashboard fonts apply even if Google Fonts loads slowly */
+  font-family: 'Barlow Condensed', 'Barlow Semi Condensed', system-ui, sans-serif;
 }
 
 /* Hide non-essential elements that may get created by JS */

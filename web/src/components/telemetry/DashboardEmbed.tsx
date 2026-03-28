@@ -99,13 +99,13 @@ export function DashboardEmbed() {
         </div>
       </div>
 
-      {/* Dashboard iframe */}
+      {/* Dashboard iframe — scaled up 115% inside a clipping container */}
       <div
         className="relative rounded-xl overflow-hidden border border-[var(--border-subtle)]"
-        style={{ aspectRatio: '16 / 7' }}
+        style={{ aspectRatio: '16 / 7', background: '#000' }}
       >
         {status !== 'live' && (
-          <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-surface)] z-10">
+          <div className="absolute inset-0 flex items-center justify-center z-10" style={{ background: '#000' }}>
             <span className="text-sm text-[var(--text-dim)] animate-pulse">
               Connecting to telemetry...
             </span>
@@ -115,12 +115,17 @@ export function DashboardEmbed() {
           ref={iframeRef}
           src="/_demo/dashboard-embed.html"
           title="K10 Motorsports Dashboard Demo"
-          className="w-full h-full border-0"
-          sandbox="allow-scripts"
+          className="border-0"
+          sandbox="allow-scripts allow-same-origin"
           style={{
-            background: '#0a0a14',
+            background: '#000',
             opacity: status === 'live' ? 1 : 0,
             transition: 'opacity 0.5s ease',
+            /* Render at native size then scale up 115% inside the clipping container */
+            width: '86.96%',   /* 100/1.15 — inverse scale so scaled result fills container */
+            height: '86.96%',
+            transform: 'scale(1.15)',
+            transformOrigin: 'top left',
           }}
         />
       </div>
