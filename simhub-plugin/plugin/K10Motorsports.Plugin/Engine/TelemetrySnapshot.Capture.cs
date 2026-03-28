@@ -629,18 +629,21 @@ namespace K10Motorsports.Plugin.Engine
             // ── Grid / Formation state ────────────────────────────────────
             s.SessionState = GetRaw<int>(pm, "SessionState");
             s.PaceMode     = GetRaw<int>(pm, "PaceMode");
-            // Track country — try iRacing WeekendInfo.TrackCountry, fall back to SimHub property
-            try
+            // Track country — only use SimHub fallback if SDK bridge didn't already provide it
+            if (string.IsNullOrEmpty(s.TrackCountry))
             {
-                string country = GetPluginProp<string>(pm, "DataCorePlugin.GameData.TrackCountry") ?? "";
-                if (string.IsNullOrEmpty(country))
-                    country = GetRaw<string>(pm, "WeekendInfo.TrackCountry") ?? "";
-                s.TrackCountry = NormalizeCountryCode(country);
-            }
-            catch (Exception ex)
-            {
-                SimHub.Logging.Current.Warn($"[K10Motorsports] Track country lookup failed: {ex.Message}");
-                s.TrackCountry = "";
+                try
+                {
+                    string country = GetPluginProp<string>(pm, "DataCorePlugin.GameData.TrackCountry") ?? "";
+                    if (string.IsNullOrEmpty(country))
+                        country = GetRaw<string>(pm, "WeekendInfo.TrackCountry") ?? "";
+                    if (!string.IsNullOrEmpty(country))
+                        s.TrackCountry = NormalizeCountryCode(country);
+                }
+                catch (Exception ex)
+                {
+                    SimHub.Logging.Current.Warn($"[K10Motorsports] Track country lookup failed: {ex.Message}");
+                }
             }
 
             // Count gridded cars: cars NOT on pit road from CarIdxOnPitRoad array
