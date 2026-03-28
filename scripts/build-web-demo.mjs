@@ -310,8 +310,11 @@ ${allJS}
     if (!_naturalW || !containerW) return;
     var z = containerW / _naturalW;
     document.body.style.zoom = z;
-    // Tell parent the zoomed height so it can size the container
-    var h = document.documentElement.scrollHeight * z;
+    // Measure the dashboard element directly for accurate height
+    var dash = document.querySelector('.dashboard');
+    var h = dash ? dash.offsetHeight * z : document.documentElement.scrollHeight * z;
+    // Small buffer to prevent sub-pixel clipping
+    h = Math.ceil(h) + 2;
     window.parent.postMessage({ type: 'k10-resize', height: h }, '*');
   }
 
