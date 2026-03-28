@@ -1,6 +1,6 @@
 {
   "name": "k10-motorsports",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "K10 Motorsports — broadcast-grade transparent HUD overlay for sim racing with WebGL effects, real-time strategy, and AI commentary",
   "main": "main.js",
   "author": "Kevin Conboy",
