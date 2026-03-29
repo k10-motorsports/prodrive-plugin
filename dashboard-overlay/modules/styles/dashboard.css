@@ -1293,7 +1293,8 @@
     transition: stroke 0.3s;
   }
   .map-player {
-    fill: var(--cyan);
+    fill: var(--map-player-color, var(--cyan));
+    transition: fill 0.4s ease;
   }
   .map-gforce-trail {
     pointer-events: none;

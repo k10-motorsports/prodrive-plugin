@@ -64,6 +64,15 @@
     // Apply brand-colored background for white/mono logos, default dark bg otherwise
     const sq = document.getElementById('carLogoSquare');
     sq.style.background = _mfrBrandColors[key] || _defaultLogoBg;
+    // Expose full-opacity brand color for map player dot
+    const brandHsl = _mfrBrandColors[key];
+    if (brandHsl) {
+      // Convert 0.6x alpha HSLA to full-opacity for the map dot fill
+      const solidColor = brandHsl.replace(/[\d.]+\)$/, '1)');
+      document.documentElement.style.setProperty('--map-player-color', solidColor);
+    } else {
+      document.documentElement.style.setProperty('--map-player-color', 'var(--cyan)');
+    }
   }
 
   // ═══ TACHOMETER ═══
