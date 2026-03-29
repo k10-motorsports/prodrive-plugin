@@ -5322,15 +5322,30 @@ html, body {
 /* Hide non-essential elements that may get created by JS */
 .conn-status,
 .conn-banner,
-.sec-container,
-.commentary-col,
 .settings-overlay,
 .drive-hud,
 #connBanner,
 #connStatus,
-#secContainer,
 #gameLogoOverlay {
   display: none !important;
+}
+
+/* Secondary panels & overlays — hidden by default, shown via isolation */
+.sec-container,
+.commentary-col,
+.leaderboard-panel,
+.datastream-panel,
+.pitbox-panel,
+.incidents-panel,
+.spotter-panel,
+.pit-banner,
+.rc-banner,
+.race-end-screen,
+.grid-module {
+  display: none !important;
+  position: relative !important;
+  inset: auto !important;
+  margin: 0 auto !important;
 }
 
 /* Dashboard: relative position, shrink to content width */
@@ -5695,6 +5710,326 @@ html, body {
   <div class="conn-status connecting" id="connStatus" title="Connecting to plugin server..."></div>
 
 </div><!-- /dashboard -->
+
+<!-- COMMENTARY — independent fixed overlay, positioned in the open corner opposite the HUD -->
+<div class="commentary-col" id="commentaryCol" style="--commentary-h: 0;">
+  <canvas class="commentary-gl-canvas" id="commentaryGlCanvas"></canvas>
+  <div class="commentary-inner" id="commentaryInner">
+    <div class="commentary-track-img" id="commentaryTrackImg"></div>
+    <div class="commentary-icon" id="commentaryIcon"></div>
+    <div class="commentary-title" id="commentaryTitle"></div>
+    <div class="commentary-text-scroll" id="commentaryScroll">
+      <div class="commentary-text" id="commentaryText"></div>
+    </div>
+    <div class="commentary-viz" id="commentaryViz">
+      <canvas id="commentaryVizCanvas"></canvas>
+      <div class="commentary-viz-value" id="commentaryVizValue"></div>
+      <div class="commentary-viz-label" id="commentaryVizLabel"></div>
+    </div>
+    <div class="commentary-meta" id="commentaryMeta"></div>
+  </div>
+</div>
+
+<!-- SECONDARY PANELS CONTAINER — flex row, positioned by applyLayout() -->
+<div class="sec-container" id="secContainer">
+
+<!-- COMPONENT: Leaderboard Panel -->
+<div class="leaderboard-panel lb-bottom lb-right" id="leaderboardPanel">
+  <div class="lb-inner">
+    <canvas class="lb-gl gl-overlay" id="lbPlayerGlCanvas"></canvas>
+    <canvas class="lb-gl gl-overlay" id="lbEventGlCanvas"></canvas>
+    <div class="lb-header">Relative</div>
+    <div id="lbRows"></div>
+  </div>
+  <!-- Race Timeline — color-coded position state history strip -->
+  <div class="race-timeline" id="raceTimeline">
+    <canvas class="rt-canvas" id="rtCanvas" width="310" height="9"></canvas>
+  </div>
+</div>
+
+<!-- COMPONENT: Datastream Panel (advanced telemetry) -->
+<div class="datastream-panel ds-bottom ds-right" id="datastreamPanel">
+  <div class="ds-inner">
+    <div class="ds-header">Datastream</div>
+
+    <!-- G-force diamond + values -->
+    <div class="ds-gforce" data-ds-field="dsShowGforce">
+      <div class="ds-gforce-diamond">
+        <canvas id="dsGforceCanvas" width="128" height="128"></canvas>
+      </div>
+      <div class="ds-gforce-vals">
+        <div class="ds-row" style="border:none;padding:0;">
+          <span class="ds-label">Lat</span>
+          <span class="ds-value" id="dsLatG">0.00g</span>
+        </div>
+        <div class="ds-row" style="border:none;padding:0;">
+          <span class="ds-label">Long</span>
+          <span class="ds-value" id="dsLongG">0.00g</span>
+        </div>
+        <div class="ds-row" style="border:none;padding:0;">
+          <span class="ds-label">Peak</span>
+          <span class="ds-value" id="dsPeakG" style="color:var(--text-dim);">0.00g</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Yaw rate with bar + trail -->
+    <div data-ds-field="dsShowYaw">
+      <div class="ds-row">
+        <span class="ds-label">Yaw</span>
+        <span class="ds-value" id="dsYawRate">0.00 r/s</span>
+      </div>
+      <div class="ds-yaw-bar"><div class="ds-yaw-fill" id="dsYawFill"></div></div>
+      <canvas class="ds-yaw-trail" id="dsYawTrail" width="200" height="28"></canvas>
+    </div>
+
+    <!-- Steering torque -->
+    <div class="ds-row" data-ds-field="dsShowFfb">
+      <span class="ds-label">FFB</span>
+      <span class="ds-value" id="dsSteerTorque">0.0 Nm</span>
+    </div>
+
+    <!-- Lap delta -->
+    <div class="ds-row" data-ds-field="dsShowDelta">
+      <span class="ds-label">Delta</span>
+      <span class="ds-value ds-neutral" id="dsDelta">+0.000</span>
+    </div>
+
+    <!-- Track temp -->
+    <div class="ds-row" data-ds-field="dsShowTrackTemp">
+      <span class="ds-label">Track</span>
+      <span class="ds-value" id="dsTrackTemp">—°C</span>
+    </div>
+
+    <!-- FPS -->
+    <div class="ds-row" data-ds-field="dsShowFps">
+      <span class="ds-label">FPS</span>
+      <span class="ds-value" id="dsFps" style="color:var(--text-dim);">—</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- COMPONENT: Pit Box Panel (driver panel — tyres, fuel, weather, adjustments) -->
+<div class="pitbox-panel pb-bottom pb-left" id="pitBoxPanel">
+  <div class="pb-inner">
+
+    <div class="pb-no-data" id="pbNoData" style="display:none;">No data</div>
+
+    <div id="pbContent" class="pb-content">
+      <!-- ── TAB BAR ── -->
+      <div class="pb-tabs" id="pbTabs">
+        <div class="pb-tab active" data-pb-tab="tyres" onclick="switchPbTab(this)">Tyres</div>
+        <div class="pb-tab" data-pb-tab="fuel" onclick="switchPbTab(this)">Fuel</div>
+        <div class="pb-tab" data-pb-tab="weather" onclick="switchPbTab(this)">Weather</div>
+        <div class="pb-tab" data-pb-tab="adj" onclick="switchPbTab(this)">Setup</div>
+        <div class="pb-tab" data-pb-tab="camera" onclick="switchPbTab(this)">Camera</div>
+      </div>
+
+      <!-- ═══ TYRES TAB ═══ -->
+      <div class="pb-page active" id="pbPageTyres" data-pb-page="tyres">
+        <!-- Pit tyre selections (2×2 grid) -->
+        <div class="pb-section-label">Pit Selections</div>
+        <div class="pb-tire-grid">
+          <div class="pb-tire-cell"><span class="pb-tire-pos">LF</span><span class="pb-tire-status keeping" id="pbTireLF">KEEP</span><span class="pb-tire-pressure" id="pbPressLF">—</span></div>
+          <div class="pb-tire-cell"><span class="pb-tire-pos">RF</span><span class="pb-tire-status keeping" id="pbTireRF">KEEP</span><span class="pb-tire-pressure" id="pbPressRF">—</span></div>
+          <div class="pb-tire-cell"><span class="pb-tire-pos">LR</span><span class="pb-tire-status keeping" id="pbTireLR">KEEP</span><span class="pb-tire-pressure" id="pbPressLR">—</span></div>
+          <div class="pb-tire-cell"><span class="pb-tire-pos">RR</span><span class="pb-tire-status keeping" id="pbTireRR">KEEP</span><span class="pb-tire-pressure" id="pbPressRR">—</span></div>
+        </div>
+        <!-- Live tyre data -->
+        <div class="pb-section-label" style="margin-top:8px">Wear</div>
+        <div class="pb-tire-grid">
+          <div class="pb-tire-cell"><span class="pb-tire-pos">LF</span><span class="pb-tire-bar"><span class="pb-tire-bar-fill" id="pbWearLF"></span></span><span class="pb-tire-pct" id="pbWearLFVal">—</span></div>
+          <div class="pb-tire-cell"><span class="pb-tire-pos">RF</span><span class="pb-tire-bar"><span class="pb-tire-bar-fill" id="pbWearRF"></span></span><span class="pb-tire-pct" id="pbWearRFVal">—</span></div>
+          <div class="pb-tire-cell"><span class="pb-tire-pos">LR</span><span class="pb-tire-bar"><span class="pb-tire-bar-fill" id="pbWearLR"></span></span><span class="pb-tire-pct" id="pbWearLRVal">—</span></div>
+          <div class="pb-tire-cell"><span class="pb-tire-pos">RR</span><span class="pb-tire-bar"><span class="pb-tire-bar-fill" id="pbWearRR"></span></span><span class="pb-tire-pct" id="pbWearRRVal">—</span></div>
+        </div>
+        <div class="pb-section-label" style="margin-top:8px">Temp</div>
+        <div class="pb-tire-grid">
+          <div class="pb-tire-cell"><span class="pb-tire-pos">LF</span><span class="pb-tire-temp" id="pbTempLF">—</span></div>
+          <div class="pb-tire-cell"><span class="pb-tire-pos">RF</span><span class="pb-tire-temp" id="pbTempRF">—</span></div>
+          <div class="pb-tire-cell"><span class="pb-tire-pos">LR</span><span class="pb-tire-temp" id="pbTempLR">—</span></div>
+          <div class="pb-tire-cell"><span class="pb-tire-pos">RR</span><span class="pb-tire-temp" id="pbTempRR">—</span></div>
+        </div>
+      </div>
+
+      <!-- ═══ FUEL TAB ═══ -->
+      <div class="pb-page" id="pbPageFuel" data-pb-page="fuel">
+        <div class="pb-fuel-gauge">
+          <div class="pb-fuel-bar-bg"><div class="pb-fuel-bar-fill" id="pbFuelBar"></div></div>
+          <div class="pb-fuel-level" id="pbFuelLevel">—</div>
+          <div class="pb-fuel-unit" id="pbFuelUnit"></div>
+        </div>
+        <div class="pb-row"><span class="pb-label">Per lap</span><span class="pb-value" id="pbFuelPerLap">—</span></div>
+        <div class="pb-row"><span class="pb-label">Laps left</span><span class="pb-value" id="pbFuelLaps">—</span></div>
+        <div class="pb-row"><span class="pb-label">Pit add</span><span class="pb-value" id="pbFuelVal">—</span></div>
+        <div class="pb-divider"></div>
+        <div class="pb-row"><span class="pb-label">Fast repair</span><span class="pb-value off" id="pbFastRepair">NO</span></div>
+        <div class="pb-row"><span class="pb-label">Tearoff</span><span class="pb-value off" id="pbWindshield">NO</span></div>
+      </div>
+
+      <!-- ═══ WEATHER TAB ═══ -->
+      <div class="pb-page" id="pbPageWeather" data-pb-page="weather">
+        <div class="pb-weather-hero">
+          <div class="pb-weather-icon" id="pbWeatherIcon">☀</div>
+          <div class="pb-weather-temp" id="pbAirTemp">—</div>
+        </div>
+        <div class="pb-row"><span class="pb-label">Track</span><span class="pb-value" id="pbTrackTemp">—</span></div>
+        <div class="pb-row"><span class="pb-label">Conditions</span><span class="pb-value" id="pbConditions">Dry</span></div>
+      </div>
+
+      <!-- ═══ SETUP / ADJUSTMENTS TAB ═══ -->
+      <div class="pb-page" id="pbPageAdj" data-pb-page="adj">
+        <div class="pb-adj-grid" id="pbAdjGrid">
+          <div class="pb-adj-item" id="pbRowBB"><span class="pb-adj-label">BB</span><span class="pb-adj-val zero" id="pbAdjBB">—</span></div>
+          <div class="pb-adj-item" id="pbRowTC"><span class="pb-adj-label">TC</span><span class="pb-adj-val zero" id="pbAdjTC">—</span></div>
+          <div class="pb-adj-item" id="pbRowABS"><span class="pb-adj-label">ABS</span><span class="pb-adj-val zero" id="pbAdjABS">—</span></div>
+          <div class="pb-adj-item" id="pbRowARBF"><span class="pb-adj-label">ARB F</span><span class="pb-adj-val zero" id="pbAdjARBF">—</span></div>
+          <div class="pb-adj-item" id="pbRowARBR"><span class="pb-adj-label">ARB R</span><span class="pb-adj-val zero" id="pbAdjARBR">—</span></div>
+          <div class="pb-adj-item" id="pbRowEng"><span class="pb-adj-label">ENG</span><span class="pb-adj-val zero" id="pbAdjEng">—</span></div>
+          <div class="pb-adj-item" id="pbRowFuel"><span class="pb-adj-label">FUEL MIX</span><span class="pb-adj-val zero" id="pbAdjFuel">—</span></div>
+          <div class="pb-adj-item" id="pbRowWJL"><span class="pb-adj-label">WJ L</span><span class="pb-adj-val zero" id="pbAdjWJL">—</span></div>
+          <div class="pb-adj-item" id="pbRowWJR"><span class="pb-adj-label">WJ R</span><span class="pb-adj-val zero" id="pbAdjWJR">—</span></div>
+          <div class="pb-adj-item" id="pbRowWingF"><span class="pb-adj-label">WING F</span><span class="pb-adj-val zero" id="pbAdjWingF">—</span></div>
+          <div class="pb-adj-item" id="pbRowWingR"><span class="pb-adj-label">WING R</span><span class="pb-adj-val zero" id="pbAdjWingR">—</span></div>
+        </div>
+      </div>
+
+      <!-- ═══ CAMERA / FFB TAB ═══ -->
+      <div class="pb-page" id="pbPageCamera" data-pb-page="camera">
+        <div class="pb-section-label">Force Feedback</div>
+        <div class="pb-row"><span class="pb-label">Max force</span><span class="pb-value" id="pbFFBMax">—</span></div>
+        <div class="pb-divider"></div>
+        <div class="pb-section-label">Mirrors</div>
+        <div class="pb-row"><span class="pb-label">Rearview</span><span class="pb-value" id="pbMirror">—</span></div>
+        <div class="pb-info">Camera and mirror settings are controlled in-sim</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- COMPONENT: Incidents Panel (incident counter) -->
+<div class="incidents-panel inc-bottom inc-right" id="incidentsPanel">
+  <canvas class="inc-gl-canvas" id="incGlCanvas"></canvas>
+  <div class="inc-inner">
+    <div class="inc-label">Incidents</div>
+    <div class="inc-value-row">
+      <span class="inc-count" id="incCount">0</span><span class="inc-x">x</span>
+    </div>
+    <div class="inc-progress" id="incProgress">
+      <div class="inc-bar-track">
+        <div class="inc-bar-fill" id="incBarFill"></div>
+        <div class="inc-bar-marker inc-marker-pen" id="incMarkerPen"></div>
+        <div class="inc-bar-marker inc-marker-dq" id="incMarkerDQ"></div>
+      </div>
+    </div>
+    <div class="inc-thresholds">
+      <div class="inc-thresh-row"><span>Penalty in</span><span class="inc-thresh-val" id="incToPen">—</span></div>
+      <div class="inc-thresh-row"><span>DQ in</span><span class="inc-thresh-val" id="incToDQ">—</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPONENT: Race Control Banner (flag/message display) -->
+<div class="rc-banner" id="rcBanner">
+  <div class="rc-inner">
+    <!-- Race control tower icon — yellow/white on black -->
+    <svg class="rc-icon" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Tower base -->
+      <rect x="11" y="14" width="6" height="12" rx="1" fill="hsl(48, 85%, 55%)"/>
+      <!-- Tower top / control room -->
+      <rect x="8" y="8" width="12" height="7" rx="1.5" fill="#fff"/>
+      <!-- Window panes -->
+      <rect x="9.5" y="9.5" width="3" height="4" rx="0.5" fill="hsl(48, 85%, 55%)" opacity="0.9"/>
+      <rect x="15.5" y="9.5" width="3" height="4" rx="0.5" fill="hsl(48, 85%, 55%)" opacity="0.9"/>
+      <!-- Antenna -->
+      <line x1="14" y1="3" x2="14" y2="8" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+      <!-- Antenna tip -->
+      <circle cx="14" cy="2.5" r="1.5" fill="hsl(48, 90%, 55%)"/>
+      <!-- Signal arcs -->
+      <path d="M10 5.5 A5 5 0 0 1 14 3" stroke="hsla(48, 85%, 55%, 0.5)" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+      <path d="M18 5.5 A5 5 0 0 0 14 3" stroke="hsla(48, 85%, 55%, 0.5)" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+      <!-- Foundation -->
+      <rect x="9" y="25" width="10" height="2" rx="1" fill="hsla(0, 0%, 100%, 0.3)"/>
+    </svg>
+    <div class="rc-content">
+      <div class="rc-title" id="rcTitle">RACE CONTROL</div>
+      <div class="rc-detail" id="rcDetail">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPONENT: Pit Limiter Banner -->
+<div class="pit-banner" id="pitBanner">
+  <canvas class="pit-gl-canvas" id="pitGlCanvas"></canvas>
+  <div class="pit-inner">
+    <div class="pit-icon">P</div>
+    <div class="pit-label">Pit Limiter</div>
+    <div class="pit-speed" id="pitSpeed"></div>
+    <div class="pit-limit" id="pitLimit" style="font-size:11px;font-weight:600;color:hsla(0,0%,100%,0.45);margin-left:4px;"></div>
+  </div>
+</div>
+
+<!-- COMPONENT: Race End Screen (within HUD bounds) -->
+<div class="race-end-screen" id="raceEndScreen">
+  <div class="race-end-bg"></div>
+  <div class="re-confetti" id="reConfetti"></div>
+  <div class="race-end-content" id="raceEndContent">
+    <div class="re-position" id="rePosition">P1</div>
+    <div class="re-title-block">
+      <h1 class="re-title" id="reTitle">VICTORY!</h1>
+      <p class="re-subtitle" id="reSubtitle" style="display:none;"></p>
+    </div>
+    <div class="re-clean-badge" id="reCleanBadge" style="display:none;"><span>✓</span> CLEAN RACE</div>
+    <div class="re-stats">
+      <div class="re-stat"><div class="re-stat-label">POSITION</div><div class="re-stat-val" id="reStatPos">P1</div></div>
+      <div class="re-stat"><div class="re-stat-label">INCIDENTS</div><div class="re-stat-val" id="reStatInc">0</div></div>
+      <div class="re-stat"><div class="re-stat-label">BEST LAP</div><div class="re-stat-val" id="reStatLap">—</div></div>
+      <div class="re-stat"><div class="re-stat-label">iRATING</div><div class="re-stat-val" id="reStatIR">—</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPONENT: Spotter Panel (stacking voice messages, co-located with race control) -->
+<div class="spotter-panel" id="spotterPanel">
+  <canvas class="sp-gl-canvas" id="spotterGlCanvas"></canvas>
+  <div class="sp-stack" id="spotterStack"></div>
+</div>
+
+<!-- COMPONENT: Grid Module (formation lap / pre-race info) -->
+<div class="grid-module" id="gridModule">
+  <canvas class="grid-flag-gl" id="gridFlagGlCanvas"></canvas>
+  <!-- Countdown badge sits above the info card -->
+  <div class="grid-countdown" id="gridCountdown">—</div>
+  <!-- Pre-race info (visible during formation) -->
+  <div class="grid-info" id="gridInfo">
+    <!-- Country flag as card background -->
+    <div class="grid-flag" id="gridFlag">
+      <div class="grid-flag-stripe" id="flagStripe1"></div>
+      <div class="grid-flag-stripe" id="flagStripe2"></div>
+      <div class="grid-flag-stripe" id="flagStripe3"></div>
+    </div>
+    <div class="grid-bg" id="gridBg"></div>
+    <div class="grid-title">Formation Lap</div>
+    <div class="grid-cars"><span id="gridCarsGridded">0</span> <span class="grid-cars-total">/ <span id="gridCarsTotal">0</span> gridded</span></div>
+    <div class="grid-strip" id="gridStrip"></div>
+    <div class="grid-start-type" id="gridStartType">Rolling Start</div>
+  </div>
+  <!-- F1-style start lights (replaces info when lights active) -->
+  <div class="start-lights" id="startLights">
+    <div class="lights-housing">
+      <div class="light-col"><div class="light-bulb" id="light1t"></div><div class="light-bulb" id="light1b"></div></div>
+      <div class="light-col"><div class="light-bulb" id="light2t"></div><div class="light-bulb" id="light2b"></div></div>
+      <div class="light-col"><div class="light-bulb" id="light3t"></div><div class="light-bulb" id="light3b"></div></div>
+      <div class="light-col"><div class="light-bulb" id="light4t"></div><div class="light-bulb" id="light4b"></div></div>
+      <div class="light-col"><div class="light-bulb" id="light5t"></div><div class="light-bulb" id="light5b"></div></div>
+    </div>
+    <div class="lights-go" id="lightsGo">GO!</div>
+  </div>
+</div>
 
 <script>
 // ── modules/js/config.js ──
@@ -6640,16 +6975,32 @@ function _fmtLapTime(secs) {
   var _pmAmbient = null;
 
   // Module isolation map — CSS class for each named module
+  // 'type' distinguishes main-grid columns from secondary/overlay panels
   var _moduleMap = {
-    'tacho':    '.tacho-block',
-    'pedals':   '.controls-pedals-block',
-    'fuel':     '.fuel-tyres-col',
-    'maps':     '.maps-col',
-    'position': '.pos-gaps-col',
-    'logo':     '.logo-col',
-    'timer':    '.timer-row'
+    'tacho':        { sel: '.tacho-block',           type: 'main' },
+    'pedals':       { sel: '.controls-pedals-block',  type: 'main' },
+    'fuel':         { sel: '.fuel-tyres-col',         type: 'main' },
+    'maps':         { sel: '.maps-col',               type: 'main' },
+    'position':     { sel: '.pos-gaps-col',           type: 'main' },
+    'logo':         { sel: '.logo-col',               type: 'main' },
+    'timer':        { sel: '.timer-row',              type: 'main' },
+    'leaderboard':  { sel: '.leaderboard-panel',      type: 'secondary' },
+    'datastream':   { sel: '.datastream-panel',       type: 'secondary' },
+    'pitbox':       { sel: '.pitbox-panel',           type: 'secondary' },
+    'incidents':    { sel: '.incidents-panel',         type: 'secondary' },
+    'commentary':   { sel: '.commentary-col',         type: 'overlay' },
+    'spotter':      { sel: '.spotter-panel',          type: 'overlay' },
+    'pit-limiter':  { sel: '.pit-banner',             type: 'overlay' },
+    'race-control': { sel: '.rc-banner',              type: 'overlay' },
+    'formation':    { sel: '.grid-module',            type: 'overlay' },
+    'race-end':     { sel: '.race-end-screen',        type: 'overlay' }
   };
   var _isolateStyle = null;
+
+  // All main-grid selectors for bulk hide/show
+  var _mainSels = Object.keys(_moduleMap).filter(function(k) { return _moduleMap[k].type === 'main'; }).map(function(k) { return _moduleMap[k].sel; });
+  // All secondary + overlay selectors
+  var _secSels = Object.keys(_moduleMap).filter(function(k) { return _moduleMap[k].type !== 'main'; }).map(function(k) { return _moduleMap[k].sel; });
 
   window.addEventListener('message', function(e) {
     if (!e.data || !e.data.type) return;
@@ -6664,16 +7015,46 @@ function _fmtLapTime(secs) {
       if (_isolateStyle) _isolateStyle.remove();
       var mod = e.data.module;
       if (!mod || mod === 'all') return; // 'all' = restore full dashboard
-      var sel = _moduleMap[mod];
-      if (!sel) return;
-      // Build CSS: hide all columns, show only the target
-      var allCols = Object.values(_moduleMap).join(',\n');
-      var css = allCols + ' { display: none !important; }\n' +
-        sel + ' { display: flex !important; visibility: visible !important; opacity: 1 !important; }\n' +
-        // Center the isolated module
-        '.main-area { justify-content: center !important; }\n' +
-        // Hide timer row in isolation mode (unless explicitly shown)
-        '.timer-row { display: ' + (mod === 'timer' ? 'flex' : 'none') + ' !important; }';
+      var entry = _moduleMap[mod];
+      if (!entry) return;
+
+      var css = '';
+      if (entry.type === 'main') {
+        // Hide all main columns, show only target; hide all secondary/overlays
+        css += _mainSels.join(',\n') + ' { display: none !important; }\n';
+        css += _secSels.join(',\n') + ' { display: none !important; }\n';
+        css += entry.sel + ' { display: flex !important; visibility: visible !important; opacity: 1 !important; }\n';
+        css += '.main-area { justify-content: center !important; }\n';
+        css += '.timer-row { display: ' + (mod === 'timer' ? 'flex' : 'none') + ' !important; }\n';
+      } else {
+        // Hide main dashboard entirely; hide all secondary/overlays; show target
+        css += '.dashboard { display: none !important; }\n';
+        css += _secSels.join(',\n') + ' { display: none !important; }\n';
+        // Show the target panel — override position so it centers in the iframe
+        css += entry.sel + ' {\n';
+        css += '  display: flex !important;\n';
+        css += '  visibility: visible !important;\n';
+        css += '  opacity: 1 !important;\n';
+        css += '  position: relative !important;\n';
+        css += '  inset: auto !important;\n';
+        css += '  margin: 20px auto !important;\n';
+        css += '  z-index: 100 !important;\n';
+        css += '}\n';
+        // For sec-container children, also show the container
+        if (entry.type === 'secondary') {
+          css += '.sec-container {\n';
+          css += '  display: flex !important;\n';
+          css += '  position: relative !important;\n';
+          css += '  inset: auto !important;\n';
+          css += '  justify-content: center !important;\n';
+          css += '  margin: 20px auto !important;\n';
+          css += '}\n';
+          // Hide sibling secondary panels
+          css += '.sec-container > * { display: none !important; }\n';
+          css += '.sec-container > ' + entry.sel + ' { display: flex !important; visibility: visible !important; opacity: 1 !important; position: relative !important; inset: auto !important; }\n';
+        }
+      }
+
       _isolateStyle = document.createElement('style');
       _isolateStyle.textContent = css;
       document.head.appendChild(_isolateStyle);

@@ -116,7 +116,87 @@ function extractDashboardHTML() {
     '<canvas id="glareCanvas" style="position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:60;"></canvas>',
   ].join('\n');
 
-  return { canvases, dashboardHTML };
+  // ── Extract secondary panels and overlays ──
+  // These are outside the main #dashboard div but needed for
+  // the FeatureShowcase to isolate and display them.
+  const extraComponents = [
+    // Commentary overlay
+    { start: '<!-- COMMENTARY', end: '</div>\n\n<!-- COMPONENT: Connection' },
+    // Secondary panels container (leaderboard, datastream, pitbox)
+    { start: '<!-- SECONDARY PANELS CONTAINER', end: '</div><!-- /sec-container -->' },
+    // Incidents panel
+    { start: '<!-- COMPONENT: Incidents Panel', end: /(<\/div>\s*\n\s*\n\s*<!-- COMPONENT: Race Control)/ },
+    // Race Control banner
+    { start: '<!-- COMPONENT: Race Control Banner', end: /(<\/div>\s*\n\s*\n\s*<!-- COMPONENT: Idle)/ },
+    // Pit Limiter banner
+    { start: '<!-- COMPONENT: Pit Limiter Banner', end: /(<\/div>\s*\n\s*\n\s*<!-- COMPONENT: Race End)/ },
+    // Race End screen
+    { start: '<!-- COMPONENT: Race End Screen', end: /(<\/div>\s*\n\s*\n\s*<!-- COMPONENT: Spotter)/ },
+    // Spotter panel
+    { start: '<!-- COMPONENT: Spotter Panel', end: /(<\/div>\s*\n\s*\n\s*<!-- COMPONENT: Grid)/ },
+    // Grid / Formation module
+    { start: '<!-- COMPONENT: Grid Module', end: /(<\/div>\s*\n\s*\n\s*<!-- COMPONENT: Driver)/ },
+  ];
+
+  // Simpler approach: extract each COMPONENT block by finding its comment marker
+  // and the next COMPONENT marker (or end of body)
+  const componentBlocks = [];
+  const componentIds = [
+    'commentaryCol', 'secContainer', 'incidentsPanel', 'rcBanner',
+    'pitBanner', 'raceEndScreen', 'spotterPanel', 'gridModule',
+  ];
+  for (const id of componentIds) {
+    // Find the element by its id attribute
+    const idPattern = `id="${id}"`;
+    const idx = full.indexOf(idPattern);
+    if (idx === -1) {
+      console.warn(`  Warning: Could not find #${id} in dashboard.html`);
+      continue;
+    }
+    // Walk backward to find the opening <!-- COMPONENT or <div
+    let blockStart = full.lastIndexOf('<!--', idx);
+    const divStart = full.lastIndexOf('<div', idx);
+    // Use whichever is closer (comment or div tag)
+    if (divStart > blockStart) blockStart = divStart;
+
+    // Walk forward to find the closing — we need to count div nesting
+    let depth = 0;
+    let pos = blockStart;
+    let blockEnd = -1;
+    while (pos < full.length) {
+      const nextOpen = full.indexOf('<div', pos);
+      const nextClose = full.indexOf('</div>', pos);
+      if (nextClose === -1) break;
+      if (nextOpen !== -1 && nextOpen < nextClose) {
+        depth++;
+        pos = nextOpen + 4;
+      } else {
+        depth--;
+        if (depth <= 0) {
+          blockEnd = nextClose + '</div>'.length;
+          break;
+        }
+        pos = nextClose + 6;
+      }
+    }
+    if (blockEnd === -1) {
+      console.warn(`  Warning: Could not find closing tag for #${id}`);
+      continue;
+    }
+    // Include any preceding comment
+    const commentIdx = full.lastIndexOf('<!--', blockStart);
+    if (commentIdx !== -1 && blockStart - commentIdx < 200) {
+      const between = full.slice(commentIdx, blockStart).trim();
+      if (between.startsWith('<!-- COMPONENT') || between.startsWith('<!-- COMMENTARY') || between.startsWith('<!-- SECONDARY')) {
+        blockStart = commentIdx;
+      }
+    }
+    componentBlocks.push(full.slice(blockStart, blockEnd));
+  }
+
+  const secondaryHTML = componentBlocks.join('\n\n');
+
+  return { canvases, dashboardHTML, secondaryHTML };
 }
 
 // ── The postMessage shim ─────────────────────────────────────────
@@ -133,16 +213,32 @@ const SHIM = `
   var _pmAmbient = null;
 
   // Module isolation map — CSS class for each named module
+  // 'type' distinguishes main-grid columns from secondary/overlay panels
   var _moduleMap = {
-    'tacho':    '.tacho-block',
-    'pedals':   '.controls-pedals-block',
-    'fuel':     '.fuel-tyres-col',
-    'maps':     '.maps-col',
-    'position': '.pos-gaps-col',
-    'logo':     '.logo-col',
-    'timer':    '.timer-row'
+    'tacho':        { sel: '.tacho-block',           type: 'main' },
+    'pedals':       { sel: '.controls-pedals-block',  type: 'main' },
+    'fuel':         { sel: '.fuel-tyres-col',         type: 'main' },
+    'maps':         { sel: '.maps-col',               type: 'main' },
+    'position':     { sel: '.pos-gaps-col',           type: 'main' },
+    'logo':         { sel: '.logo-col',               type: 'main' },
+    'timer':        { sel: '.timer-row',              type: 'main' },
+    'leaderboard':  { sel: '.leaderboard-panel',      type: 'secondary' },
+    'datastream':   { sel: '.datastream-panel',       type: 'secondary' },
+    'pitbox':       { sel: '.pitbox-panel',           type: 'secondary' },
+    'incidents':    { sel: '.incidents-panel',         type: 'secondary' },
+    'commentary':   { sel: '.commentary-col',         type: 'overlay' },
+    'spotter':      { sel: '.spotter-panel',          type: 'overlay' },
+    'pit-limiter':  { sel: '.pit-banner',             type: 'overlay' },
+    'race-control': { sel: '.rc-banner',              type: 'overlay' },
+    'formation':    { sel: '.grid-module',            type: 'overlay' },
+    'race-end':     { sel: '.race-end-screen',        type: 'overlay' }
   };
   var _isolateStyle = null;
+
+  // All main-grid selectors for bulk hide/show
+  var _mainSels = Object.keys(_moduleMap).filter(function(k) { return _moduleMap[k].type === 'main'; }).map(function(k) { return _moduleMap[k].sel; });
+  // All secondary + overlay selectors
+  var _secSels = Object.keys(_moduleMap).filter(function(k) { return _moduleMap[k].type !== 'main'; }).map(function(k) { return _moduleMap[k].sel; });
 
   window.addEventListener('message', function(e) {
     if (!e.data || !e.data.type) return;
@@ -157,16 +253,46 @@ const SHIM = `
       if (_isolateStyle) _isolateStyle.remove();
       var mod = e.data.module;
       if (!mod || mod === 'all') return; // 'all' = restore full dashboard
-      var sel = _moduleMap[mod];
-      if (!sel) return;
-      // Build CSS: hide all columns, show only the target
-      var allCols = Object.values(_moduleMap).join(',\\n');
-      var css = allCols + ' { display: none !important; }\\n' +
-        sel + ' { display: flex !important; visibility: visible !important; opacity: 1 !important; }\\n' +
-        // Center the isolated module
-        '.main-area { justify-content: center !important; }\\n' +
-        // Hide timer row in isolation mode (unless explicitly shown)
-        '.timer-row { display: ' + (mod === 'timer' ? 'flex' : 'none') + ' !important; }';
+      var entry = _moduleMap[mod];
+      if (!entry) return;
+
+      var css = '';
+      if (entry.type === 'main') {
+        // Hide all main columns, show only target; hide all secondary/overlays
+        css += _mainSels.join(',\\n') + ' { display: none !important; }\\n';
+        css += _secSels.join(',\\n') + ' { display: none !important; }\\n';
+        css += entry.sel + ' { display: flex !important; visibility: visible !important; opacity: 1 !important; }\\n';
+        css += '.main-area { justify-content: center !important; }\\n';
+        css += '.timer-row { display: ' + (mod === 'timer' ? 'flex' : 'none') + ' !important; }\\n';
+      } else {
+        // Hide main dashboard entirely; hide all secondary/overlays; show target
+        css += '.dashboard { display: none !important; }\\n';
+        css += _secSels.join(',\\n') + ' { display: none !important; }\\n';
+        // Show the target panel — override position so it centers in the iframe
+        css += entry.sel + ' {\\n';
+        css += '  display: flex !important;\\n';
+        css += '  visibility: visible !important;\\n';
+        css += '  opacity: 1 !important;\\n';
+        css += '  position: relative !important;\\n';
+        css += '  inset: auto !important;\\n';
+        css += '  margin: 20px auto !important;\\n';
+        css += '  z-index: 100 !important;\\n';
+        css += '}\\n';
+        // For sec-container children, also show the container
+        if (entry.type === 'secondary') {
+          css += '.sec-container {\\n';
+          css += '  display: flex !important;\\n';
+          css += '  position: relative !important;\\n';
+          css += '  inset: auto !important;\\n';
+          css += '  justify-content: center !important;\\n';
+          css += '  margin: 20px auto !important;\\n';
+          css += '}\\n';
+          // Hide sibling secondary panels
+          css += '.sec-container > * { display: none !important; }\\n';
+          css += '.sec-container > ' + entry.sel + ' { display: flex !important; visibility: visible !important; opacity: 1 !important; position: relative !important; inset: auto !important; }\\n';
+        }
+      }
+
       _isolateStyle = document.createElement('style');
       _isolateStyle.textContent = css;
       document.head.appendChild(_isolateStyle);
@@ -216,15 +342,30 @@ html, body {
 /* Hide non-essential elements that may get created by JS */
 .conn-status,
 .conn-banner,
-.sec-container,
-.commentary-col,
 .settings-overlay,
 .drive-hud,
 #connBanner,
 #connStatus,
-#secContainer,
 #gameLogoOverlay {
   display: none !important;
+}
+
+/* Secondary panels & overlays — hidden by default, shown via isolation */
+.sec-container,
+.commentary-col,
+.leaderboard-panel,
+.datastream-panel,
+.pitbox-panel,
+.incidents-panel,
+.spotter-panel,
+.pit-banner,
+.rc-banner,
+.race-end-screen,
+.grid-module {
+  display: none !important;
+  position: relative !important;
+  inset: auto !important;
+  margin: 0 auto !important;
 }
 
 /* Dashboard: relative position, shrink to content width */
@@ -325,7 +466,7 @@ html, body {
 // ── Build ────────────────────────────────────────────────────────
 
 function build() {
-  const { canvases, dashboardHTML } = extractDashboardHTML();
+  const { canvases, dashboardHTML, secondaryHTML } = extractDashboardHTML();
 
   // Inline all CSS
   const allCSS = CSS_FILES.map(f => {
@@ -370,6 +511,8 @@ ${DEMO_CSS}
 ${canvases}
 
 ${dashboardHTML}
+
+${secondaryHTML}
 
 <script>
 ${allJS}

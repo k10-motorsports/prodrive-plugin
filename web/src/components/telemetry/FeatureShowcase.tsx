@@ -8,6 +8,7 @@ import { useTelemetry } from './TelemetryProvider'
  * `module` matches the key in the embed's _moduleMap (postMessage shim).
  */
 const FEATURES = [
+  // ── Main HUD columns ──
   {
     module: 'tacho',
     title: 'Live Telemetry HUD',
@@ -37,6 +38,49 @@ const FEATURES = [
     title: 'Race Position',
     desc: 'Live position with delta-to-start. iRating and Safety Rating with sparkline charts. Ahead/behind gaps with driver names and iRating.',
     accent: 'var(--cyan)',
+  },
+  // ── Secondary panels ──
+  {
+    module: 'leaderboard',
+    title: 'Relative Leaderboard',
+    desc: 'Live race standings with car numbers, gaps, and iRating. WebGL glow on position changes. Color-coded race timeline strip showing position history.',
+    accent: 'var(--purple)',
+  },
+  {
+    module: 'commentary',
+    title: 'AI Commentary',
+    desc: 'Context-aware AI race commentary with sentiment coloring, scrolling text, and real-time visualization canvas. Covers strategy, incidents, and race dynamics.',
+    accent: 'var(--amber)',
+  },
+  {
+    module: 'datastream',
+    title: 'Datastream',
+    desc: 'G-force diamond with lat/long/peak readout, yaw rate trail, steering torque (FFB), lap delta, and track temperature. Advanced telemetry at a glance.',
+    accent: 'var(--cyan)',
+  },
+  {
+    module: 'pitbox',
+    title: 'Pit Box',
+    desc: 'Five-tab pit strategy panel: tyre selections with pressures and wear, fuel calculations, live weather, car setup adjustments, and camera/FFB settings.',
+    accent: 'var(--green)',
+  },
+  {
+    module: 'incidents',
+    title: 'Incidents',
+    desc: 'Incident counter with progress bar tracking proximity to penalty and disqualification thresholds. WebGL glow on new contacts.',
+    accent: 'var(--k10-red)',
+  },
+  {
+    module: 'race-control',
+    title: 'Race Control',
+    desc: 'Full-width flag announcements with race control tower icon. Yellow, blue, debris, red, white, and checkered flag states with auto-dismiss.',
+    accent: 'var(--amber)',
+  },
+  {
+    module: 'formation',
+    title: 'Formation & Start Lights',
+    desc: 'Pre-race formation lap card with country flag, gridded car count, start type, and F1-style five-column start light sequence with GO flash.',
+    accent: 'var(--purple)',
   },
 ] as const
 
@@ -110,7 +154,7 @@ export function FeatureShowcase() {
       <div className="flex flex-col lg:flex-row gap-8 items-stretch">
         {/* Left: live module preview */}
         <div
-          className="relative flex-1 min-h-[300px] rounded-xl overflow-hidden border border-[var(--border-subtle)]"
+          className="relative flex-1 min-h-[400px] rounded-xl overflow-hidden border border-[var(--border-subtle)]"
           style={{ background: '#0a0a14' }}
         >
           {status !== 'live' && (
@@ -129,7 +173,7 @@ export function FeatureShowcase() {
             onLoad={handleIframeLoad}
             style={{
               background: '#0a0a14',
-              minHeight: '300px',
+              minHeight: '400px',
               opacity: status === 'live' ? 1 : 0,
               transition: 'opacity 0.5s ease',
             }}
@@ -138,7 +182,7 @@ export function FeatureShowcase() {
 
         {/* Right: feature list */}
         <div
-          className="flex flex-col gap-2 lg:w-[340px] flex-shrink-0"
+          className="flex flex-col gap-1 lg:w-[340px] flex-shrink-0 lg:max-h-[500px] lg:overflow-y-auto"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
@@ -149,7 +193,7 @@ export function FeatureShowcase() {
                 key={f.module}
                 onClick={() => selectFeature(i)}
                 className={`
-                  text-left p-4 rounded-xl border transition-all duration-300 cursor-pointer
+                  text-left p-3 rounded-xl border transition-all duration-300 cursor-pointer
                   ${isActive
                     ? 'bg-[var(--bg-surface)] border-[var(--border)]'
                     : 'bg-transparent border-transparent hover:bg-[var(--bg-surface)]/50 hover:border-[var(--border-subtle)]'
