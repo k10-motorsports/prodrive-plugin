@@ -21,7 +21,11 @@
         "forgiving mid-corner stability",
         "turbo lag manageable with precise throttle control"
       ],
-      "nickname": "The Bavarian Workhorse"
+      "nickname": "The Bavarian Workhorse",
+      "images": [
+        "https://upload.wikimedia.org/wikipedia/commons/e/e1/Nick_Yelloly_BMW_M4_GT3_GT_World_Challenge_Hockenheim_2022.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/0/0c/2022_BMW_M4_GT3_%2819047%29.jpg"
+      ]
     },
     "ferrari 296 gt3": {
       "displayName": "Ferrari 296 GT3",
@@ -41,7 +45,11 @@
         "explosive turbo delivery demanding smooth inputs",
         "playful rear-end requiring confidence to extract full potential"
       ],
-      "nickname": "The Turbo Revolution"
+      "nickname": "The Turbo Revolution",
+      "images": [
+        "https://upload.wikimedia.org/wikipedia/commons/c/cb/2024_4_Hours_of_Le_Castellet_7.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/5/5e/Ferrari_296_GT3%2C_DTM_%2855052860867%29.jpg"
+      ]
     },
     "porsche 911 gt3 r": {
       "displayName": "Porsche 911 GT3 R (992)",
@@ -62,7 +70,11 @@
         "requires commitment to brake late and turn-in hard",
         "rewarding for drivers who embrace its naturally aspirated soul"
       ],
-      "nickname": "The Purist's Choice"
+      "nickname": "The Purist's Choice",
+      "images": [
+        "https://upload.wikimedia.org/wikipedia/commons/3/3c/22_le_fant%C3%B4me.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/e/e1/24h_Le_Mans_2025_-_WGI_%2834%29.jpg"
+      ]
     },
     "mercedes-amg gt3": {
       "displayName": "Mercedes-AMG GT3 2020",
@@ -83,7 +95,10 @@
         "confidence-inspiring front-end grip",
         "rewards smooth, flowing inputs over aggressive inputs"
       ],
-      "nickname": "The German Precision Machine"
+      "nickname": "The German Precision Machine",
+      "images": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/2017_IMSA_WeatherTech_SportsCar_Championship_Petit_Le_Mans_%2834392983821%29.jpg/1280px-2017_IMSA_WeatherTech_SportsCar_Championship_Petit_Le_Mans_%2834392983821%29.jpg"
+      ]
     },
     "mclaren 720s gt3": {
       "displayName": "McLaren 720S GT3 EVO",
@@ -121,6 +136,9 @@
         "Rob Bell (McLaren Factory Driver since 2012, 720S GT3 debut winner at Donington 2019)",
         "Tom Blomqvist (Bathurst 12H podium, Daytona 24H champion)",
         "Alvaro Parente (McLaren endurance ace, Bathurst 12H champion in the 650S GT3)"
+      ],
+      "images": [
+        "https://upload.wikimedia.org/wikipedia/commons/7/76/2019_McLaren_720S_GT3_FOS19.jpg"
       ]
     },
     "lamborghini huracán gt3": {
@@ -141,7 +159,10 @@
         "mid-engine agility with supercar attitude",
         "demands respect and rewards aggression"
       ],
-      "nickname": "The Raging Bull"
+      "nickname": "The Raging Bull",
+      "images": [
+        "https://upload.wikimedia.org/wikipedia/commons/5/59/2018_Rolex_24_%2827393482358%29.jpg"
+      ]
     },
     "audi r8 lms": {
       "displayName": "Audi R8 LMS EVO II GT3",
@@ -162,7 +183,10 @@
         "trusting V10 power delivery",
         "methodical pace that accumulates over race distance"
       ],
-      "nickname": "The German Engineer's Answer"
+      "nickname": "The German Engineer's Answer",
+      "images": [
+        "https://upload.wikimedia.org/wikipedia/commons/7/7f/Audi_R8_LMS_Evo_of_Garry_Higgon_%26_Paul_Stokell_%28Adelaide_2022%29.jpg"
+      ]
     },
     "aston martin vantage gt3": {
       "displayName": "Aston Martin Vantage GT3 EVO",
@@ -183,7 +207,10 @@
         "front-engine balance with AMG reliability",
         "still being discovered by the community"
       ],
-      "nickname": "The British Newcomer"
+      "nickname": "The British Newcomer",
+      "images": [
+        "https://upload.wikimedia.org/wikipedia/commons/1/15/2018_Aston_Martin_Vantage_GT3_FOS19.jpg"
+      ]
     },
     "chevrolet corvette z06 gt3": {
       "displayName": "Chevrolet Corvette Z06 GT3.R",
@@ -450,7 +477,11 @@
         "brute-force approach to hybrid competition",
         "legacy of proven reliability"
       ],
-      "nickname": "The American Muscle Hypercar"
+      "nickname": "The American Muscle Hypercar",
+      "images": [
+        "https://upload.wikimedia.org/wikipedia/commons/e/e5/2023_24_Hours_of_Le_Mans_%2852974790571%29.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/4/4f/2024_24_Hours_of_Le_Mans_%2854094637094%29.jpg"
+      ]
     },
     "acura arx-06 gtp": {
       "displayName": "Acura ARX-06 GTP",
@@ -663,6 +694,9 @@
         "Jan Lammers (1988 Le Mans winner, Racing Team Nederland founder, campaigned P217 at age 56)",
         "Giedo van der Garde (ex-F1 Caterham, 2016 ELMS champion, RTN P217 driver)",
         "Frits van Eerd (RTN co-founder and driver, consistent LMP2 podium threat)"
+      ],
+      "images": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/2019_4_Hours_of_Silverstone_%2848664669456%29.jpg/1280px-2019_4_Hours_of_Silverstone_%2848664669456%29.jpg"
       ]
     },
     "mercedes-amg f1 w12": {
