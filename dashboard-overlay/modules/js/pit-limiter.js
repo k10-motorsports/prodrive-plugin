@@ -12,10 +12,11 @@
 
   function updatePitLimiter(p, isDemo) {
     const pre = isDemo ? 'K10Motorsports.Plugin.Demo.DS.' : 'K10Motorsports.Plugin.DS.';
-    const inPitLane = +(p[pre + 'IsInPitLane']) > 0;
-    const speedKmh = +(p[pre + 'SpeedKmh']) || 0;
-    const pitLimiterOn = +(p[pre + 'PitLimiterOn']) > 0;
-    const pitLimitKmh = +(p[pre + 'PitSpeedLimitKmh']) || 0;
+    // Fallback to SimHub's built-in DataCore if plugin property is not set
+    const inPitLane = +(p[pre + 'IsInPitLane']) > 0 || +(p['DataCorePlugin.GameData.IsInPitLane']) > 0;
+    const speedKmh = +(p[pre + 'SpeedKmh']) || +(p['DataCorePlugin.GameData.SpeedKph']) || 0;
+    const pitLimiterOn = +(p[pre + 'PitLimiterOn']) > 0 || +(p['DataCorePlugin.GameData.PitLimiterEnabled']) > 0;
+    const pitLimitKmh = +(p[pre + 'PitSpeedLimitKmh']) || +(p['DataCorePlugin.GameData.PitSpeedLimitKmh']) || 0;
 
     const banner = document.getElementById('pitBanner');
     const speedEl = document.getElementById('pitSpeed');
@@ -30,7 +31,7 @@
     // Detect pit entry while speeding — lock bonkers for 3s so it's visible
     // even after the car's auto-limiter kicks in and drops speed
     const now = Date.now();
-    const isSpeeding = +(p[pre + 'IsPitSpeeding']) > 0 || (pitLimitKmh > 0 && speedKmh > pitLimitKmh);
+    const isSpeeding = +(p[pre + 'IsPitSpeeding']) > 0 || (pitLimitKmh > 0 && speedKmh > pitLimitKmh) || +(p['DataCorePlugin.GameData.IsSpeedingOnPitRoad']) > 0;
     if (!_wasInPit && inPitLane && isSpeeding) {
       _bonkersHoldUntil = now + 3000;
     }
@@ -42,13 +43,13 @@
 
       // Show speed — prefer server-computed DS.SpeedMph
       if (speedEl) {
-        const mph = Math.round(+(p[pre + 'SpeedMph']) || speedKmh * 0.621371);
+        const mph = Math.round(+(p[pre + 'SpeedMph']) || +(p['DataCorePlugin.GameData.SpeedMph']) || speedKmh * 0.621371);
         speedEl.textContent = mph > 0 ? mph + ' mph' : '';
       }
       // Show pit speed limit — prefer server-computed DS.PitSpeedLimitMph
       if (limitEl) {
         if (pitLimitKmh > 0) {
-          const limitMph = Math.round(+(p[pre + 'PitSpeedLimitMph']) || pitLimitKmh * 0.621371);
+          const limitMph = Math.round(+(p[pre + 'PitSpeedLimitMph']) || +(p['DataCorePlugin.GameData.PitSpeedLimitMph']) || pitLimitKmh * 0.621371);
           limitEl.textContent = '/ ' + limitMph + ' limit';
         } else {
           limitEl.textContent = '';
@@ -87,7 +88,7 @@
         banner.classList.remove('pit-warning');
         if (labelEl) labelEl.textContent = 'SPEEDING';
         if (speedEl) {
-          const mph = Math.round(+(p[pre + 'SpeedMph']) || speedKmh * 0.621371);
+          const mph = Math.round(+(p[pre + 'SpeedMph']) || +(p['DataCorePlugin.GameData.SpeedMph']) || speedKmh * 0.621371);
           speedEl.textContent = mph > 0 ? mph + ' mph' : '';
         }
       } else {
