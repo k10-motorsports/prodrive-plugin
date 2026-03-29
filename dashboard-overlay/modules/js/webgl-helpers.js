@@ -1028,16 +1028,17 @@
 
       grad = document.createElementNS('http://www.w3.org/2000/svg', 'radialGradient');
       grad.id = 'trackGlowGrad';
-      const stopInner = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-      stopInner.setAttribute('offset', '0%');
-      stopInner.setAttribute('stop-color', 'var(--map-player-color, hsl(185,70%,55%))');
-      stopInner.setAttribute('stop-opacity', '0.3');
-      grad.appendChild(stopInner);
+      // Bright white-ish core that fades to brand color at edges
+      const stopCore = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stopCore.setAttribute('offset', '0%');
+      stopCore.setAttribute('stop-color', 'hsl(0,0%,100%)');
+      stopCore.setAttribute('stop-opacity', '0.45');
+      grad.appendChild(stopCore);
 
       const stopMid = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-      stopMid.setAttribute('offset', '50%');
+      stopMid.setAttribute('offset', '35%');
       stopMid.setAttribute('stop-color', 'var(--map-player-color, hsl(185,70%,55%))');
-      stopMid.setAttribute('stop-opacity', '0.1');
+      stopMid.setAttribute('stop-opacity', '0.25');
       grad.appendChild(stopMid);
 
       const stopOuter = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
@@ -1048,13 +1049,14 @@
 
       defs.appendChild(grad);
 
-      // Create glow circle overlay
+      // Create glow circle overlay — tight radius, pulsing via CSS
       glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       glow.id = 'trackPlayerGlow';
-      glow.setAttribute('r', '25');
+      glow.setAttribute('r', '10');
       glow.setAttribute('fill', 'url(#trackGlowGrad)');
       glow.style.pointerEvents = 'none';
       glow.style.mixBlendMode = 'screen';
+      glow.style.animation = 'map-glow-pulse 2s ease-in-out infinite';
 
       // Insert before dots so it's behind them
       const dotsGroup = svgEl.querySelector('.map-opponent') || svgEl.lastChild;
