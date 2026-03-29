@@ -117,6 +117,9 @@ namespace K10Motorsports.Plugin.Models
 
         /// <summary>Notable drivers associated with this car (real-world, not sim).</summary>
         public List<string> NotableDrivers { get; set; } = new List<string>();
+
+        /// <summary>Image URLs for this car (Wikimedia Commons, etc.).</summary>
+        public List<string> Images { get; set; } = new List<string>();
     }
 
     /// <summary>

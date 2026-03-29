@@ -116,6 +116,7 @@ namespace K10Motorsports.Plugin.Engine
         private volatile string _currentTextColor      = "#FFFFFFFF";
         private volatile string _currentEventExposition = "";
         private volatile string _currentTrackImage      = "";
+        private volatile string _currentCarImage        = "";
         private DateTime _promptDisplayedAt             = DateTime.MinValue;
         private int _currentSeverity                    = 0;
 
@@ -163,6 +164,7 @@ namespace K10Motorsports.Plugin.Engine
         public string CurrentTextColor      => _currentTextColor;
         public string CurrentEventExposition => _currentEventExposition;
         public string CurrentTrackImage     => _currentTrackImage;
+        public string CurrentCarImage       => _currentCarImage;
         public int    CurrentSeverity       => _currentSeverity;
         public bool   IsVisible       => _currentText.Length > 0
                                          && (DateTime.UtcNow - _promptDisplayedAt).TotalSeconds < DisplaySeconds;
@@ -539,6 +541,7 @@ namespace K10Motorsports.Plugin.Engine
             _currentTextColor       = "#FFFFFFFF";
             _currentEventExposition = "";
             _currentTrackImage      = "";
+            _currentCarImage        = "";
             _currentSeverity        = 0;
         }
 
@@ -679,6 +682,15 @@ namespace K10Motorsports.Plugin.Engine
                 trackImage = _currentTrackData.Images[_rng.Next(_currentTrackData.Images.Count)];
             }
 
+            // Pick a random car image if this is a car/manufacturer-related topic
+            string carImage = "";
+            if (_currentCarData?.Images != null && _currentCarData.Images.Count > 0
+                && (topic.Id.Contains("car") || topic.Id.Contains("manufacturer")
+                    || topic.Id.Contains("prerace_car") || topic.Id.Contains("race_car")))
+            {
+                carImage = _currentCarData.Images[_rng.Next(_currentCarData.Images.Count)];
+            }
+
             _currentText            = prompt;
             _currentCategory        = topic.Category;
             _currentTitle           = topic.Title;
@@ -688,6 +700,7 @@ namespace K10Motorsports.Plugin.Engine
             _currentTextColor       = textColor;
             _currentEventExposition = exposition;
             _currentTrackImage      = trackImage;
+            _currentCarImage        = carImage;
             _currentSeverity        = topic.Severity;
             _promptDisplayedAt      = DateTime.UtcNow;
 

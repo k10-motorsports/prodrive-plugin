@@ -937,7 +937,9 @@
         const hue = colorToHue(vs('K10Motorsports.Plugin.CommentarySentimentColor'));
         const severity = +v('K10Motorsports.Plugin.CommentarySeverity') || 0;
         const trackImg = vs('K10Motorsports.Plugin.CommentaryTrackImage') || '';
-        showCommentary(hue, vs('K10Motorsports.Plugin.CommentaryTopicTitle'), vs('K10Motorsports.Plugin.CommentaryText'), vs('K10Motorsports.Plugin.CommentaryCategory'), cmTopicId, severity, trackImg);
+        const carImg = vs('K10Motorsports.Plugin.CommentaryCarImage') || '';
+        const commentaryImg = trackImg || carImg;  // track image takes priority, car image as fallback
+        showCommentary(hue, vs('K10Motorsports.Plugin.CommentaryTopicTitle'), vs('K10Motorsports.Plugin.CommentaryText'), vs('K10Motorsports.Plugin.CommentaryCategory'), cmTopicId, severity, commentaryImg);
       }
     } else if (!cmVis && _commentaryWasVisible) {
       hideCommentary();
