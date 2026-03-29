@@ -1295,6 +1295,8 @@
   .map-player {
     fill: var(--map-player-color, var(--cyan));
     transition: fill 0.4s ease;
+    filter: drop-shadow(0 0 4px var(--map-player-color, var(--cyan)))
+            drop-shadow(0 0 8px var(--map-player-color, var(--cyan)));
   }
   .map-gforce-trail {
     pointer-events: none;
@@ -1303,6 +1305,21 @@
   }
   .map-opponent { fill: hsla(0,0%,100%,0.35); }
   .map-opponent.close { fill: var(--orange); }
+
+  /* Pulse animation for nearby opponents */
+  @keyframes map-opponent-pulse {
+    0%, 100% {
+      opacity: 0.7;
+      filter: none;
+    }
+    50% {
+      opacity: 1;
+      filter: drop-shadow(0 0 3px hsla(0,70%,60%,0.6));
+    }
+  }
+  .map-opponent.map-opponent-near {
+    animation: map-opponent-pulse 1.5s ease-in-out infinite;
+  }
 
   .map-zoom-panel {
     flex: 1;

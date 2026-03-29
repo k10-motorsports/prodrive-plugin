@@ -884,6 +884,12 @@
       zoomPlayer.setAttribute('cy', sy.toFixed(1));
     }
 
+    // Update track glow effect following player position
+    const fullSvg = document.getElementById('fullMapSvg');
+    const zoomSvg = document.getElementById('zoomMapSvg');
+    if (fullSvg) _updateTrackGlow(fullSvg, sx, sy);
+    if (zoomSvg) _updateTrackGlow(zoomSvg, sx, sy);
+
     // G-force trail — read current G from datastream globals
     const latG  = window._ambientLatG  || 0;
     const longG = window._ambientLongG || 0;
@@ -972,11 +978,15 @@
       fullDots[i].setAttribute('cy', oy);
       fullDots[i].style.display = inPit ? 'none' : '';
       fullDots[i].classList.toggle('close', _isClose(sx, sy, ox, oy));
+      // Add pulse animation for nearby opponents (~20% track proximity)
+      fullDots[i].classList.toggle('map-opponent-near', _isNear(sx, sy, ox, oy));
 
       zoomDots[i].setAttribute('cx', ox);
       zoomDots[i].setAttribute('cy', oy);
       zoomDots[i].style.display = inPit ? 'none' : '';
       zoomDots[i].classList.toggle('close', _isClose(sx, sy, ox, oy));
+      // Add pulse animation for nearby opponents (~20% track proximity)
+      zoomDots[i].classList.toggle('map-opponent-near', _isNear(sx, sy, ox, oy));
     }
   }
 
@@ -995,6 +1005,69 @@
   function _isClose(px, py, ox, oy) {
     const dx = px - ox, dy = py - oy;
     return (dx * dx + dy * dy) < 64; // ~8 SVG units
+  }
+
+  function _isNear(px, py, ox, oy) {
+    // Proximity pulse: ~20% of track (distance ~20 SVG units = ~400 units squared)
+    const dx = px - ox, dy = py - oy;
+    return (dx * dx + dy * dy) < 400; // ~20 SVG units
+  }
+
+  function _updateTrackGlow(svgEl, px, py) {
+    // Create or update a radial gradient glow that follows player position
+    let glow = svgEl.getElementById('trackPlayerGlow');
+    let grad = svgEl.getElementById('trackGlowGrad');
+
+    if (!glow) {
+      // Create radial gradient definition once
+      const defs = svgEl.querySelector('defs') || (() => {
+        const d = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        svgEl.insertBefore(d, svgEl.firstChild);
+        return d;
+      })();
+
+      grad = document.createElementNS('http://www.w3.org/2000/svg', 'radialGradient');
+      grad.id = 'trackGlowGrad';
+      const stopInner = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stopInner.setAttribute('offset', '0%');
+      stopInner.setAttribute('stop-color', 'var(--map-player-color, hsl(185,70%,55%))');
+      stopInner.setAttribute('stop-opacity', '0.3');
+      grad.appendChild(stopInner);
+
+      const stopMid = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stopMid.setAttribute('offset', '50%');
+      stopMid.setAttribute('stop-color', 'var(--map-player-color, hsl(185,70%,55%))');
+      stopMid.setAttribute('stop-opacity', '0.1');
+      grad.appendChild(stopMid);
+
+      const stopOuter = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stopOuter.setAttribute('offset', '100%');
+      stopOuter.setAttribute('stop-color', 'var(--map-player-color, hsl(185,70%,55%))');
+      stopOuter.setAttribute('stop-opacity', '0');
+      grad.appendChild(stopOuter);
+
+      defs.appendChild(grad);
+
+      // Create glow circle overlay
+      glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      glow.id = 'trackPlayerGlow';
+      glow.setAttribute('r', '25');
+      glow.setAttribute('fill', 'url(#trackGlowGrad)');
+      glow.style.pointerEvents = 'none';
+      glow.style.mixBlendMode = 'screen';
+
+      // Insert before dots so it's behind them
+      const dotsGroup = svgEl.querySelector('.map-opponent') || svgEl.lastChild;
+      if (dotsGroup && dotsGroup.parentNode) {
+        dotsGroup.parentNode.insertBefore(glow, dotsGroup);
+      } else {
+        svgEl.appendChild(glow);
+      }
+    }
+
+    // Update glow position to follow player
+    glow.setAttribute('cx', px.toFixed(1));
+    glow.setAttribute('cy', py.toFixed(1));
   }
 
   // ═══ EXPOSE ALL FUNCTIONS TO WINDOW ═══
