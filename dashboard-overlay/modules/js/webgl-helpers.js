@@ -885,10 +885,10 @@
     }
 
     // Update track glow effect following player position
-    const fullSvg = document.getElementById('fullMapSvg');
-    const zoomSvg = document.getElementById('zoomMapSvg');
-    if (fullSvg) _updateTrackGlow(fullSvg, sx, sy);
-    if (zoomSvg) _updateTrackGlow(zoomSvg, sx, sy);
+    const glowFullSvg = document.getElementById('fullMapSvg');
+    const glowZoomSvg = document.getElementById('zoomMapSvg');
+    if (glowFullSvg) _updateTrackGlow(glowFullSvg, sx, sy);
+    if (glowZoomSvg) _updateTrackGlow(glowZoomSvg, sx, sy);
 
     // G-force trail — read current G from datastream globals
     const latG  = window._ambientLatG  || 0;
