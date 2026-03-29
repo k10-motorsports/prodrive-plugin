@@ -643,6 +643,60 @@
   const _SVG_NS = 'http://www.w3.org/2000/svg';
   const _MAP_MAX_OPPONENTS = 63; // iRacing max field size
 
+  // G-force animation trail on player dot — ring buffer of recent positions
+  const _MAP_TRAIL_LEN = 24;
+  const _mapTrailX = new Float32Array(_MAP_TRAIL_LEN);
+  const _mapTrailY = new Float32Array(_MAP_TRAIL_LEN);
+  const _mapTrailG = new Float32Array(_MAP_TRAIL_LEN); // total G at each sample
+  let _mapTrailIdx = 0;
+  let _mapTrailCount = 0;
+  let _fullMapTrailEl = null;
+  let _zoomMapTrailEl = null;
+
+  function _ensureTrailElement(parentId, refElId) {
+    const parent = document.getElementById(parentId);
+    if (!parent) return null;
+    let trail = parent.querySelector('.map-gforce-trail');
+    if (trail) return trail;
+    trail = document.createElementNS(_SVG_NS, 'polyline');
+    trail.classList.add('map-gforce-trail');
+    trail.setAttribute('fill', 'none');
+    trail.setAttribute('stroke-linecap', 'round');
+    trail.setAttribute('stroke-linejoin', 'round');
+    // Insert before the player dot (last circle child) so trail draws behind it
+    const refEl = document.getElementById(refElId);
+    if (refEl) parent.insertBefore(trail, refEl);
+    else parent.appendChild(trail);
+    return trail;
+  }
+
+  function _renderMapTrail(trailEl, strokeWidth) {
+    if (!trailEl) return;
+    const count = Math.min(_mapTrailCount, _MAP_TRAIL_LEN);
+    if (count < 2) { trailEl.setAttribute('points', ''); return; }
+
+    // Build points string — newest first (ring buffer)
+    let pts = '';
+    let avgG = 0;
+    for (let i = 0; i < count; i++) {
+      const idx = (_mapTrailIdx - 1 - i + _MAP_TRAIL_LEN) % _MAP_TRAIL_LEN;
+      pts += _mapTrailX[idx].toFixed(1) + ',' + _mapTrailY[idx].toFixed(1) + ' ';
+      avgG += _mapTrailG[idx];
+    }
+    avgG /= count;
+
+    // Color: low G → cyan, high G → orange/red, modulated by intensity
+    const gNorm = Math.min(avgG / 2.5, 1.0);
+    const hue = Math.round(185 - gNorm * 155); // 185 (cyan) → 30 (orange)
+    const sat = Math.round(60 + gNorm * 30);
+    const lum = Math.round(50 + gNorm * 10);
+    const alpha = 0.25 + gNorm * 0.35;
+
+    trailEl.setAttribute('points', pts);
+    trailEl.setAttribute('stroke', 'hsla(' + hue + ',' + sat + '%,' + lum + '%,' + alpha.toFixed(2) + ')');
+    trailEl.setAttribute('stroke-width', String(strokeWidth));
+  }
+
   // Reset track map — clears recorded data and restarts capture
   function resetTrackMap() {
     fetch((window._simhubUrlOverride || SIMHUB_URL) + '?action=resetmap').catch(() => {});
@@ -816,6 +870,24 @@
       zoomPlayer.setAttribute('cx', sx.toFixed(1));
       zoomPlayer.setAttribute('cy', sy.toFixed(1));
     }
+
+    // G-force trail — read current G from datastream globals
+    const latG  = window._ambientLatG  || 0;
+    const longG = window._ambientLongG || 0;
+    const totalG = Math.sqrt(latG * latG + longG * longG);
+
+    // Sample position into ring buffer (every frame)
+    _mapTrailX[_mapTrailIdx] = sx;
+    _mapTrailY[_mapTrailIdx] = sy;
+    _mapTrailG[_mapTrailIdx] = totalG;
+    _mapTrailIdx = (_mapTrailIdx + 1) % _MAP_TRAIL_LEN;
+    _mapTrailCount++;
+
+    // Ensure trail SVG elements exist and render
+    if (!_fullMapTrailEl)  _fullMapTrailEl  = _ensureTrailElement('fullMapSvg', 'fullMapPlayer');
+    if (!_zoomMapTrailEl) _zoomMapTrailEl = _ensureTrailElement('zoomMapSvg', 'zoomMapPlayer');
+    _renderMapTrail(_fullMapTrailEl, 3);
+    _renderMapTrail(_zoomMapTrailEl, 1.8);
 
     // Update zoom map — player always centered, track rotates so
     // driving direction always points UP. Zoom out when slow to

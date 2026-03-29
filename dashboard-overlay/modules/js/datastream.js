@@ -270,6 +270,10 @@
     const tcActive = vd('TcActive') > 0;
     const lapDelta = vd('LapDelta');
 
+    // Expose G-force values for map trail animation
+    window._ambientLatG = latG;
+    window._ambientLongG = longG;
+
     // G-force diamond
     drawGforceDiamond(latG, longG);
 
