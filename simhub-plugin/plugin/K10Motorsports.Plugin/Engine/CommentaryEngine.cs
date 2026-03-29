@@ -420,6 +420,10 @@ namespace K10Motorsports.Plugin.Engine
                     if (!allowedPreRace) continue;
                 }
 
+                // Block pre-race topics once the race is underway
+                if (!isPreRace && topic.Id != null && topic.Id.StartsWith("prerace_"))
+                    continue;
+
                 if (!IsTopicCooledDown(topic)) continue;
                 if (!AnyTriggerFires(topic, current, previous)) continue;
 

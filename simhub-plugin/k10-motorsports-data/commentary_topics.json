@@ -1366,6 +1366,110 @@
         "{manufacturer}'s philosophy in {class}: {racingPhilosophy}. {carNickname} is a car that talks to you — {carCharacter}."
       ],
       "cooldownMinutes": 3
+    },
+    {
+      "id": "race_track_insight",
+      "category": "game_feel",
+      "title": "Track Insight",
+      "sentiment": "neutral_narrative",
+      "severity": 3,
+      "eventExposition": "",
+      "sessionTypes": ["race"],
+      "description": "Track context during an active race session. Uses race-appropriate language.",
+      "triggers": [
+        {
+          "dataPoint": "Position",
+          "condition": "sustained",
+          "context": "Active race — Position is always > 0"
+        }
+      ],
+      "commentaryPrompts": [
+        "A reminder of what makes {track} special. {trackFact}. That's the kind of knowledge {driver} is drawing on right now.",
+        "As the laps wind down here at {trackNickname} — {trackFact}.",
+        "{driver} threading through {corner}. This is where {track} tests every driver's resolve.",
+        "The challenge of {track}: {trackFact}. {driver} is living that challenge in real time.",
+        "{corner} at {trackNickname} — it's where this circuit demands the most commitment.",
+        "{trackFact}. That history is written into every lap {driver} puts down at {track}."
+      ],
+      "cooldownMinutes": 5
+    },
+    {
+      "id": "race_car_insight",
+      "category": "game_feel",
+      "title": "Car Spotlight",
+      "sentiment": "neutral_narrative",
+      "severity": 3,
+      "eventExposition": "",
+      "sessionTypes": ["race"],
+      "description": "Car and manufacturer context during an active race session.",
+      "triggers": [
+        {
+          "dataPoint": "Position",
+          "condition": "sustained",
+          "context": "Active race — Position is always > 0"
+        }
+      ],
+      "commentaryPrompts": [
+        "{driver} putting the {carNickname} through its paces. {carFact} — and you can see that lineage in every corner.",
+        "A closer look at what {driver} is working with: {car}. {carCharacter}.",
+        "{carNickname} responding to every input. {carFact}. The {engineSpec} is doing its job.",
+        "The {car} in {driver}'s hands. {manufacturerFact}. Under braking and on turn-in is where this machine shows its breeding.",
+        "Mid-race spotlight on {carNickname}. {carFact}. When {driver} gets this {class} car in rhythm, {carCharacter}.",
+        "{driver} extracting everything from {car}. {engineSpec} — that's the heart of this {class} contender."
+      ],
+      "cooldownMinutes": 5
+    },
+    {
+      "id": "race_circuit_detail",
+      "category": "game_feel",
+      "title": "Circuit Detail",
+      "sentiment": "technical_analytical",
+      "severity": 2,
+      "eventExposition": "",
+      "sessionTypes": ["race"],
+      "description": "Detailed circuit notes during an active race. Corner-specific information.",
+      "triggers": [
+        {
+          "dataPoint": "Position",
+          "condition": "sustained",
+          "context": "Active race — Position is always > 0"
+        }
+      ],
+      "commentaryPrompts": [
+        "A focus on {corner} here at {track}. {trackFact}. The line through here is defining the pace.",
+        "{corner} — the talking point at {track}. How {driver} handles this section is setting the rhythm for the stint.",
+        "The approach into {corner} rewards commitment. {trackFact} — that's the character of {trackNickname}.",
+        "At {track}, {corner} is where the lap comes together or falls apart. {driver} managing it well.",
+        "{trackFact}. That's what makes {track} one of the most demanding venues on the calendar.",
+        "Watch {driver} through {corner}. At {trackNickname}, this is where the real racing happens."
+      ],
+      "cooldownMinutes": 5
+    },
+    {
+      "id": "race_manufacturer_heritage",
+      "category": "game_feel",
+      "title": "Manufacturer Heritage",
+      "sentiment": "neutral_narrative",
+      "severity": 2,
+      "eventExposition": "",
+      "sessionTypes": ["race"],
+      "description": "Manufacturer racing heritage during an active race session.",
+      "triggers": [
+        {
+          "dataPoint": "Position",
+          "condition": "sustained",
+          "context": "Active race — Position is always > 0"
+        }
+      ],
+      "commentaryPrompts": [
+        "{manufacturerFact}. That institutional knowledge shows in every lap {carNickname} puts down. {racingPhilosophy}.",
+        "The {manufacturer} racing program: {racingPhilosophy}. In {car}, {driver} feels that commitment every lap.",
+        "{manufacturerFact}. Their approach to {class} is reflected in how {carNickname} communicates — {carCharacter}.",
+        "When you see {manufacturer} battling hard, {racingPhilosophy}. {manufacturerFact} — and {car} carries that DNA.",
+        "The heritage of {manufacturer}: {manufacturerFact}. From their earliest competition cars to {carNickname}, {racingPhilosophy}.",
+        "{manufacturer}'s philosophy in {class}: {racingPhilosophy}. {carNickname} is a car that talks to {driver} — {carCharacter}."
+      ],
+      "cooldownMinutes": 6
     }
   ]
 }
