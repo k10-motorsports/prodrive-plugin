@@ -154,7 +154,15 @@
       let sparkSvg = '';
       // Filter out any stale 0s that may have entered the history
       const hist = _sparkHistory[name] ? _sparkHistory[name].filter(v => v > 0) : null;
-      if (hist && hist.length >= 2) {
+      // During rolling/formation starts, draw a flat baseline when no lap data exists
+      if ((!hist || hist.length < 2) && window._isRollingStart) {
+        const w = 44, h2 = 14;
+        const midY = (h2 / 2).toFixed(1);
+        const col = isPlayer ? 'hsla(210,75%,55%,0.5)' : 'hsla(0,0%,100%,0.15)';
+        sparkSvg = '<svg class="lb-spark" viewBox="0 0 ' + w + ' ' + h2 + '" preserveAspectRatio="none">'
+          + '<line x1="0" y1="' + midY + '" x2="' + w + '" y2="' + midY + '" stroke="' + col + '" stroke-width="1" stroke-dasharray="3,2"/>'
+          + '</svg>';
+      } else if (hist && hist.length >= 2) {
         const mn = Math.min(...hist), mx = Math.max(...hist);
         const range = mx - mn || 1;
         const w = 44, h2 = 14;

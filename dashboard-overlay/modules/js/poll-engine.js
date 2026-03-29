@@ -116,6 +116,9 @@
       return;
     }
 
+    // Expose rolling/formation start state for leaderboard sparklines
+    window._isRollingStart = (sessNum === 2 || sessNum === 3); // Warmup or ParadeLaps
+
     // Idle detection: only idle when no session (sessNum === 0) or game not running
     // Pre-race states (sessNum 1=GetInCar, 2=Warmup, 3=ParadeLaps) should stay active
     const nowIdle = !_demo && (!gameRunning || sessNum === 0);
