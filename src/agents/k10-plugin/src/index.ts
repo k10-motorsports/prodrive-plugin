@@ -5,7 +5,10 @@ import { readFile, readdir } from 'fs/promises';
 import { join, relative } from 'path';
 
 // Resolve base paths
-const PLUGIN_ROOT = process.env.K10_PLUGIN_ROOT || '/sessions/jolly-great-babbage/mnt/media-coach-simhub-plugin/simhub-plugin';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PLUGIN_ROOT = process.env.K10_PLUGIN_ROOT || join(__dirname, '../../../..', 'racecor-plugin');
 const PLUGIN_SOURCE_DIR = join(PLUGIN_ROOT, 'plugin/K10Motorsports.Plugin');
 const DATASET_DIR = join(PLUGIN_ROOT, 'dataset');
 

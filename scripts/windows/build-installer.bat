@@ -19,8 +19,8 @@ echo.
 set "SCRIPTS_DIR=%~dp0"
 if "%SCRIPTS_DIR:~-1%"=="\" set "SCRIPTS_DIR=%SCRIPTS_DIR:~0,-1%"
 for %%I in ("%SCRIPTS_DIR%\..\..") do set "REPO_DIR=%%~fI"
-set "PLUGIN_DIR=%REPO_DIR%\simhub-plugin\plugin\K10Motorsports.Plugin"
-set "OVERLAY_DIR=%REPO_DIR%\dashboard-overlay"
+set "PLUGIN_DIR=%REPO_DIR%\racecor-plugin\plugin\K10Motorsports.Plugin"
+set "OVERLAY_DIR=%REPO_DIR%\racecor-overlay"
 set "INSTALLER_DIR=%REPO_DIR%\installer"
 
 echo  Repo root:    %REPO_DIR%
@@ -54,9 +54,9 @@ if !ERRORLEVEL! NEQ 0 (
 )
 
 :: Copy the DLL and PDB to the expected location for Inno Setup
-copy /Y "%STAGING%\K10Motorsports.Plugin.dll" "%REPO_DIR%\simhub-plugin\K10Motorsports.Plugin.dll" >NUL
+copy /Y "%STAGING%\K10Motorsports.Plugin.dll" "%REPO_DIR%\racecor-plugin\K10Motorsports.Plugin.dll" >NUL
 if exist "%STAGING%\K10Motorsports.Plugin.pdb" (
-    copy /Y "%STAGING%\K10Motorsports.Plugin.pdb" "%REPO_DIR%\simhub-plugin\K10Motorsports.Plugin.pdb" >NUL
+    copy /Y "%STAGING%\K10Motorsports.Plugin.pdb" "%REPO_DIR%\racecor-plugin\K10Motorsports.Plugin.pdb" >NUL
 )
 
 echo        OK — Plugin built successfully.
@@ -156,7 +156,7 @@ echo  Overlay (portable):
 echo    %OVERLAY_DIR%\dist\win-unpacked\
 echo.
 echo  Plugin DLL:
-echo    %REPO_DIR%\simhub-plugin\K10Motorsports.Plugin.dll
+echo    %REPO_DIR%\racecor-plugin\K10Motorsports.Plugin.dll
 echo.
 pause
 exit /b 0

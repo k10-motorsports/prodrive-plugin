@@ -11,7 +11,7 @@ import { readdir, readFile } from 'fs/promises';
 
 // Resolve the K10 broadcaster root path
 const K10_ROOT = process.env.K10_BROADCASTER_ROOT ||
-  '/sessions/jolly-great-babbage/mnt/media-coach-simhub-plugin/dashboard-overlay';
+  path.resolve(__dirname, '../../../..', 'racecor-overlay');
 
 interface ComponentInfo {
   name: string;

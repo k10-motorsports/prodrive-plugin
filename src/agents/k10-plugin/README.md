@@ -16,12 +16,12 @@ This server exposes 8 tools for reading and analyzing:
 
 The server uses environment variable `K10_PLUGIN_ROOT` to locate plugin files. If not set, it defaults to:
 ```
-simhub-plugin
+racecor-plugin
 ```
 
 To use a custom location:
 ```bash
-export K10_PLUGIN_ROOT=/path/to/simhub-plugin
+export K10_PLUGIN_ROOT=/path/to/racecor-plugin
 npm start
 ```
 

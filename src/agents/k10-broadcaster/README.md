@@ -50,7 +50,7 @@ The MCP provides 12 specialized tools for exploring the K10 Broadcaster dashboar
 The MCP reads from the K10 Motorsports dashboard source:
 
 ```
-dashboard-overlay/
+racecor-overlay/
 ├── modules/
 │   ├── js/                # Dashboard modules
 │   │   ├── config.js
@@ -259,8 +259,8 @@ The server will start on stdio and begin accepting MCP calls.
 
 ### Environment Variables
 
-- `K10_BROADCASTER_ROOT` - Path to dashboard-overlay src/src directory
-  - Default: `dashboard-overlay/src/src`
+- `K10_BROADCASTER_ROOT` - Path to racecor-overlay modules directory
+  - Default: `racecor-overlay/`
 
 ## Component Architecture
 

@@ -2,7 +2,7 @@
 
 ## What is this?
 
-A Model Context Protocol (MCP) server that lets Claude understand the K10 Motorsports dashboard overlay code without reading raw HTML files.
+A Model Context Protocol (MCP) server that lets Claude understand the RaceCor dashboard overlay code without reading raw HTML files.
 
 ## Location
 
@@ -127,7 +127,7 @@ search_source <pattern>
 
 The MCP reads from:
 ```
-dashboard-overlay/
+racecor-overlay/
 ├── modules/        (Dashboard modules)
 │   ├── js/         (JavaScript modules)
 │   └── styles/     (CSS modules)
@@ -173,7 +173,7 @@ Expected output: All tests pass ✓
 If the MCP doesn't start:
 
 1. Check Node.js version: `node --version` (should be 16+)
-2. Verify source exists: `ls dashboard-overlay/src/src/`
+2. Verify source exists: `ls racecor-overlay/modules/`
 3. Rebuild: `npm run build`
 4. Run test: `bash test-mcp.sh`
 

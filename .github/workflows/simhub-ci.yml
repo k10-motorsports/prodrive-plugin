@@ -4,11 +4,11 @@ on:
   push:
     branches: [main, master]
     paths:
-      - "simhub-plugin/**"
+      - "racecor-plugin/**"
   pull_request:
     branches: [main, master]
     paths:
-      - "simhub-plugin/**"
+      - "racecor-plugin/**"
 
 jobs:
 
@@ -28,10 +28,10 @@ jobs:
           python-version: "3.11"
 
       - name: Dataset validation (28 tests)
-        run: python3 simhub-plugin/tests/validate_datasets.py -v
+        run: python3 racecor-plugin/tests/validate_datasets.py -v
 
       - name: Installer and export tests (34 tests)
-        run: python3 simhub-plugin/tools/test_installer.py -v
+        run: python3 racecor-plugin/tools/test_installer.py -v
 
   # ---------------------------------------------------------------
   # Build plugin from source (verifies C# compiles on CI)
@@ -49,11 +49,11 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Build plugin (Release)
-        run: dotnet build simhub-plugin/plugin/K10Motorsports.Plugin/K10Motorsports.Plugin.csproj -c Release
+        run: dotnet build racecor-plugin/plugin/K10Motorsports.Plugin/K10Motorsports.Plugin.csproj -c Release
 
       - name: Verify DLL was produced
         run: |
-          if (!(Test-Path "simhub-plugin/K10Motorsports.Plugin.dll")) {
+          if (!(Test-Path "racecor-plugin/K10Motorsports.Plugin.dll")) {
             Write-Error "Plugin DLL not produced by build."
             exit 1
           }
@@ -76,16 +76,16 @@ jobs:
           dotnet-version: "6.0.x"
 
       - name: Restore NuGet packages
-        run: dotnet restore simhub-plugin/tests/K10Motorsports.Tests/K10Motorsports.Tests.csproj
+        run: dotnet restore racecor-plugin/tests/K10Motorsports.Tests/K10Motorsports.Tests.csproj
 
       - name: Build test project
-        run: dotnet build simhub-plugin/tests/K10Motorsports.Tests/K10Motorsports.Tests.csproj --no-restore
+        run: dotnet build racecor-plugin/tests/K10Motorsports.Tests/K10Motorsports.Tests.csproj --no-restore
 
       - name: Run tests (200+ tests)
-        run: dotnet test simhub-plugin/tests/K10Motorsports.Tests/K10Motorsports.Tests.csproj --no-build --verbosity normal
+        run: dotnet test racecor-plugin/tests/K10Motorsports.Tests/K10Motorsports.Tests.csproj --no-build --verbosity normal
 
   # Windows Installer (live) job removed.
   # install.bat / export.bat are developer convenience scripts, not the
   # release artifact. The real installer is the Inno Setup .exe compiled
   # by release.yml on version tags. The live .bat CI job was broken from
-  # the start and only generated noise on every simhub-plugin PR.
+  # the start and only generated noise on every racecor-plugin PR.

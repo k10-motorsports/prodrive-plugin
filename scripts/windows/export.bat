@@ -56,7 +56,7 @@ echo.
 set "TOOLS_DIR=%~dp0"
 if "%TOOLS_DIR:~-1%"=="\" set "TOOLS_DIR=%TOOLS_DIR:~0,-1%"
 for %%I in ("%TOOLS_DIR%\..") do set "REPO_DIR=%%~fI"
-set "PLUGIN_DIR=%REPO_DIR%\simhub-plugin"
+set "PLUGIN_DIR=%REPO_DIR%\racecor-plugin"
 
 :: -------------------------------------------------------------------
 :: 3. Export DLL + PDB
@@ -154,7 +154,7 @@ if exist "%DASH2_SRC%" (
     echo        OK - DashTemplates\k10 motorsports\
 
     :: Also update the Electron overlay's local copy
-    set "ELECTRON_DIR=%REPO_DIR%\dashboard-overlay"
+    set "ELECTRON_DIR=%REPO_DIR%\racecor-overlay"
     if exist "!ELECTRON_DIR!" (
         if exist "%DASH2_SRC%\k10 motorsports.html" (
             copy /Y "%DASH2_SRC%\k10 motorsports.html" "!ELECTRON_DIR!\dashboard.html" >NUL
@@ -188,7 +188,7 @@ echo  truth. Edit dataset files in the repo, then use
 echo  install.bat or rebuild.bat to push them to SimHub.
 echo.
 echo  Ready to commit. Run:
-echo    git add simhub-plugin/
+echo    git add racecor-plugin/
 echo    git commit -m "Update built plugin and dashboards"
 echo.
 pause

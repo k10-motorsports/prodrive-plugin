@@ -47,7 +47,7 @@
 
 ## Track Map CSV Data Quality
 
-Track map CSVs (in `simhub-plugin/.../TrackMaps/`) contain WorldX, WorldZ,
+Track map CSVs (in `racecor-plugin/.../TrackMaps/`) contain WorldX, WorldZ,
 LapDistPct columns recorded from iRacing telemetry. **Not all CSVs are clean.**
 
 Known issues:

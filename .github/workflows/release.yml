@@ -44,14 +44,14 @@ jobs:
 
           # package.json
           sed -i -E "s/\"version\": *\"[^\"]+\"/\"version\": \"$VER\"/" \
-            dashboard-overlay/package.json
+            racecor-overlay/package.json
 
           # Inno Setup .iss
           sed -i -E "s/#define MyAppVersion +\"[^\"]+\"/#define MyAppVersion   \"$VER\"/" \
             installer/k10-motorsports.iss
 
           # AssemblyInfo.cs
-          ASMFILE="simhub-plugin/plugin/K10Motorsports.Plugin/Properties/AssemblyInfo.cs"
+          ASMFILE="racecor-plugin/plugin/K10Motorsports.Plugin/Properties/AssemblyInfo.cs"
           sed -i -E "s/AssemblyVersion\(\"[^\"]+\"\)/AssemblyVersion(\"$ASM_VER\")/" "$ASMFILE"
           sed -i -E "s/AssemblyFileVersion\(\"[^\"]+\"\)/AssemblyFileVersion(\"$ASM_VER\")/" "$ASMFILE"
 
@@ -61,8 +61,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add dashboard-overlay/package.json installer/k10-motorsports.iss \
-                 simhub-plugin/plugin/K10Motorsports.Plugin/Properties/AssemblyInfo.cs
+          git add racecor-overlay/package.json installer/k10-motorsports.iss \
+                 racecor-plugin/plugin/K10Motorsports.Plugin/Properties/AssemblyInfo.cs
           git diff --cached --quiet && echo "No changes to commit" && exit 0
           git commit -m "chore: bump version to ${{ steps.version.outputs.VERSION }} [skip ci]"
           git push origin main
@@ -84,14 +84,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: dashboard-overlay/package-lock.json
+          cache-dependency-path: racecor-overlay/package-lock.json
 
       - name: Install dependencies
-        working-directory: dashboard-overlay
+        working-directory: racecor-overlay
         run: npm ci
 
       - name: Build overlay (win x64 + arm64)
-        working-directory: dashboard-overlay
+        working-directory: racecor-overlay
         run: npx electron-builder --win --config electron-builder.yml --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -100,13 +100,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: overlay-win-unpacked
-          path: dashboard-overlay/dist/win-unpacked/
+          path: racecor-overlay/dist/win-unpacked/
 
       - name: Upload win-arm64-unpacked for Inno Setup
         uses: actions/upload-artifact@v4
         with:
           name: overlay-win-arm64-unpacked
-          path: dashboard-overlay/dist/win-arm64-unpacked/
+          path: racecor-overlay/dist/win-arm64-unpacked/
 
   # ---------------------------------------------------------------
   # Build plugin + compile the Inno Setup combined installer
@@ -127,13 +127,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: overlay-win-unpacked
-          path: dashboard-overlay/dist/win-unpacked/
+          path: racecor-overlay/dist/win-unpacked/
 
       - name: Download overlay (win arm64)
         uses: actions/download-artifact@v4
         with:
           name: overlay-win-arm64-unpacked
-          path: dashboard-overlay/dist/win-arm64-unpacked/
+          path: racecor-overlay/dist/win-arm64-unpacked/
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -142,12 +142,12 @@ jobs:
 
       - name: Build plugin
         run: |
-          dotnet build simhub-plugin/plugin/K10Motorsports.Plugin/K10Motorsports.Plugin.csproj -c Release
-          if (!(Test-Path "simhub-plugin/K10Motorsports.Plugin.dll")) {
+          dotnet build racecor-plugin/plugin/K10Motorsports.Plugin/K10Motorsports.Plugin.csproj -c Release
+          if (!(Test-Path "racecor-plugin/K10Motorsports.Plugin.dll")) {
             Write-Error "Plugin DLL not produced by build."
             exit 1
           }
-          Write-Host "Plugin DLL built: $(Get-Item simhub-plugin/K10Motorsports.Plugin.dll | Select-Object -ExpandProperty Length) bytes"
+          Write-Host "Plugin DLL built: $(Get-Item racecor-plugin/K10Motorsports.Plugin.dll | Select-Object -ExpandProperty Length) bytes"
         shell: pwsh
 
       - name: Install Inno Setup

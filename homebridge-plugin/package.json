@@ -1,7 +1,7 @@
 {
-  "name": "homebridge-k10-motorsports-lights",
+  "name": "homebridge-racecor-lights",
   "version": "0.0.8",
-  "description": "Homebridge plugin for the K10 Motorsports sim racing platform — maps race telemetry, flags, strategy calls, and proximity warnings to HomeKit smart light colors in real-time",
+  "description": "Homebridge plugin for the RaceCor.io sim racing platform — maps race telemetry, flags, strategy calls, and proximity warnings to HomeKit smart light colors in real-time",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -18,7 +18,7 @@
     "homebridge",
     "homekit",
     "simhub",
-    "k10-motorsports",
+    "racecor",
     "sim-racing",
     "iracing",
     "telemetry",

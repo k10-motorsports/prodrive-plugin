@@ -2,7 +2,7 @@ K10 MOTORSPORTS MCP - IMPLEMENTATION SUMMARY
 ==============================================
 
 PROJECT LOCATION:
-/sessions/gifted-keen-pasteur/mnt/media-coach-simhub-plugin/mcp/k10-broadcaster/
+/sessions/quirky-optimistic-faraday/mnt/media-coach-simhub-plugin/src/agents/k10-broadcaster/
 
 COMPLETION STATUS: ✓ COMPLETE & TESTED
 
@@ -171,7 +171,7 @@ KEY FEATURES:
 
 SOURCE ACCESSIBILITY:
 
-Reads from: /sessions/gifted-keen-pasteur/mnt/media-coach-simhub-plugin/k10-motorsports/src/src/
+Reads from: /sessions/quirky-optimistic-faraday/mnt/media-coach-simhub-plugin/racecor-overlay/
 
 ✓ components/ - All 20+ React components
 ✓ hooks/ - useTelemetry, useSettings
@@ -204,7 +204,7 @@ BUILD PROCESS:
 USAGE:
 
 Start the server:
-  cd /sessions/gifted-keen-pasteur/mnt/media-coach-simhub-plugin/mcp/k10-broadcaster
+  cd /sessions/quirky-optimistic-faraday/mnt/media-coach-simhub-plugin/src/agents/k10-broadcaster
   npm start
 
 Or in background:
@@ -220,7 +220,7 @@ Test installation:
 ENVIRONMENT:
 
 K10_BROADCASTER_ROOT environment variable:
-  Default: /sessions/gifted-keen-pasteur/mnt/media-coach-simhub-plugin/k10-motorsports/src/src
+  Default: /sessions/quirky-optimistic-faraday/mnt/media-coach-simhub-plugin/racecor-overlay
   Can be overridden: export K10_BROADCASTER_ROOT=/path/to/source
 
 Node.js requirement: 16+ (ES2022 support)

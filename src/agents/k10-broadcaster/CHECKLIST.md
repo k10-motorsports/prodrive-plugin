@@ -37,7 +37,7 @@
 - [x] Follows JSON-RPC 2.0 protocol
 
 ## Source Code Access
-- [x] Reads from correct location (dashboard-overlay/)
+- [x] Reads from correct location (racecor-overlay/)
 - [x] Discovers modules in modules/ directory
 - [x] Accesses JS utilities
 - [x] Reads configuration in modules/ directory

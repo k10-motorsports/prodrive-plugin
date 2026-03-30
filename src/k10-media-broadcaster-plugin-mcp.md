@@ -108,7 +108,7 @@ It seems like live Haiku integration isn't going to be a feasible solution. Upda
 
 Next, investigate the actual data points being used, some of them are inverted, ie, you're saying my tires are at 98% worn when they're at 98% used (ie, 2% worn). update data thresholds to more realistic ones, and consider investigating how other simhub plugins set their data this way, in particular, crew chief v4.
 
-once you've planned this out and updated simhub-plugin/docs/PLUGIN_FEEDBACK.md, use a sub-agent running sonnet to fulfill the requirements.
+once you've planned this out and updated racecor-plugin/docs/PLUGIN_FEEDBACK.md, use a sub-agent running sonnet to fulfill the requirements.
 
 ## Updating To Include Light Control
 

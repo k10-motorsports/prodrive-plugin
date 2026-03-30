@@ -3,9 +3,9 @@
 #  K10 Motorsports — Overlay Launcher (macOS)
 # ═══════════════════════════════════════════════
 
-# Navigate to the Electron app root (dashboard-overlay/)
+# Navigate to the Electron app root (racecor-overlay/)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-APP_DIR="$SCRIPT_DIR/../../dashboard-overlay"
+APP_DIR="$SCRIPT_DIR/../../racecor-overlay"
 cd "$APP_DIR"
 
 echo "═══════════════════════════════════════════════"

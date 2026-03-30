@@ -1,5 +1,5 @@
 ; ═══════════════════════════════════════════════════════════════
-; K10 Motorsports — Inno Setup Installer Script
+; RaceCor.io — Inno Setup Installer Script
 ; Installs the SimHub plugin (telemetry engine, commentary, strategy)
 ; and the Electron overlay app (transparent HUD with WebGL effects).
 ;
@@ -9,19 +9,19 @@
 ;
 ; Prerequisites (build these BEFORE compiling this installer):
 ;   1. dotnet build the plugin  → produces K10Motorsports.Plugin.dll
-;   2. npm run build:win        → produces dashboard-overlay/dist/win-unpacked/
-;                                  and    dashboard-overlay/dist/win-arm64-unpacked/
+;   2. npm run build:win        → produces racecor-overlay/dist/win-unpacked/
+;                                  and    racecor-overlay/dist/win-arm64-unpacked/
 ;
 ; Compile with:
 ;   iscc installer/k10-motorsports.iss
 ;
 ; Paths are relative to this .iss file's directory (installer/).
 
-#define MyAppName      "K10 Motorsports"
+#define MyAppName      "RaceCor.io"
 #define MyAppVersion   "0.3.0"
 #define MyAppPublisher "Kevin Conboy"
-#define MyAppURL       "https://github.com/alternatekev/media-coach-simhub-plugin"
-#define MyAppExeName   "K10 Motorsports.exe"
+#define MyAppURL       "https://github.com/alternatekev/racecor"
+#define MyAppExeName   "RaceCor.io.exe"
 
 [Setup]
 AppId={{A3F7E2D1-8B4C-4E6A-9D5F-1C2B3A4E5F6D}
@@ -35,8 +35,8 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=output
-OutputBaseFilename=K10-Motorsports-Setup-{#MyAppVersion}
-SetupIconFile=..\dashboard-overlay\images\branding\icon.ico
+OutputBaseFilename=RaceCor-Setup-{#MyAppVersion}
+SetupIconFile=..\racecor-overlay\images\branding\icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -67,20 +67,20 @@ Name: "startmenu";   Description: "Create Start Menu shortcut"; GroupDescription
 
 [Files]
 ; ── Overlay application: x64 build (installed on x64 machines) ──
-Source: "..\dashboard-overlay\dist\win-unpacked\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: overlay; Check: not IsArm64
+Source: "..\racecor-overlay\dist\win-unpacked\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: overlay; Check: not IsArm64
 
 ; ── Overlay application: arm64 build (installed on arm64 machines) ──
-Source: "..\dashboard-overlay\dist\win-arm64-unpacked\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs solidbreak; Components: overlay; Check: IsArm64
+Source: "..\racecor-overlay\dist\win-arm64-unpacked\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs solidbreak; Components: overlay; Check: IsArm64
 
 ; ── SimHub plugin DLL (AnyCPU — works on both architectures) ──
-Source: "..\simhub-plugin\K10Motorsports.Plugin.dll"; DestDir: "{code:GetSimHubDir}"; Flags: ignoreversion; Components: plugin
-Source: "..\simhub-plugin\K10Motorsports.Plugin.pdb"; DestDir: "{code:GetSimHubDir}"; Flags: ignoreversion skipifsourcedoesntexist; Components: plugin
+Source: "..\racecor-plugin\K10Motorsports.Plugin.dll"; DestDir: "{code:GetSimHubDir}"; Flags: ignoreversion; Components: plugin
+Source: "..\racecor-plugin\K10Motorsports.Plugin.pdb"; DestDir: "{code:GetSimHubDir}"; Flags: ignoreversion skipifsourcedoesntexist; Components: plugin
 
 ; ── Dataset files ──
-Source: "..\simhub-plugin\k10-motorsports-data\*"; DestDir: "{code:GetSimHubDir}\k10-motorsports-data"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: plugin
+Source: "..\racecor-plugin\k10-motorsports-data\*"; DestDir: "{code:GetSimHubDir}\k10-motorsports-data"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: plugin
 
 ; ── Stream Deck profile ──
-Source: "..\dashboard-overlay\streamdeck\*"; DestDir: "{app}\streamdeck"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: overlay
+Source: "..\racecor-overlay\streamdeck\*"; DestDir: "{app}\streamdeck"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: overlay
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Components: overlay

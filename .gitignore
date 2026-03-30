@@ -24,14 +24,14 @@ logs/
 **/test-results/
 
 # ── Plugin CI build output ────────────────────────────────────────
-simhub-plugin/build/
+racecor-plugin/build/
 
 # ── Installer build artifacts ──────────────────────────────────────
 installer/output/
 installer/staging/
 
 # ── Electron-builder output (dist/ already covered, but be explicit)
-dashboard-overlay/dist/
+racecor-overlay/dist/
 
 # ── Claude / MCP config (may contain API tokens) ─────────────────
 .claude/

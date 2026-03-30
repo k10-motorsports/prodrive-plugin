@@ -11,7 +11,7 @@
 ## Project Files
 
 ```
-/mcp/k10-broadcaster/
+src/agents/k10-broadcaster/
 ├── src/
 │   └── index.ts              # Main MCP implementation (650 lines)
 ├── dist/
@@ -71,7 +71,7 @@ The K10 Motorsports MCP provides 12 specialized tools for understanding the K10 
 
 ## Source Code Organization
 
-The MCP reads from: `dashboard-overlay/`
+The MCP reads from: `racecor-overlay/`
 
 ```
 modules/            Dashboard modules

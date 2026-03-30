@@ -4,7 +4,7 @@
 // for embedding in the marketing site via iframe + postMessage.
 //
 // Usage:  node scripts/build-web-demo.mjs
-// Output: web/public/_demo/dashboard-embed.html
+// Output: racecor-web/public/_demo/dashboard-embed.html
 //
 // The generated page:
 //   • Contains the main HUD panels (tacho, pedals, fuel, tyres,
@@ -22,8 +22,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
-const OVERLAY = join(ROOT, 'dashboard-overlay');
-const OUT_DIR = join(ROOT, 'web', 'public', '_demo');
+const OVERLAY = join(ROOT, 'racecor-overlay');
+const OUT_DIR = join(ROOT, 'racecor-web', 'public', '_demo');
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -530,11 +530,11 @@ ${allJS}
   const imgDest = join(OUT_DIR, 'images');
   if (existsSync(imgSrc)) {
     execSync(`rm -rf "${imgDest}" && cp -r "${imgSrc}" "${imgDest}"`);
-    console.log(`✓ Copied images/ to web/public/_demo/images/`);
+    console.log(`✓ Copied images/ to racecor-web/public/_demo/images/`);
   }
 
   const sizeKB = Math.round(html.length / 1024);
-  console.log(`✓ Built web/public/_demo/dashboard-embed.html (${sizeKB} KB)`);
+  console.log(`✓ Built racecor-web/public/_demo/dashboard-embed.html (${sizeKB} KB)`);
 }
 
 build();

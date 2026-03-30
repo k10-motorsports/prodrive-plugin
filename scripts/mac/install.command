@@ -5,7 +5,7 @@
 
 # Navigate to app root (K10 Motorsports/)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-APP_DIR="$SCRIPT_DIR/../../dashboard-overlay"
+APP_DIR="$SCRIPT_DIR/../../racecor-overlay"
 cd "$APP_DIR"
 
 echo "═══════════════════════════════════════════════"

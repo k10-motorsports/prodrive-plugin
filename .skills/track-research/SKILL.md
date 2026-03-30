@@ -30,13 +30,13 @@ Track data comes from several places, in priority order:
    boundary percentages and native sector counts. These are only available
    at runtime when connected to the sim. If the user provides observed values,
    treat them as authoritative and update the database.
-2. **The existing `dashboard-overlay/data/tracks.json`** — contains curated
+2. **The existing `racecor-overlay/data/tracks.json`** — contains curated
    info for ~10 key tracks. Already referenced by the overlay.
 3. **Web research** — for history, notable races, corner names, and
    commentary-grade facts. Wikipedia, official circuit sites, F1/WEC/IMSA
    results pages.
 4. **The bundled track map CSVs** in
-   `simhub-plugin/k10-motorsports-data/trackmaps/` — waypoint data for the
+   `racecor-plugin/k10-motorsports-data/trackmaps/` — waypoint data for the
    map visualization. If a CSV exists for a track, it's a "bundled" track
    with first-class support.
 
