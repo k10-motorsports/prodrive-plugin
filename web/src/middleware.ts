@@ -8,7 +8,7 @@ import type { NextRequest } from 'next/server'
  *   - racecor.io                     → /marketing/* (product site)
  *   - drive.racecor.io               → /drive/*     (Pro Drive members area)
  *   - k10motorsports.racing          → /k10/*       (org hub)
- *   - drive.k10motorsports.racing    → /drive/*     (fallback to drive.racecor.io)
+ *   - drive.k10motorsports.racing    → 308 redirect to drive.racecor.io (canonical for OAuth)
  *
  * Dev (via /etc/hosts):
  *   - dev.racecor.io:3000            → /marketing/*
@@ -31,12 +31,21 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // Redirect drive.k10motorsports.racing → drive.racecor.io so OAuth
+  // callbacks always resolve to a single canonical domain.
+  if (host.includes('drive.k10motorsports.racing') || host.includes('dev.drive.k10motorsports.racing')) {
+    const racecorHost = host.replace(/drive\..*k10motorsports\.racing/, 'drive.racecor.io')
+    const dest = new URL(request.url)
+    dest.host = racecorHost
+    return NextResponse.redirect(dest, 308)
+  }
+
   // Detect subdomain — prioritize query param, then host header
   let targetPath = '/marketing' // default
 
   if (host.includes('drive.') || subdomain === 'drive') {
     targetPath = '/drive'
-  } else if (host.includes('k10motorsports.racing') && !host.includes('drive.')) {
+  } else if (host.includes('k10motorsports.racing')) {
     targetPath = '/k10'
   }
 

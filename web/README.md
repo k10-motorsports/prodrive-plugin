@@ -38,7 +38,7 @@ cp .env.example .env.local
 | `DISCORD_CLIENT_ID` | For auth | Discord OAuth app client ID |
 | `DISCORD_CLIENT_SECRET` | For auth | Discord OAuth app secret |
 | `NEXTAUTH_SECRET` | For auth | Generate with `openssl rand -base64 32` |
-| `NEXTAUTH_URL` | Yes | `http://localhost:3000` locally, production URL in deploy |
+| `NEXTAUTH_URL` | Yes | `http://localhost:3000` locally, `https://drive.racecor.io` in production |
 | `STRAPI_URL` | For CMS | Strapi instance URL (e.g. `http://localhost:1337`) |
 | `STRAPI_API_TOKEN` | For CMS | Strapi API token (Settings → API Tokens → Create) |
 
@@ -151,7 +151,7 @@ In Vercel project settings → Environment Variables, add:
 ```
 YOUTUBE_API_KEY=your-key
 NEXTAUTH_SECRET=your-secret
-NEXTAUTH_URL=https://k10motorsports.racing
+NEXTAUTH_URL=https://drive.racecor.io
 DISCORD_CLIENT_ID=your-id
 DISCORD_CLIENT_SECRET=your-secret
 STRAPI_URL=https://your-strapi-instance.com
