@@ -963,6 +963,15 @@
         </div>
       </div>
 
+      <div class="settings-row">
+        <span class="settings-label">Y-Adjust</span>
+        <div class="settings-range-row">
+          <input class="settings-range" id="settingsBottomYOffset" type="range" min="0" max="200" step="10" value="0" oninput="previewBottomYOffset(this.value)" onchange="updateBottomYOffset(this.value)"/>
+          <span class="settings-range-val" id="bottomYOffsetVal">0px</span>
+        </div>
+      </div>
+      <div class="settings-hint">Shift bottom-anchored modules (panels, incidents, commentary) upward.</div>
+
       <div class="settings-group-label">Mode</div>
       <div class="settings-row">
         <span class="settings-label">Drive Mode</span>

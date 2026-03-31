@@ -663,6 +663,14 @@
       pb.classList.add('pb-' + secVert, 'pb-' + secHoriz);
     }
 
+    // ── Bottom Y-Offset — shift bottom-anchored modules upward ──
+    const yOff = _settings.bottomYOffset || 0;
+    if (sec && secVert === 'bottom') {
+      sec.style.marginBottom = yOff ? (yOff + 'px') : '';
+    } else if (sec) {
+      sec.style.marginBottom = '';
+    }
+
     // ── 5. Incidents: same vertical edge as sec-container, always opposite
     //       horizontal edge from it (diagonal from main HUD) ──
     const incVert  = secVert;
@@ -680,9 +688,15 @@
       inc.style.left   = incHoriz === 'left'  ? '' : 'auto';
       inc.style.right  = incHoriz === 'right' ? '' : 'auto';
       inc.style.marginTop = '';
-      inc.style.marginBottom = '';
+      inc.style.marginBottom = (incVert === 'bottom' && yOff) ? (yOff + 'px') : '';
       console.log('[layout] incidents → ' + incVert + '-' + incHoriz +
         ' (sec=' + secVert + '-' + secHoriz + ', pos=' + pos + ')');
+    }
+
+    // Commentary bottom Y-offset
+    if (cmtCol) {
+      const cmtIsBottom = cmtCol.classList.contains('cmt-bl') || cmtCol.classList.contains('cmt-br');
+      cmtCol.style.marginBottom = (cmtIsBottom && yOff) ? (yOff + 'px') : '';
     }
 
     // ── 6. Spotter: co-located with race control at top center ──
@@ -743,6 +757,23 @@
       const settingsOverlay = document.getElementById('settingsOverlay');
       if (settingsOverlay) settingsOverlay.style.zoom = scale;
     }
+  }
+
+  function previewBottomYOffset(val) {
+    val = Math.max(0, Math.min(200, +val));
+    document.getElementById('bottomYOffsetVal').textContent = val + 'px';
+    _settings.bottomYOffset = val;
+    applyLayout();
+    // Also nudge the game logo
+    if (window.updateGameLogo) window.updateGameLogo(window._currentGameId || '', _settings.showGameLogo !== false);
+  }
+  function updateBottomYOffset(val) {
+    val = Math.max(0, Math.min(200, +val));
+    _settings.bottomYOffset = val;
+    document.getElementById('bottomYOffsetVal').textContent = val + 'px';
+    applyLayout();
+    if (window.updateGameLogo) window.updateGameLogo(window._currentGameId || '', _settings.showGameLogo !== false);
+    saveSettings();
   }
 
   function updateForceFlag(val) {

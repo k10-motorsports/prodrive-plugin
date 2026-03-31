@@ -19,11 +19,11 @@
   };
 
   // Logo-corner mapping: dashboard position → logo position
-  // Logo goes on the opposite vertical edge AND opposite horizontal side
-  // to avoid overlap with the dashboard.
+  // Top layouts: same row, opposite column (keeps logo visible near HUD).
+  // Bottom layouts: diagonal opposite (top row, opposite column).
   var OPPOSITE_CORNER = {
-    'top-right':       'bottom-left',
-    'top-left':        'bottom-right',
+    'top-right':       'top-left',
+    'top-left':        'top-right',
     'bottom-right':    'top-left',
     'bottom-left':     'top-right',
     'absolute-center': 'bottom-left'
@@ -64,6 +64,11 @@
       var kv = p.split(':');
       if (kv.length === 2) _logoEl.style[kv[0].trim()] = kv[1].trim();
     });
+    // Apply bottom Y-offset when logo is on a bottom edge
+    if (logoPos.indexOf('bottom') === 0) {
+      var yOff = (window._settings && window._settings.bottomYOffset) || 0;
+      if (yOff) _logoEl.style.bottom = (10 + yOff) + 'px';
+    }
   }
 
   function loadSvg(gameId) {

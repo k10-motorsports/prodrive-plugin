@@ -70,6 +70,13 @@
     if (zoomLabel) zoomLabel.textContent = zoomVal + '%';
     applyZoom(zoomVal);
 
+    // Bottom Y-offset
+    const yOffVal = _settings.bottomYOffset || 0;
+    const yOffSlider = document.getElementById('settingsBottomYOffset');
+    const yOffLabel = document.getElementById('bottomYOffsetVal');
+    if (yOffSlider) yOffSlider.value = yOffVal;
+    if (yOffLabel) yOffLabel.textContent = yOffVal + 'px';
+
     // Force flag
     _forceFlagState = _settings.forceFlag || '';
     const flagSelect = document.getElementById('settingsForceFlag');
