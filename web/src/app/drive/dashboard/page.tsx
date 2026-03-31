@@ -55,7 +55,7 @@ export default async function DashboardPage() {
       <div className="max-w-4xl mx-auto px-6 py-12">
         {/* Welcome + Download */}
         <section className="mb-12">
-          <h1 className="text-3xl font-black mb-2">Welcome, {displayName}</h1>
+          <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: 'var(--ff-display)' }}>Welcome, {displayName}</h1>
           <p className="text-[var(--text-dim)] mb-6">
             Download the RaceCor overlay, connect it to your Pro Drive account, and start racing. Your performance data will appear here automatically.
           </p>

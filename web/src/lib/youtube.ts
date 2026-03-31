@@ -59,7 +59,7 @@ async function apiFetch(endpoint: string, params: Record<string, string>) {
   })
 
   if (!res.ok) {
-    console.error(`[YouTube API] ${endpoint} failed:`, res.status, await res.text())
+    // Silently fail — caller handles null return
     return null
   }
 

@@ -23,7 +23,7 @@ export default async function K10Page() {
           alt=""
           className="h-20 w-auto mb-8 relative z-10 opacity-90"
         />
-        <h1 className="text-6xl font-black tracking-tight leading-none mb-4 relative z-10">
+        <h1 className="text-[48px] font-bold tracking-tight leading-none mb-4 relative z-10" style={{ fontFamily: 'var(--ff-display)' }}>
           {K10_NAME}
         </h1>
         <p className="text-xl text-[var(--text-dim)] max-w-2xl leading-relaxed mb-10 relative z-10">
@@ -41,7 +41,7 @@ export default async function K10Page() {
               className="h-16 w-auto flex-shrink-0 mt-1"
             />
             <div className="flex-1">
-              <h2 className="text-3xl font-black mb-3 text-white">{RACECOR_NAME}</h2>
+              <h2 className="text-3xl font-bold mb-3 text-white" style={{ fontFamily: 'var(--ff-display)' }}>{RACECOR_NAME}</h2>
               <p className="text-lg text-[var(--text-dim)] mb-6">
                 Our broadcast-grade sim racing HUD — real-time telemetry, AI commentary, WebGL effects, and HomeKit smart lighting. Built for iRacing.
               </p>

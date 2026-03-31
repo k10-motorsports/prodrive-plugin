@@ -28,16 +28,6 @@ export async function POST(request: NextRequest) {
 
     // TODO: Validate auth token (Discord session or API key)
     // TODO: Store in Strapi or database
-    // For now, log and acknowledge
-    console.log('[K10 Ratings API] Received:', {
-      discordId,
-      category,
-      iRating,
-      safetyRating,
-      license,
-      carModel: body.carModel,
-      timestamp: new Date().toISOString(),
-    })
 
     return NextResponse.json({ success: true, timestamp: new Date().toISOString() })
   } catch (err) {
