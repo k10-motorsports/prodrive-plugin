@@ -1,9 +1,10 @@
 import { auth, signOut } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { SITE_URL, SITE_NAME, CATEGORY_LABELS, LICENSE_LABELS, LICENSE_COLORS } from '@/lib/constants'
+import { isAdmin } from '@/lib/admin'
 import { db, schema } from '@/db'
 import { eq } from 'drizzle-orm'
-import { Download, LogOut, BarChart3, Trophy, Shield, Car } from 'lucide-react'
+import { Download, LogOut, BarChart3, Trophy, Shield, Car, Settings } from 'lucide-react'
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -41,6 +42,14 @@ export default async function DashboardPage() {
             {avatar && <img src={avatar} alt="" className="w-7 h-7 rounded-full" />}
             <span className="text-sm text-[var(--text-secondary)]">{displayName}</span>
           </div>
+          {isAdmin(discordId) && (
+            <a
+              href="/drive/admin"
+              className="text-xs text-[var(--k10-red)] hover:brightness-110 transition-colors flex items-center gap-1"
+            >
+              <Settings size={12} /> Admin
+            </a>
+          )}
           <form action={async () => {
             'use server'
             await signOut({ redirectTo: '/drive' })

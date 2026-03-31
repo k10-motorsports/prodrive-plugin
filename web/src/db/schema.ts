@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer, jsonb, uuid, varchar } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, boolean, integer, doublePrecision, jsonb, uuid, varchar } from 'drizzle-orm/pg-core'
 
 // ── Users (Discord-authenticated members) ──
 export const users = pgTable('users', {
@@ -34,6 +34,22 @@ export const authCodes = pgTable('auth_codes', {
   expiresAt: timestamp('expires_at').notNull(),
   used: boolean('used').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+// ── Track Maps (community-contributed SVG track outlines) ──
+export const trackMaps = pgTable('track_maps', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  trackId: varchar('track_id', { length: 128 }).notNull().unique(),
+  trackName: varchar('track_name', { length: 256 }).notNull(),
+  svgPath: text('svg_path').notNull(),
+  pointCount: integer('point_count').notNull(),
+  rawCsv: text('raw_csv').notNull(),
+  contributorId: uuid('contributor_id').references(() => users.id, { onDelete: 'set null' }),
+  gameName: varchar('game_name', { length: 64 }).default('iracing'),
+  trackLengthKm: doublePrecision('track_length_km'),
+  svgPreview: text('svg_preview'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
 // ── Driver Ratings (iRacing performance data) ──
