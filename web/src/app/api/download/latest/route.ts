@@ -48,7 +48,7 @@ export async function GET() {
 
     return NextResponse.json({ error: 'No download asset found' }, { status: 404 })
   } catch (err) {
-    console.error('[download/latest] Error:', err)
+    void err
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }

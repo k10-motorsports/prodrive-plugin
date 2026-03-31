@@ -47,6 +47,7 @@
 
   /* Typography */
   --ff: 'Barlow Condensed', 'Corbel', 'Segoe UI', system-ui, sans-serif;
+  --ff-display: var(--font-display), 'Cinzel Decorative', 'Georgia', serif;
   --ff-mono: 'JetBrains Mono', 'Consolas', 'SF Mono', monospace;
 
   /* Radii */

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Barlow_Condensed, JetBrains_Mono } from 'next/font/google'
+import { Barlow_Condensed, Cinzel_Decorative, JetBrains_Mono } from 'next/font/google'
 import '@/styles/globals.css'
 import { SITE_NAME, SITE_DESCRIPTION, SITE_URL } from '@/lib/constants'
 
@@ -7,6 +7,13 @@ const barlow = Barlow_Condensed({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800', '900'],
   variable: '--font-barlow',
+  display: 'swap',
+})
+
+const cinzel = Cinzel_Decorative({
+  subsets: ['latin'],
+  weight: ['700'],
+  variable: '--font-display',
   display: 'swap',
 })
 
@@ -41,7 +48,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${barlow.variable} ${jetbrains.variable} h-full antialiased`}>
+    <html lang="en" className={`${barlow.variable} ${cinzel.variable} ${jetbrains.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   )
