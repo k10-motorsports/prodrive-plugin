@@ -208,8 +208,13 @@ namespace K10Motorsports.Plugin.Engine.Strategy
         {
             var now = DateTime.UtcNow;
 
+            // ── Minimum stint age — suppress early-stint noise ────────────
+            // Wear data stabilizes after a few laps; don't fire calls before then
+            int stintLaps = stint?.WearPerLap?.Count ?? 0;
+            bool earlyStint = stintLaps < 4;
+
             // ── Critical wear ───────────────────────────────────────────
-            if (TireHealthState == 2 && (now - _lastWearCall).TotalSeconds >= WearCooldownSec)
+            if (TireHealthState == 2 && !earlyStint && (now - _lastWearCall).TotalSeconds >= WearCooldownSec)
             {
                 _lastWearCall = now;
                 string worst = WorstTireLabel();
@@ -228,7 +233,7 @@ namespace K10Motorsports.Plugin.Engine.Strategy
             }
 
             // ── Warning wear ────────────────────────────────────────────
-            if (TireHealthState == 1 && EstimatedLapsRemaining < 10
+            if (TireHealthState == 1 && !earlyStint && EstimatedLapsRemaining < 10
                 && (now - _lastWearCall).TotalSeconds >= WearCooldownSec)
             {
                 _lastWearCall = now;
