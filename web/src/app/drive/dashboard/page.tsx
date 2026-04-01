@@ -5,6 +5,7 @@ import { isAdmin } from '@/lib/admin'
 import { db, schema } from '@/db'
 import { eq } from 'drizzle-orm'
 import { Download, LogOut, BarChart3, Trophy, Shield, Car, Settings } from 'lucide-react'
+import LogoCustomizer from './LogoCustomizer'
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -18,12 +19,22 @@ export default async function DashboardPage() {
   // Fetch race session count to determine if we should show the "keep racing" message
   let raceCount = 0
   let dbUser = null
+  let userToken = ''
   if (discordId) {
     const users = await db.select().from(schema.users).where(eq(schema.users.discordId, discordId)).limit(1)
     if (users.length > 0) {
       dbUser = users[0]
       const sessions = await db.select().from(schema.raceSessions).where(eq(schema.raceSessions.userId, dbUser.id))
       raceCount = sessions.length
+
+      // Get the user's latest access token for API calls
+      const tokens = await db.select().from(schema.pluginTokens)
+        .where(eq(schema.pluginTokens.userId, dbUser.id))
+        .orderBy(schema.pluginTokens.createdAt)
+        .limit(1)
+      if (tokens.length > 0) {
+        userToken = tokens[0].accessToken
+      }
     }
   }
 
@@ -139,6 +150,11 @@ export default async function DashboardPage() {
             </div>
           )}
         </section>
+
+        {/* Overlay Branding */}
+        {dbUser && userToken && (
+          <LogoCustomizer customLogoUrl={dbUser.customLogoUrl} userToken={userToken} />
+        )}
 
         {/* Pro Features */}
         <section>
