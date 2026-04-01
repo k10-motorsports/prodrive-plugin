@@ -7,7 +7,7 @@ export default async function HomePage() {
   return (
     <main className="flex flex-col min-h-screen">
       {/* Hero */}
-      <section className="relative flex flex-col items-center justify-center px-6 py-32 text-center overflow-hidden">
+      <section className="relative flex flex-col items-center justify-center px-6 py-24 text-center overflow-hidden">
         {/* Gradient background inspired by brand graphics — deep reds fading to dark */}
         <div className="absolute inset-0 bg-gradient-to-b from-[var(--k10-red-dark)]/20 via-[var(--k10-red)]/5 to-transparent pointer-events-none" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-[var(--k10-red)]/[0.04] blur-3xl pointer-events-none" />

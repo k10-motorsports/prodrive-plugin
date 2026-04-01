@@ -3,7 +3,7 @@ import { requireAdmin } from '@/lib/admin'
 import AdminPanel from './AdminPanel'
 
 export const metadata = {
-  title: 'Admin — K10 Pro Drive',
+  title: 'Admin — RaceCor.io Pro Drive',
 }
 
 export default async function AdminPage() {

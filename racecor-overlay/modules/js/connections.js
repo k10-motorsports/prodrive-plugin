@@ -72,6 +72,10 @@
       if (info) info.style.display = '';
     }
 
+    // Populate agent key input
+    const akInput = document.getElementById('agentKeyInput');
+    if (akInput) akInput.value = _settings.agentKey || '';
+
     // Update pro feature gating across all settings
     updateProFeatureGating();
 
@@ -84,6 +88,12 @@
     // Apply logo subtitle (updates when K10 connection state changes)
     if (typeof applyLogoSubtitle === 'function') applyLogoSubtitle();
   }
+
+  // ── AI Race Coach agent key ──
+  window.updateAgentKey = function(key) {
+    _settings.agentKey = key || '';
+    saveSettings();
+  };
 
   async function connectK10Pro() {
     if (_k10Connecting) return;
@@ -107,6 +117,12 @@
         _settings.k10User = result.user;
         _settings.k10Features = result.user.features || [];
         saveSettings();
+
+        // Apply custom logo if available
+        if (result.user.customLogoUrl && window.setCustomLogoUrl) {
+          window.setCustomLogoUrl(result.user.customLogoUrl);
+        }
+
         updateK10ConnectionCard();
       } else {
         const errMsg = result?.error || 'Connection failed';
@@ -423,6 +439,12 @@
         if (user && user.id) {
           _k10User = user;
           _k10Features = user.features || [];
+
+          // Apply custom logo if available
+          if (user.customLogoUrl && window.setCustomLogoUrl) {
+            window.setCustomLogoUrl(user.customLogoUrl);
+          }
+
           updateK10ConnectionCard();
 
           // Verify token in background
@@ -438,6 +460,10 @@
                 updateK10ConnectionCard();
               } else if (result && result.features) {
                 _k10Features = result.features;
+                // Apply custom logo from verify result
+                if (result.user && result.user.customLogoUrl && window.setCustomLogoUrl) {
+                  window.setCustomLogoUrl(result.user.customLogoUrl);
+                }
                 updateK10ConnectionCard();
               }
             }).catch(() => {});
@@ -450,6 +476,12 @@
     if (_settings.k10User && _settings.k10User.id) {
       _k10User = _settings.k10User;
       _k10Features = _settings.k10Features || [];
+
+      // Apply custom logo if available
+      if (_settings.k10User.customLogoUrl && window.setCustomLogoUrl) {
+        window.setCustomLogoUrl(_settings.k10User.customLogoUrl);
+      }
+
       updateK10ConnectionCard();
     }
   }
@@ -549,6 +581,23 @@
     if (window.updateGameLogo) window.updateGameLogo(window._currentGameId || 'iracing', !isOn);
   }
 
+  // ─── iRacing Data Sync toggle ───
+  function toggleIRacingSync(el) {
+    var isOn = el.classList.contains('on');
+    var newVal = !isOn;
+    el.classList.toggle('on', newVal);
+    _settings.iracingDataSync = newVal;
+    if (window.setSessionSyncEnabled) window.setSessionSyncEnabled(newVal);
+
+    var detail = document.getElementById('iracingSyncDetail');
+    var active = document.getElementById('iracingSyncActive');
+    if (detail) detail.style.display = newVal ? 'none' : '';
+    if (active) active.style.display = newVal ? '' : 'none';
+
+    saveSettings();
+  }
+  window.toggleIRacingSync = toggleIRacingSync;
+
   // ─── Logo subtitle ───
   function updateLogoSubtitle(value) {
     _settings.logoSubtitle = value;
@@ -567,7 +616,7 @@
       label = document.createElement('span');
       label.id = 'k10SubtitleLabel';
       label.className = 'logo-subtitle';
-      logo.parentNode.insertBefore(label, logo.nextSibling);
+      logo.appendChild(label);
     }
 
     var text = _settings.logoSubtitle || '';
@@ -870,5 +919,16 @@
   initDiscordState();
   initK10State();
   initRemoteDashState();
+
+  // Restore iRacing sync toggle state
+  var syncToggle = document.getElementById('iracingSyncToggle');
+  if (syncToggle && _settings.iracingDataSync) {
+    syncToggle.classList.add('on');
+    if (window.setSessionSyncEnabled) window.setSessionSyncEnabled(true);
+    var detail = document.getElementById('iracingSyncDetail');
+    var active = document.getElementById('iracingSyncActive');
+    if (detail) detail.style.display = 'none';
+    if (active) active.style.display = '';
+  }
 
   // ═══════════════════════════════════════════════════════════════

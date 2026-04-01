@@ -3,7 +3,7 @@
 Part of the [K10 Motorsports](https://github.com/alternatekev/media-coach-simhub-plugin) sim racing platform. Next.js 16 site for [k10motorsports.racing](https://k10motorsports.racing) with subdomain routing:
 
 - **k10motorsports.racing** — Marketing site (public): product overview, feature highlights, download links, and documentation for the broadcast-grade sim racing HUD
-- **drive.k10motorsports.racing** — K10 Pro Drive members app (Discord auth): exclusive content, setup guides, and community features
+- **prodrive.racecor.io** — K10 Pro Drive members app (Discord auth): exclusive content, setup guides, and community features
 
 Stack: Next.js 16, React 19, Tailwind CSS 4, NextAuth 5, Strapi CMS.
 
@@ -38,7 +38,7 @@ cp .env.example .env.local
 | `DISCORD_CLIENT_ID` | For auth | Discord OAuth app client ID |
 | `DISCORD_CLIENT_SECRET` | For auth | Discord OAuth app secret |
 | `NEXTAUTH_SECRET` | For auth | Generate with `openssl rand -base64 32` |
-| `NEXTAUTH_URL` | Yes | `http://localhost:3000` locally, `https://drive.racecor.io` in production |
+| `NEXTAUTH_URL` | Yes | `http://localhost:3000` locally, `https://prodrive.racecor.io` in production |
 | `STRAPI_URL` | For CMS | Strapi instance URL (e.g. `http://localhost:1337`) |
 | `STRAPI_API_TOKEN` | For CMS | Strapi API token (Settings → API Tokens → Create) |
 
@@ -48,13 +48,13 @@ The middleware uses subdomain routing. Dev domains use a `dev.` prefix so they n
 
 ```
 127.0.0.1   dev.k10motorsports.racing
-127.0.0.1   dev.drive.k10motorsports.racing
+127.0.0.1   dev.prodrive.racecor.io
 ```
 
 Then access:
 
 - `http://dev.k10motorsports.racing:3000` → marketing site
-- `http://dev.drive.k10motorsports.racing:3000` → drive members app
+- `http://dev.prodrive.racecor.io:3000` → drive members app
 
 Alternatively, use the query parameter shortcut without hosts changes:
 
@@ -151,7 +151,7 @@ In Vercel project settings → Environment Variables, add:
 ```
 YOUTUBE_API_KEY=your-key
 NEXTAUTH_SECRET=your-secret
-NEXTAUTH_URL=https://drive.racecor.io
+NEXTAUTH_URL=https://prodrive.racecor.io
 DISCORD_CLIENT_ID=your-id
 DISCORD_CLIENT_SECRET=your-secret
 STRAPI_URL=https://your-strapi-instance.com
@@ -165,14 +165,14 @@ In Vercel project settings → Domains, add both:
 | Domain | Purpose |
 |---|---|
 | `k10motorsports.racing` | Marketing site |
-| `drive.k10motorsports.racing` | Pro Drive members app |
+| `prodrive.racecor.io` | Pro Drive members app |
 
 Then configure DNS at your registrar:
 
 | Type | Name | Value |
 |---|---|---|
 | `A` | `@` | `76.76.21.21` |
-| `CNAME` | `drive` | `cname.vercel-dns.com` |
+| `CNAME` | `prodrive` | `cname.vercel-dns.com` |
 
 > Vercel automatically provisions SSL certificates for both domains.
 
@@ -182,7 +182,7 @@ Update your Discord application's OAuth2 redirect URL to:
 
 ```
 https://k10motorsports.racing/api/auth/callback/discord
-https://drive.k10motorsports.racing/api/auth/callback/discord
+https://prodrive.racecor.io/api/auth/callback/discord
 ```
 
 ### 5. Deploy
@@ -212,7 +212,7 @@ web/
 ├── src/
 │   ├── app/
 │   │   ├── marketing/     # k10motorsports.racing routes
-│   │   ├── drive/         # drive.k10motorsports.racing routes
+│   │   ├── drive/         # prodrive.racecor.io routes
 │   │   └── api/           # API routes (ratings, auth)
 │   ├── components/        # Shared React components
 │   ├── lib/               # Constants, YouTube API, utilities

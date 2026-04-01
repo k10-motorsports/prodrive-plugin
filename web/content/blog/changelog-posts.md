@@ -32,7 +32,7 @@ date: "2026-03-30T15:54:00-06:00"
 version: "0.4.0"
 ---
 
-We burned down K10 Motorsports and rose as RaceCor.io. Full rebrand — repository restructured, simhub-plugin and homebridge merged into racecor-plugin, web folder shuffled, OAuth redirects all point to drive.racecor.io now. New branding icons everywhere: plugin, overlay, the works.
+We burned down K10 Motorsports and rose as RaceCor.io. Full rebrand — repository restructured, simhub-plugin and homebridge merged into racecor-plugin, web folder shuffled, OAuth redirects all point to prodrive.racecor.io now. New branding icons everywhere: plugin, overlay, the works.
 
 Typography switched to Cinzel Decorative display font with a hard 14px minimum. Taskbar reflowed, histograms got layered, fonts adjusted for the new branding weight. New logo work means the whole visual identity snapped into place.
 

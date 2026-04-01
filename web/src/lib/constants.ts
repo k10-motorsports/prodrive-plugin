@@ -20,7 +20,7 @@ const port = isDev ? ':3000' : ''
 // RaceCor.io domains
 const racecorDomain = isDev ? 'dev.racecor.io' : 'racecor.io'
 export const SITE_URL = `${protocol}://${racecorDomain}${port}`
-export const DRIVE_URL = `${protocol}://drive.${racecorDomain}${port}`
+export const DRIVE_URL = `${protocol}://prodrive.${racecorDomain}${port}`
 
 // K10 Motorsports domains
 const k10Domain = isDev ? 'dev.k10motorsports.racing' : 'k10motorsports.racing'

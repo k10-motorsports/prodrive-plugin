@@ -52,6 +52,7 @@
 <link rel="stylesheet" href="modules/styles/rally.css">
 <link rel="stylesheet" href="modules/styles/ambient.css">
 <link rel="stylesheet" href="modules/styles/pitbox.css">
+<link rel="stylesheet" href="modules/styles/race-results.css">
 <!-- drive-mode.css removed — iPad drive mode no longer active -->
 
 </head>
@@ -658,6 +659,64 @@
   </div>
 </div>
 
+<!-- COMPONENT: Post-Race Results Screen -->
+<div id="raceResultsScreen">
+  <button class="rr-close" onclick="hideRaceResults()" title="Close results">✕</button>
+  <div class="rr-content">
+    <!-- Header: Position, track, metadata -->
+    <div class="rr-header">
+      <div id="rrPosition">—</div>
+      <div class="rr-header-text">
+        <h2 id="rrTrack">Track Name</h2>
+        <div id="rrMeta">Car • 0/0 laps • 0:00.000</div>
+      </div>
+      <div class="rr-rating">
+        <div class="rr-rating-label">iR Delta</div>
+        <div id="rrIRDelta">—</div>
+      </div>
+      <div class="rr-rating">
+        <div class="rr-rating-label">SR Delta</div>
+        <div id="rrSRDelta">—</div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="rr-charts">
+      <div class="rr-chart">
+        <div class="rr-chart-title">Lap Times</div>
+        <canvas id="rrLapChart" class="rr-chart-canvas"></canvas>
+      </div>
+      <div class="rr-chart">
+        <div class="rr-chart-title">Position Over Race</div>
+        <canvas id="rrPosChart" class="rr-chart-canvas"></canvas>
+      </div>
+      <div class="rr-chart">
+        <div class="rr-chart-title">Performance Delta</div>
+        <canvas id="rrPerfChart" class="rr-chart-canvas"></canvas>
+      </div>
+    </div>
+
+    <!-- Key Moments Timeline -->
+    <div>
+      <h3 class="rr-section-title">Key Moments</h3>
+      <div id="rrMoments"></div>
+    </div>
+
+    <!-- Coaching Tips -->
+    <div>
+      <h3 class="rr-section-title">Coaching Tips</h3>
+      <div id="rrTips"></div>
+    </div>
+
+    <!-- AI Analysis Section -->
+    <div id="rrAISection">
+      <h3 class="rr-section-title">AI Race Coach</h3>
+      <button id="rrAIBtn">Generate AI Analysis</button>
+      <div id="rrAIResult"></div>
+    </div>
+  </div>
+</div>
+
 <!-- COMPONENT: Spotter Panel (stacking voice messages, co-located with race control) -->
 <div class="spotter-panel" id="spotterPanel">
   <canvas class="sp-gl-canvas" id="spotterGlCanvas"></canvas>
@@ -1036,6 +1095,17 @@
             </div>
           </div>
           <div class="conn-pro-features" id="k10FeatureList"></div>
+          <div class="conn-agent-key" id="connAgentKey" style="margin-top:12px;">
+            <div class="conn-card-detail" style="margin-bottom:6px;">
+              <strong>AI Race Coach</strong> — paste your API key to enable AI-powered post-race analysis
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input class="settings-input" id="agentKeyInput" type="password"
+                     placeholder="sk-..."
+                     style="flex:1;font-size:10px;padding:6px 8px;font-family:var(--ff-mono);"
+                     onchange="updateAgentKey(this.value)" />
+            </div>
+          </div>
           <div class="conn-card-actions">
             <button class="conn-btn disconnect-btn" onclick="disconnectK10Pro()">Disconnect</button>
           </div>
@@ -1055,6 +1125,28 @@
           <div class="conn-pro-feature-item"><span class="conn-pro-feature-icon">✨</span> WebGL Effects</div>
           <div class="conn-pro-feature-item"><span class="conn-pro-feature-icon">🔮</span> Reflections</div>
           <div class="conn-pro-feature-item"><span class="conn-pro-feature-icon">⚙️</span> Module Config</div>
+        </div>
+      </div>
+
+      <!-- ═══ iRacing Data Sync Card ═══ -->
+      <div class="conn-card conn-card-secondary" id="iracingDataSyncCard" style="margin-top:8px;">
+        <div class="conn-card-header" style="margin-bottom:6px;">
+          <div class="conn-card-icon iracing" style="width:24px;height:24px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:hsl(35,90%,55%);width:14px;height:14px;"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+          </div>
+          <div>
+            <div class="conn-card-title" style="font-size:11px;">iRacing Data Sync</div>
+            <div class="conn-card-subtitle" style="font-size:9px;">Session results &amp; rating tracking</div>
+          </div>
+          <div style="margin-left:auto;">
+            <div class="settings-toggle" id="iracingSyncToggle" onclick="toggleIRacingSync(this)"></div>
+          </div>
+        </div>
+        <div class="conn-card-detail" id="iracingSyncDetail" style="font-size:10px;line-height:1.4;color:hsla(0,0%,100%,0.45);padding:0 2px;">
+          When enabled, RaceCor.io Pro Drive records your race results — finish position, incidents, lap times, and rating changes — to build your personal performance dashboard. Data is captured at the start and end of each session and synced to your account. No telemetry is stored, only session summaries.
+        </div>
+        <div class="conn-card-detail" id="iracingSyncActive" style="display:none;font-size:10px;color:hsla(120,60%,60%,0.8);padding:0 2px;">
+          ✓ Session data will sync to your RaceCor.io Pro Drive dashboard
         </div>
       </div>
 
@@ -1363,6 +1455,7 @@
 <script src="modules/js/incidents.js"></script>
 <script src="modules/js/pit-limiter.js"></script>
 <script src="modules/js/race-end.js"></script>
+<script src="modules/js/race-results.js"></script>
 <script src="modules/js/formation.js"></script>
 <script src="modules/js/spotter.js"></script>
 <script src="modules/js/fps.js"></script>
@@ -1373,8 +1466,10 @@
 <script src="modules/js/game-logo.js"></script>
 <!-- drive-mode.js removed — iPad drive mode no longer active -->
 <script src="modules/js/rating-editor.js"></script>
+<script src="modules/js/session-sync.js"></script>
 <script src="modules/js/driver-profile.js"></script>
 <script src="modules/js/drive-hud.js"></script>
+<script src="modules/js/session-sync.js"></script>
 <script src="modules/js/poll-engine.js"></script>
 
 </body>

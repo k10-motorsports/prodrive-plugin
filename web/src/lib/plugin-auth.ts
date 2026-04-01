@@ -165,6 +165,7 @@ export async function validateToken(accessToken: string) {
       discordUsername: user.discordUsername,
       discordDisplayName: user.discordDisplayName,
       discordAvatar: user.discordAvatar,
+      customLogoUrl: user.customLogoUrl,
     },
     expiresAt: token.expiresAt.toISOString(),
   }
