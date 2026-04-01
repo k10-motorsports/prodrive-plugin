@@ -55,9 +55,9 @@ namespace K10Motorsports.Plugin.Engine
         private static TrackPoint[] _demoOutline;
         private static string _demoSvgPath;
         private bool _demoMode = false;
-        private bool _demoUsesRealMap = false;  // true when demo loaded a bundled CSV instead of the fake circuit
+        private bool _demoUsesRealMap = false;  // true when demo loaded a cached map instead of the fake circuit
 
-        /// <summary>Default track ID used when demo mode starts (matches a bundled CSV).</summary>
+        /// <summary>Default track ID used when demo mode starts (tries to load from cache).</summary>
         private const string DemoDefaultTrackId = "sebring international";
 
         // Min distance² between samples (world units) to avoid over-sampling
@@ -126,13 +126,6 @@ namespace K10Motorsports.Plugin.Engine
             _drLastTick = DateTime.MinValue;
             _lastYaw = double.NaN;
 
-            // Try to load from bundled dataset (checked into git)
-            if (TryLoadFromBundledMaps(trackId))
-            {
-                SimHub.Logging.Current.Info($"[K10Motorsports] Loaded track map for '{trackId}' from bundled dataset");
-                return;
-            }
-
             // Try to load from SimHub's map cache
             if (TryLoadFromSimHub(trackId))
             {
@@ -162,14 +155,8 @@ namespace K10Motorsports.Plugin.Engine
             _demoUsesRealMap = false;
             if (enabled)
             {
-                // Try to load a real bundled map for the demo track
-                if (TryLoadFromBundledMaps(DemoDefaultTrackId))
-                {
-                    _demoUsesRealMap = true;
-                    _currentTrackId = DemoDefaultTrackId;
-                    SimHub.Logging.Current.Info($"[K10Motorsports] Demo mode: loaded bundled map '{DemoDefaultTrackId}'");
-                }
-                else if (TryLoadFromOwnCache(DemoDefaultTrackId))
+                // Try to load a real cached map for the demo track (bundled maps have been removed)
+                if (TryLoadFromOwnCache(DemoDefaultTrackId))
                 {
                     _demoUsesRealMap = true;
                     _currentTrackId = DemoDefaultTrackId;
@@ -177,9 +164,9 @@ namespace K10Motorsports.Plugin.Engine
                 }
                 else
                 {
-                    // No real map available — use hardcoded fallback
+                    // No cached map available — use hardcoded fallback
                     EnsureDemoOutline();
-                    SimHub.Logging.Current.Info("[K10Motorsports] Demo mode: no bundled map found, using fallback circuit");
+                    SimHub.Logging.Current.Info("[K10Motorsports] Demo mode: no cached map found, using fallback circuit");
                 }
                 _ready = true;
             }
@@ -386,7 +373,7 @@ namespace K10Motorsports.Plugin.Engine
         {
             if (!_demoMode) return;
 
-            // Pick the right outline: real bundled map if loaded, else hardcoded fallback
+            // Pick the right outline: real cached map if loaded, else hardcoded fallback
             TrackPoint[] outline;
             if (_demoUsesRealMap && _outline != null && _outline.Length >= 2)
             {
@@ -507,9 +494,8 @@ namespace K10Motorsports.Plugin.Engine
             // Normalise to 0–100 SVG viewBox with 5% padding
             NormaliseAndBuild(_samples);
 
-            // Save to our cache + bundled dataset for git
+            // Save to our cache only (bundled CSV files have been removed)
             SaveToOwnCache(_currentTrackId);
-            SaveToBundledMaps(_currentTrackId);
 
             SimHub.Logging.Current.Info($"[K10Motorsports] Track map recorded: {_outline.Length} points");
         }
@@ -825,30 +811,9 @@ namespace K10Motorsports.Plugin.Engine
         /// </summary>
         private void SaveToBundledMaps(string trackId)
         {
-            try
-            {
-                string dir = GetTrackmapsDir();
-                if (string.IsNullOrEmpty(dir)) return;
-                Directory.CreateDirectory(dir);
-                string path = GetTrackmapPath(trackId);
-
-                var sb = new StringBuilder(_samples.Count * 40);
-                foreach (var s in _samples)
-                {
-                    sb.Append(s.WorldX.ToString("F4", CultureInfo.InvariantCulture));
-                    sb.Append(',');
-                    sb.Append(s.WorldZ.ToString("F4", CultureInfo.InvariantCulture));
-                    sb.Append(',');
-                    sb.AppendLine(s.LapDistPct.ToString("F6", CultureInfo.InvariantCulture));
-                }
-
-                File.WriteAllText(path, sb.ToString());
-                SimHub.Logging.Current.Info($"[K10Motorsports] Track map saved to bundled dataset: {path}");
-            }
-            catch (Exception ex)
-            {
-                SimHub.Logging.Current.Warn($"[K10Motorsports] Failed to save to bundled maps: {ex.Message}");
-            }
+            // Bundled CSV files have been removed from the repository (#113).
+            // All tracks should be saved to K10 cache only and loaded from the web API.
+            // This method is kept as a no-op for backward compatibility.
         }
 
         /// <summary>

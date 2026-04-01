@@ -5883,7 +5883,7 @@ html, body {
     <div class="logo-col">
       <div class="logo-square" id="k10LogoSquare">
         <canvas class="gl-overlay" id="k10LogoGlCanvas" style="z-index:1;"></canvas>
-        <img src="images/branding/logomark.png" alt="RaceCor" style="width:75%;height:auto;opacity:1;position:relative;z-index:2;">
+        <img src="images/branding/logomark.png" alt="RaceCor.io" style="width:75%;height:auto;opacity:1;position:relative;z-index:2;">
       </div>
       <div class="logo-square" id="carLogoSquare">
         <canvas class="mfr-flag-canvas" id="mfrFlagCanvas"></canvas>
@@ -9870,7 +9870,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!window.k10 || !window.k10.k10Connect) {
       // Fallback: open website in browser
       if (window.k10 && window.k10.openExternal) {
-        window.k10.openExternal('https://drive.racecor.io');
+        window.k10.openExternal('https://prodrive.racecor.io');
       }
       return;
     }
@@ -18276,7 +18276,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Falls back to the game-provided name if no custom name is set or API is unreachable.
   const _trackDisplayNameCache = {};    // { gameTrackName → displayName }
   const _trackDisplayNamePending = {};  // { gameTrackName → true } (in-flight requests)
-  const K10_DISPLAY_NAME_API = 'https://drive.racecor.io/api/tracks';
+  const K10_DISPLAY_NAME_API = 'https://prodrive.racecor.io/api/tracks';
 
   function resolveTrackDisplayName(gameTrackName) {
     if (_trackDisplayNameCache[gameTrackName] || _trackDisplayNamePending[gameTrackName]) return;
