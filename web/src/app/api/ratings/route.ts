@@ -1,33 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { validateToken } from '@/lib/plugin-auth'
+import { db, schema } from '@/db'
+import { eq, desc } from 'drizzle-orm'
 
 /**
- * POST /api/ratings — Receive rating updates from the dashboard overlay.
- * The overlay posts here after each race to sync the driver's ratings
- * with the website backend. This is the bridge until iRacing OAuth
- * is approved and we can fetch ratings directly.
- *
- * Expected body: {
- *   discordId: string,
- *   category: 'road' | 'oval' | 'dirt_road' | 'dirt_oval' | 'sports_car',
- *   iRating: number,
- *   safetyRating: number,
- *   license: 'R' | 'D' | 'C' | 'B' | 'A' | 'P',
- *   carModel?: string,
- *   manufacturer?: string,
- * }
+ * POST /api/ratings — Receive rating updates (legacy endpoint, kept for compatibility)
  */
 export async function POST(request: NextRequest) {
+  const authHeader = request.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) {
+    return NextResponse.json({ error: 'missing_token' }, { status: 401 })
+  }
+
+  const result = await validateToken(authHeader.slice(7))
+  if (!result) {
+    return NextResponse.json({ error: 'invalid_token' }, { status: 401 })
+  }
+
   try {
     const body = await request.json()
+    const { category, iRating, safetyRating, license } = body
 
-    // Validate required fields
-    const { discordId, category, iRating, safetyRating, license } = body
-    if (!discordId || !category || iRating == null || safetyRating == null || !license) {
+    if (!category || iRating == null || safetyRating == null || !license) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // TODO: Validate auth token (Discord session or API key)
-    // TODO: Store in Strapi or database
+    // Upsert driver rating
+    const existing = await db.select().from(schema.driverRatings)
+      .where(eq(schema.driverRatings.userId, result.user.id))
+      .limit(1)
+
+    if (existing.length > 0) {
+      await db.update(schema.driverRatings).set({
+        category, iRating, safetyRating: String(safetyRating), license,
+        updatedAt: new Date()
+      }).where(eq(schema.driverRatings.id, existing[0].id))
+    } else {
+      await db.insert(schema.driverRatings).values({
+        userId: result.user.id,
+        category, iRating, safetyRating: String(safetyRating), license
+      })
+    }
 
     return NextResponse.json({ success: true, timestamp: new Date().toISOString() })
   } catch (err) {
@@ -36,30 +49,58 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * GET /api/ratings?discordId=xxx — Fetch a driver's current ratings.
+ * GET /api/ratings — Fetch a driver's current ratings and history
  */
 export async function GET(request: NextRequest) {
-  const discordId = request.nextUrl.searchParams.get('discordId')
-  if (!discordId) {
-    return NextResponse.json({ error: 'discordId required' }, { status: 400 })
+  const authHeader = request.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) {
+    // Fallback: allow discordId query for backwards compatibility
+    const discordId = request.nextUrl.searchParams.get('discordId')
+    if (!discordId) {
+      return NextResponse.json({ error: 'Auth required' }, { status: 401 })
+    }
+
+    const users = await db.select().from(schema.users).where(eq(schema.users.discordId, discordId)).limit(1)
+    if (users.length === 0) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    const ratings = await db.select().from(schema.driverRatings)
+      .where(eq(schema.driverRatings.userId, users[0].id))
+
+    const history = await db.select().from(schema.ratingHistory)
+      .where(eq(schema.ratingHistory.userId, users[0].id))
+      .orderBy(desc(schema.ratingHistory.createdAt))
+      .limit(50)
+
+    return NextResponse.json({
+      discordId,
+      ratings: ratings.reduce((acc, r) => {
+        acc[r.category] = { iRating: r.iRating, safetyRating: r.safetyRating, license: r.license }
+        return acc
+      }, {} as Record<string, unknown>),
+      history
+    })
   }
 
-  // TODO: Fetch from Strapi or database
-  // For now, return empty structure
+  const result = await validateToken(authHeader.slice(7))
+  if (!result) {
+    return NextResponse.json({ error: 'invalid_token' }, { status: 401 })
+  }
+
+  const ratings = await db.select().from(schema.driverRatings)
+    .where(eq(schema.driverRatings.userId, result.user.id))
+
+  const history = await db.select().from(schema.ratingHistory)
+    .where(eq(schema.ratingHistory.userId, result.user.id))
+    .orderBy(desc(schema.ratingHistory.createdAt))
+    .limit(50)
+
   return NextResponse.json({
-    discordId,
-    ratings: {
-      activeCategory: 'road',
-      categories: {
-        road: { category: 'road', iRating: 0, safetyRating: 0, license: 'R' },
-        oval: { category: 'oval', iRating: 0, safetyRating: 0, license: 'R' },
-        dirt_road: { category: 'dirt_road', iRating: 0, safetyRating: 0, license: 'R' },
-        dirt_oval: { category: 'dirt_oval', iRating: 0, safetyRating: 0, license: 'R' },
-        sports_car: { category: 'sports_car', iRating: 0, safetyRating: 0, license: 'R' },
-      },
-      updatedAt: new Date().toISOString(),
-    },
-    history: [],
-    carSessions: [],
+    ratings: ratings.reduce((acc, r) => {
+      acc[r.category] = { iRating: r.iRating, safetyRating: r.safetyRating, license: r.license }
+      return acc
+    }, {} as Record<string, unknown>),
+    history
   })
 }
