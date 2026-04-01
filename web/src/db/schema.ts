@@ -8,6 +8,7 @@ export const users = pgTable('users', {
   discordDisplayName: varchar('discord_display_name', { length: 64 }),
   discordAvatar: text('discord_avatar'),
   email: varchar('email', { length: 255 }),
+  customLogoUrl: text('custom_logo_url'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })

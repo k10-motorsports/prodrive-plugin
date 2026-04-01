@@ -21,6 +21,7 @@ export default async function DashboardPage() {
   let isPluginConnected = false
   let recentSessions: any[] = []
 
+  let userToken = ''
   if (discordId) {
     const users = await db.select().from(schema.users).where(eq(schema.users.discordId, discordId)).limit(1)
     if (users.length > 0) {
@@ -46,6 +47,13 @@ export default async function DashboardPage() {
           .where(eq(schema.raceSessions.userId, dbUser.id))
           .orderBy(desc(schema.raceSessions.createdAt))
           .limit(20)
+      // Get the user's latest access token for API calls
+      const tokens = await db.select().from(schema.pluginTokens)
+        .where(eq(schema.pluginTokens.userId, dbUser.id))
+        .orderBy(schema.pluginTokens.createdAt)
+        .limit(1)
+      if (tokens.length > 0) {
+        userToken = tokens[0].accessToken
       }
     }
   }

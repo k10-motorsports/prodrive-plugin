@@ -39,6 +39,7 @@
   <!-- Plugin sidebar icon — embedded in the assembly -->
   <ItemGroup>
     <Resource Include="icon.png" />
+    <Resource Include="logo-racecor.png" />
   </ItemGroup>
 
   <!-- NuGet packages -->

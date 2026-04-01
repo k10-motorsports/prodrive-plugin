@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'K10 Pro Drive',
+  title: 'RaceCor.io Pro Drive',
   description: 'Your sim racing performance dashboard — iRating, Safety Rating, trends, and race history.',
 }
 
