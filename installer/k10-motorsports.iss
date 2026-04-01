@@ -18,7 +18,7 @@
 ; Paths are relative to this .iss file's directory (installer/).
 
 #define MyAppName      "RaceCor.io"
-#define MyAppVersion   "0.7.2"
+#define MyAppVersion   "0.7.3"
 #define MyAppPublisher "Kevin Conboy"
 #define MyAppURL       "https://github.com/alternatekev/racecor"
 #define MyAppExeName   "RaceCor.io.exe"

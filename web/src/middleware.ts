@@ -6,13 +6,13 @@ import type { NextRequest } from 'next/server'
  *
  * Production:
  *   - racecor.io                     → /marketing/* (product site)
- *   - drive.racecor.io               → /drive/*     (Pro Drive members area)
+ *   - prodrive.racecor.io            → /drive/*     (Pro Drive members area)
  *   - k10motorsports.racing          → /k10/*       (org hub)
- *   - drive.k10motorsports.racing    → 308 redirect to drive.racecor.io (canonical for OAuth)
+ *   - drive.k10motorsports.racing    → 308 redirect to prodrive.racecor.io (canonical for OAuth)
  *
  * Dev (via /etc/hosts):
  *   - dev.racecor.io:3000            → /marketing/*
- *   - dev.drive.racecor.io:3000      → /drive/*
+ *   - dev.prodrive.racecor.io:3000   → /drive/*
  *   - dev.k10motorsports.racing:3000 → /k10/*
  *
  * Fallback: ?subdomain=drive or ?subdomain=k10 query param works in any environment.
@@ -22,12 +22,12 @@ export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   // ── Domain redirect (runs BEFORE any path filtering) ──────────
-  // Redirect drive.k10motorsports.racing → drive.racecor.io so OAuth
+  // Redirect drive.k10motorsports.racing → prodrive.racecor.io so OAuth
   // callbacks (including /api/auth/*) always resolve to a single
   // canonical domain. Without this, Discord redirects back to the old
   // domain and NextAuth returns a Configuration error.
   if (host.includes('drive.k10motorsports.racing') || host.includes('dev.drive.k10motorsports.racing')) {
-    const racecorHost = host.replace(/drive\..*k10motorsports\.racing/, 'drive.racecor.io')
+    const racecorHost = host.replace(/drive\..*k10motorsports\.racing/, 'prodrive.racecor.io')
     const dest = new URL(request.url)
     dest.host = racecorHost
     return NextResponse.redirect(dest, 308)
@@ -44,10 +44,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Redirect drive.k10motorsports.racing → drive.racecor.io so OAuth
+  // Redirect drive.k10motorsports.racing → prodrive.racecor.io so OAuth
   // callbacks always resolve to a single canonical domain.
   if (host.includes('drive.k10motorsports.racing') || host.includes('dev.drive.k10motorsports.racing')) {
-    const racecorHost = host.replace(/drive\..*k10motorsports\.racing/, 'drive.racecor.io')
+    const racecorHost = host.replace(/drive\..*k10motorsports\.racing/, 'prodrive.racecor.io')
     const dest = new URL(request.url)
     dest.host = racecorHost
     return NextResponse.redirect(dest, 308)
@@ -56,7 +56,7 @@ export function middleware(request: NextRequest) {
   // Detect subdomain — prioritize query param, then host header
   let targetPath = '/marketing' // default
 
-  if (host.includes('drive.') || subdomain === 'drive') {
+  if (host.includes('prodrive.') || subdomain === 'drive') {
     targetPath = '/drive'
   } else if (host.includes('k10motorsports.racing')) {
     targetPath = '/k10'
