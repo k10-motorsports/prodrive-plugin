@@ -731,18 +731,11 @@ namespace K10Motorsports.Plugin
                     return pa.CompareTo(pb);
                 });
 
-                // Window: 3 ahead of player, player, 3 behind
-                int playerIdx = entries.FindIndex(e =>
-                {
-                    int lastComma = e.LastIndexOf(',');
-                    return e[lastComma + 1] == '1';
-                });
-                if (playerIdx < 0) playerIdx = 0;
-                int start = Math.Max(0, playerIdx - 3);
-                int end = Math.Min(entries.Count, playerIdx + 4); // +4 = player + 3 behind
-                var window = entries.GetRange(start, end - start);
+                // Send all drivers (no windowing — let the JS decide what to display)
+                // Limit to a reasonable max (60 drivers) to avoid excessive data transfer
+                if (entries.Count > 60) entries = entries.GetRange(0, 60);
 
-                return "[" + string.Join(",", window) + "]";
+                return "[" + string.Join(",", entries) + "]";
             }
             catch (Exception ex)
             {
