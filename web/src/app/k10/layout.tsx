@@ -31,7 +31,7 @@ export default function K10Layout({ children }: { children: React.ReactNode }) {
               href={SITE_URL}
               className="px-4 py-1.5 rounded-md bg-[var(--k10-red)] text-white text-xs font-bold uppercase tracking-wider hover:brightness-110 transition hover:no-underline"
             >
-              RaceCor
+              RaceCor.io
             </a>
           </div>
         </div>

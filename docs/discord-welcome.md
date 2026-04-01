@@ -4,7 +4,7 @@ Broadcast-grade sim racing HUD with real-time telemetry, AI commentary, race str
 
 ## Get Started
 
-**1.** Sign in with Discord at **[drive.k10motorsports.racing](https://drive.k10motorsports.racing)** to create your K10 Pro Drive account
+**1.** Sign in with Discord at **[prodrive.racecor.io](https://prodrive.racecor.io)** to create your K10 Pro Drive account
 
 **2.** Download the Windows installer from your Pro Drive dashboard — it bundles the SimHub plugin and overlay, auto-detects your SimHub installation, and handles all file placement
 
@@ -26,7 +26,7 @@ Broadcast-grade sim racing HUD with real-time telemetry, AI commentary, race str
 ## Links
 
 - **Website:** [k10motorsports.racing](https://k10motorsports.racing)
-- **Pro Drive:** [drive.k10motorsports.racing](https://drive.k10motorsports.racing)
+- **Pro Drive:** [prodrive.racecor.io](https://prodrive.racecor.io)
 - **GitHub:** [github.com/alternatekev/media-coach-simhub-plugin](https://github.com/alternatekev/media-coach-simhub-plugin)
 
 ## Channels

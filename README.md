@@ -20,7 +20,7 @@ K10 Motorsports is four things in one repository:
 
 **A Homebridge plugin** that maps the same telemetry to Apple HomeKit smart lights, so your room reacts to race flags, proximity warnings, and event severity in real-time.
 
-**A marketing site** at [k10motorsports.racing](https://k10motorsports.racing) with a Discord-authenticated Pro Drive members area.
+**A marketing site** at [k10motorsports.racing](https://k10motorsports.racing) with a Discord-authenticated Pro Drive members area at [prodrive.racecor.io](https://prodrive.racecor.io).
 
 ## Feature Highlights
 
@@ -56,7 +56,7 @@ Maps telemetry to HomeKit light colors in real-time. Three modes: flags only (gr
 
 ### Web (Next.js 16)
 
-Marketing site at [k10motorsports.racing](https://k10motorsports.racing) built with Next.js 16, React 19, and Tailwind CSS 4. Includes a Discord-authenticated Pro Drive members area at drive.k10motorsports.racing with Strapi CMS backing the content layer.
+Marketing site at [k10motorsports.racing](https://k10motorsports.racing) built with Next.js 16, React 19, and Tailwind CSS 4. Includes a Discord-authenticated Pro Drive members area at [prodrive.racecor.io](https://prodrive.racecor.io) with Strapi CMS backing the content layer.
 
 ## Install
 

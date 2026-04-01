@@ -22,6 +22,7 @@ export default async function DashboardPage() {
   let isPluginConnected = false
   let recentSessions: any[] = []
 
+  let userToken = ''
   if (discordId) {
     const users = await db.select().from(schema.users).where(eq(schema.users.discordId, discordId)).limit(1)
     if (users.length > 0) {
@@ -87,6 +88,12 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-3">
           <img src="/branding/logomark-white.png" alt="K10" className="h-8 w-auto opacity-80" />
           <span className="text-sm font-bold tracking-wider uppercase text-[var(--text-secondary)]">Pro Drive</span>
+          {isPluginConnected && (
+            <div className="flex items-center gap-1.5 ml-4 pl-4 border-l border-[var(--border)]">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+              <span className="text-xs text-green-500/80">SimHub connected</span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
