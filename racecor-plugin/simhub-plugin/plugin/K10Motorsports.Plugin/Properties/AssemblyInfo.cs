@@ -1,10 +1,10 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyTitle("K10Motorsports.Plugin")]
+[assembly: AssemblyTitle("RaceCor.io Pro Drive")]
 [assembly: AssemblyDescription("Broadcast-grade sim racing HUD — telemetry, strategy, AI commentary, and smart lighting")]
-[assembly: AssemblyCompany("K10 Motorsports")]
-[assembly: AssemblyProduct("K10 Motorsports")]
+[assembly: AssemblyCompany("RaceCor.io")]
+[assembly: AssemblyProduct("RaceCor.io Pro Drive")]
 [assembly: AssemblyCopyright("")]
 [assembly: ComVisible(false)]
 [assembly: AssemblyVersion("0.7.2.0")]

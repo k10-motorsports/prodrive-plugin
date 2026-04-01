@@ -15,7 +15,7 @@ namespace K10Motorsports.Plugin
 {
     [PluginDescription("Broadcast-grade sim racing HUD with real-time telemetry, AI commentary, race strategy, WebGL effects, and HomeKit smart lighting.")]
     [PluginAuthor("K10Motorsports")]
-    [PluginName("K10 RaceCor")]
+    [PluginName("RaceCor.io Pro Drive")]
     public class Plugin : IPlugin, IDataPlugin, IWPFSettingsV2
     {
         public Settings Settings { get; private set; }
@@ -23,7 +23,7 @@ namespace K10Motorsports.Plugin
 
         public ImageSource PictureIcon => new BitmapImage(new Uri(
             "pack://application:,,,/K10Motorsports.Plugin;component/icon.png"));
-        public string LeftMenuTitle => "K10 RaceCor";
+        public string LeftMenuTitle => "RaceCor.io Pro Drive";
 
 #if CROSS_PLATFORM
         // Cross-platform build: settings panel excluded (no XAML compiler on Linux/macOS).

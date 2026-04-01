@@ -15,7 +15,7 @@
                    RenderOptions.BitmapScalingMode="HighQuality"/>
 
             <!-- Product name -->
-            <TextBlock Text="K10 Motorsports" FontSize="22" FontWeight="Bold"
+            <TextBlock Text="RaceCor.io Pro Drive" FontSize="22" FontWeight="Bold"
                        Foreground="White" HorizontalAlignment="Center" Margin="0,0,0,4"/>
             <TextBlock Text="Broadcaster HUD for Sim Racing"
                        FontSize="12" Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,24"/>
