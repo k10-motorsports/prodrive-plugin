@@ -74,7 +74,14 @@ async function main() {
   if (fs.existsSync(migrationPath)) {
     console.log('Running track_maps migration...')
     const migrationSql = fs.readFileSync(migrationPath, 'utf-8')
-    await sql.query(migrationSql, [])
+    // Neon can't run multiple statements in one call — split on semicolons
+    const statements = migrationSql
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s.length > 0)
+    for (const stmt of statements) {
+      await sql.query(stmt, [])
+    }
     console.log('Migration applied (or table already exists).\n')
   }
 
