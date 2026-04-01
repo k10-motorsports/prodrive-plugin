@@ -3,7 +3,7 @@
  * Seed script: populate the track_maps table from bundled CSV files.
  *
  * Usage:
- *   k10_POSTGRES_URL="postgres://..." npx tsx scripts/seed-track-maps.ts
+ *   k10_DATABASE_URL="postgres://..." npx tsx scripts/seed-track-maps.ts
  *
  * The script reads every CSV from the plugin's trackmaps directory,
  * converts each to an SVG path via the csvToSvg() pipeline, and
@@ -60,9 +60,9 @@ function toTrackId(stem: string): string {
 // ── Main ────────────────────────────────────────────────────────────
 
 async function main() {
-  const dbUrl = process.env.k10_POSTGRES_URL
+  const dbUrl = process.env.k10_DATABASE_URL
   if (!dbUrl) {
-    console.error('Error: k10_POSTGRES_URL environment variable is required.')
+    console.error('Error: k10_DATABASE_URL environment variable is required.')
     process.exit(1)
   }
 
