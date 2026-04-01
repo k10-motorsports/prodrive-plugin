@@ -3,7 +3,7 @@
  *
  * Validates the full OAuth chain:
  *   1. Middleware domain redirects (old domain → racecor.io)
- *   2. Subdomain routing (drive.racecor.io → /drive/*)
+ *   2. Subdomain routing (prodrive.racecor.io → /drive/*)
  *   3. NextAuth configuration (providers, callbacks, basePath)
  *   4. Plugin OAuth PKCE flow (/api/plugin-auth/authorize)
  *   5. Environment variable sanity checks
@@ -37,15 +37,15 @@ function redirectLocation(response: ReturnType<typeof middleware>): string | nul
   return response.headers.get('location')
 }
 
-// ─── 1. Domain redirect: drive.k10motorsports.racing → drive.racecor.io ────
+// ─── 1. Domain redirect: drive.k10motorsports.racing → prodrive.racecor.io ────
 
 describe('domain redirect (old → canonical)', () => {
-  it('redirects drive.k10motorsports.racing root to drive.racecor.io', () => {
+  it('redirects drive.k10motorsports.racing root to prodrive.racecor.io', () => {
     const res = middleware(
       makeRequest('https://drive.k10motorsports.racing/', 'drive.k10motorsports.racing'),
     )
     expect(res.status).toBe(308)
-    expect(redirectLocation(res)).toMatch(/drive\.racecor\.io\//)
+    expect(redirectLocation(res)).toMatch(/prodrive\.racecor\.io\//)
   })
 
   it('redirects /api/auth/callback/discord on old domain (the actual OAuth bug)', () => {
@@ -57,7 +57,7 @@ describe('domain redirect (old → canonical)', () => {
     )
     expect(res.status).toBe(308)
     const loc = redirectLocation(res)!
-    expect(loc).toContain('drive.racecor.io')
+    expect(loc).toContain('prodrive.racecor.io')
     expect(loc).toContain('/api/auth/callback/discord')
     expect(loc).toContain('code=abc')
     expect(loc).toContain('state=xyz')
@@ -71,7 +71,7 @@ describe('domain redirect (old → canonical)', () => {
       ),
     )
     expect(res.status).toBe(308)
-    expect(redirectLocation(res)).toContain('drive.racecor.io/api/auth/signin/discord')
+    expect(redirectLocation(res)).toContain('prodrive.racecor.io/api/auth/signin/discord')
   })
 
   it('redirects dev.drive.k10motorsports.racing too', () => {
@@ -82,7 +82,7 @@ describe('domain redirect (old → canonical)', () => {
       ),
     )
     expect(res.status).toBe(308)
-    expect(redirectLocation(res)).toContain('drive.racecor.io')
+    expect(redirectLocation(res)).toContain('prodrive.racecor.io')
   })
 
   it('preserves full query string through redirect', () => {
@@ -109,9 +109,9 @@ describe('domain redirect (old → canonical)', () => {
 // ─── 2. Subdomain routing ───────────────────────────────────────
 
 describe('subdomain routing', () => {
-  it('rewrites drive.racecor.io/ → /drive/', () => {
+  it('rewrites prodrive.racecor.io/ → /drive/', () => {
     const res = middleware(
-      makeRequest('https://drive.racecor.io/', 'drive.racecor.io'),
+      makeRequest('https://prodrive.racecor.io/', 'prodrive.racecor.io'),
     )
     // Rewrite — not a redirect
     expect(res.status).not.toBe(308)
@@ -141,7 +141,7 @@ describe('subdomain routing', () => {
 
   it('passes through /api routes on canonical domain without rewrite', () => {
     const res = middleware(
-      makeRequest('https://drive.racecor.io/api/auth/session', 'drive.racecor.io'),
+      makeRequest('https://prodrive.racecor.io/api/auth/session', 'prodrive.racecor.io'),
     )
     // Should NOT be rewritten or redirected — just pass through
     expect(res.status).not.toBe(308)
@@ -257,9 +257,9 @@ describe('plugin-auth PKCE logic', () => {
 // ─── 5. Constants / domain sanity ───────────────────────────────
 
 describe('domain constants', () => {
-  it('DRIVE_URL points to drive.racecor.io (not k10motorsports)', () => {
+  it('DRIVE_URL points to prodrive.racecor.io (not k10motorsports)', () => {
     expect(DRIVE_URL).toContain('racecor.io')
-    expect(DRIVE_URL).toContain('drive.')
+    expect(DRIVE_URL).toContain('prodrive.')
     expect(DRIVE_URL).not.toContain('k10motorsports')
   })
 
@@ -275,7 +275,7 @@ describe('domain constants', () => {
 // ─── 6. Env variable validation ─────────────────────────────────
 
 describe('.env.example correctness', () => {
-  it('documents drive.racecor.io as the OAuth callback domain', async () => {
+  it('documents prodrive.racecor.io as the OAuth callback domain', async () => {
     const fs = await import('fs')
     const path = await import('path')
     const envExample = fs.readFileSync(
@@ -284,7 +284,7 @@ describe('.env.example correctness', () => {
     )
 
     // Must reference the canonical domain for Discord redirect URI
-    expect(envExample).toContain('drive.racecor.io/api/auth/callback/discord')
+    expect(envExample).toContain('prodrive.racecor.io/api/auth/callback/discord')
     // Must NOT reference old domain as the redirect URI
     expect(envExample).not.toMatch(
       /^\s*#?\s*https:\/\/drive\.k10motorsports\.racing\/api\/auth\/callback/m,
