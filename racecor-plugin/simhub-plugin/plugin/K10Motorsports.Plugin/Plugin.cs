@@ -15,7 +15,7 @@ namespace K10Motorsports.Plugin
 {
     [PluginDescription("Broadcast-grade sim racing HUD with real-time telemetry, AI commentary, race strategy, WebGL effects, and HomeKit smart lighting.")]
     [PluginAuthor("K10Motorsports")]
-    [PluginName("RaceCor.io Pro Drive")]
+    [PluginName("K10 RaceCor")]
     public class Plugin : IPlugin, IDataPlugin, IWPFSettingsV2
     {
         public Settings Settings { get; private set; }
@@ -23,7 +23,7 @@ namespace K10Motorsports.Plugin
 
         public ImageSource PictureIcon => new BitmapImage(new Uri(
             "pack://application:,,,/K10Motorsports.Plugin;component/icon.png"));
-        public string LeftMenuTitle => "RaceCor.io Pro Drive";
+        public string LeftMenuTitle => "K10 RaceCor";
 
 #if CROSS_PLATFORM
         // Cross-platform build: settings panel excluded (no XAML compiler on Linux/macOS).
@@ -41,6 +41,10 @@ namespace K10Motorsports.Plugin
 
         // Car change detection for pedal profile auto-switch
         private string _lastCarModel = "";
+
+        // Paint file cache — TGA→PNG conversion is expensive, cache results keyed by file path + modified time
+        private readonly Dictionary<string, byte[]> _paintCache = new Dictionary<string, byte[]>();
+        private readonly Dictionary<string, DateTime> _paintCacheTimes = new Dictionary<string, DateTime>();
 
         // Telemetry frames (current + previous for delta calculations)
         private TelemetrySnapshot _current  = new TelemetrySnapshot();
@@ -992,6 +996,169 @@ namespace K10Motorsports.Plugin
                         ctx.Response.OutputStream.Write(resultBytes, 0, resultBytes.Length);
                         ctx.Response.OutputStream.Close();
                         continue;
+                    }
+
+                    // ── Paint file endpoints ─────────────────────────────────
+
+                    if (action == "listPaints")
+                    {
+                        // Returns JSON array of available paint folder names
+                        try
+                        {
+                            string paintRoot = Path.Combine(
+                                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                                "iRacing", "paint");
+                            string json = "[]";
+                            if (Directory.Exists(paintRoot))
+                            {
+                                var dirs = Directory.GetDirectories(paintRoot);
+                                var names = new List<string>();
+                                for (int i = 0; i < dirs.Length; i++)
+                                    names.Add("\"" + Path.GetFileName(dirs[i]).Replace("\"", "\\\"") + "\"");
+                                json = "[" + string.Join(",", names) + "]";
+                            }
+                            byte[] jsonBytes = Encoding.UTF8.GetBytes(json);
+                            ctx.Response.ContentType = "application/json";
+                            ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                            ctx.Response.StatusCode = 200;
+                            ctx.Response.OutputStream.Write(jsonBytes, 0, jsonBytes.Length);
+                            ctx.Response.OutputStream.Close();
+                            continue;
+                        }
+                        catch (Exception ex)
+                        {
+                            SimHub.Logging.Current.Warn("[K10] listPaints error: " + ex.Message);
+                        }
+                    }
+
+                    if (action == "getPaint")
+                    {
+                        // Reads a TGA paint file from iRacing's paint folder, converts to PNG, returns binary.
+                        // Query params: car (folder name, required), custId (customer ID, required)
+                        // Example: ?action=getPaint&car=bmw_m4_gt3&custId=123456
+                        try
+                        {
+                            var qs = ctx.Request.QueryString;
+                            string car = qs["car"] ?? "";
+                            string custId = qs["custId"] ?? "";
+
+                            if (string.IsNullOrEmpty(car) || string.IsNullOrEmpty(custId))
+                            {
+                                byte[] errBytes = Encoding.UTF8.GetBytes("{\"error\":\"car and custId params required\"}");
+                                ctx.Response.ContentType = "application/json";
+                                ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                                ctx.Response.StatusCode = 400;
+                                ctx.Response.OutputStream.Write(errBytes, 0, errBytes.Length);
+                                ctx.Response.OutputStream.Close();
+                                continue;
+                            }
+
+                            string paintRoot = Path.Combine(
+                                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                                "iRacing", "paint");
+                            string tgaPath = Path.Combine(paintRoot, car, "car_" + custId + ".tga");
+
+                            if (!File.Exists(tgaPath))
+                            {
+                                byte[] notFound = Encoding.UTF8.GetBytes("{\"error\":\"paint not found\",\"path\":\"" + car + "/car_" + custId + ".tga\"}");
+                                ctx.Response.ContentType = "application/json";
+                                ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                                ctx.Response.StatusCode = 404;
+                                ctx.Response.OutputStream.Write(notFound, 0, notFound.Length);
+                                ctx.Response.OutputStream.Close();
+                                continue;
+                            }
+
+                            // Check cache — invalidate if file was modified since cached
+                            DateTime fileModified = File.GetLastWriteTimeUtc(tgaPath);
+                            string cacheKey = tgaPath.ToLowerInvariant();
+                            byte[] pngBytes = null;
+
+                            lock (_paintCache)
+                            {
+                                if (_paintCache.ContainsKey(cacheKey) &&
+                                    _paintCacheTimes.ContainsKey(cacheKey) &&
+                                    _paintCacheTimes[cacheKey] == fileModified)
+                                {
+                                    pngBytes = _paintCache[cacheKey];
+                                }
+                            }
+
+                            if (pngBytes == null)
+                            {
+                                // Decode TGA via Pfim, convert to PNG via WPF imaging
+                                using (var image = Pfim.Pfimage.FromFile(tgaPath))
+                                {
+                                    // Determine pixel format
+                                    System.Windows.Media.PixelFormat pixelFormat;
+                                    switch (image.Format)
+                                    {
+                                        case Pfim.ImageFormat.Rgba32:
+                                            pixelFormat = PixelFormats.Bgra32;
+                                            break;
+                                        case Pfim.ImageFormat.Rgb24:
+                                            pixelFormat = PixelFormats.Bgr24;
+                                            break;
+                                        default:
+                                            // Unsupported format — return error
+                                            byte[] fmtErr = Encoding.UTF8.GetBytes("{\"error\":\"unsupported TGA format: " + image.Format + "\"}");
+                                            ctx.Response.ContentType = "application/json";
+                                            ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                                            ctx.Response.StatusCode = 422;
+                                            ctx.Response.OutputStream.Write(fmtErr, 0, fmtErr.Length);
+                                            ctx.Response.OutputStream.Close();
+                                            continue;
+                                    }
+
+                                    // Create WPF BitmapSource from raw pixel data
+                                    var bmp = BitmapSource.Create(
+                                        image.Width, image.Height,
+                                        96, 96,
+                                        pixelFormat,
+                                        null,
+                                        image.Data,
+                                        image.Stride);
+
+                                    // Encode to PNG
+                                    var encoder = new PngBitmapEncoder();
+                                    encoder.Frames.Add(BitmapFrame.Create(bmp));
+                                    using (var ms = new MemoryStream())
+                                    {
+                                        encoder.Save(ms);
+                                        pngBytes = ms.ToArray();
+                                    }
+                                }
+
+                                // Store in cache
+                                lock (_paintCache)
+                                {
+                                    _paintCache[cacheKey] = pngBytes;
+                                    _paintCacheTimes[cacheKey] = fileModified;
+                                }
+
+                                SimHub.Logging.Current.Info("[K10] Paint converted: " + car + "/car_" + custId + ".tga (" + pngBytes.Length + " bytes)");
+                            }
+
+                            ctx.Response.ContentType = "image/png";
+                            ctx.Response.ContentLength64 = pngBytes.Length;
+                            ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                            ctx.Response.Headers.Add("Cache-Control", "public, max-age=3600");
+                            ctx.Response.StatusCode = 200;
+                            ctx.Response.OutputStream.Write(pngBytes, 0, pngBytes.Length);
+                            ctx.Response.OutputStream.Close();
+                            continue;
+                        }
+                        catch (Exception ex)
+                        {
+                            SimHub.Logging.Current.Warn("[K10] getPaint error: " + ex.Message);
+                            byte[] errBytes = Encoding.UTF8.GetBytes("{\"error\":\"" + ex.Message.Replace("\"", "\\\"") + "\"}");
+                            ctx.Response.ContentType = "application/json";
+                            ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                            ctx.Response.StatusCode = 500;
+                            ctx.Response.OutputStream.Write(errBytes, 0, errBytes.Length);
+                            ctx.Response.OutputStream.Close();
+                            continue;
+                        }
                     }
 
                     // ── Build complete state snapshot ────────────────────────

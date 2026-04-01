@@ -48,6 +48,8 @@
     <!-- log4net + Newtonsoft.Json via NuGet so CI doesn't need SimHub installed -->
     <PackageReference Include="log4net" Version="2.0.15" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <!-- Pfim: fast TGA/DDS image decoder for reading iRacing paint files -->
+    <PackageReference Include="Pfim" Version="0.11.2" />
   </ItemGroup>
 
   <!-- WinForms — needed for FolderBrowserDialog in settings panel -->
