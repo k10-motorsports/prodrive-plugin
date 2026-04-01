@@ -65,29 +65,38 @@ function seededRand(seed) {
 
 // Sebring speed profile: 0.0–1.0 trackPct → speed factor (0–1)
 // Dips at braking zones, peaks on straights
-// Speed factor 0–1 maps to 0–150 mph. Wider variance: deep braking
-// zones dip to 0.15 (~22 mph), long straights peak at 1.0 (~150 mph).
+// Speed factor 0–1 maps to 0–178 mph. Full range from near-zero in
+// heavy braking zones to flat-out on straights.
 const SPEED_PROFILE = [
-  { pct: 0.00, spd: 0.95 }, // Start/finish straight (fast)
-  { pct: 0.05, spd: 1.00 }, // Main straight peak — 150 mph
-  { pct: 0.06, spd: 0.25 }, // T1 hard braking — 37 mph
+  { pct: 0.00, spd: 0.95 }, // Start/finish straight — 169 mph
+  { pct: 0.05, spd: 1.00 }, // Main straight peak — 178 mph
+  { pct: 0.055, spd: 0.50 }, // T1 initial braking — 89 mph
+  { pct: 0.06, spd: 0.05 }, // T1 apex — 9 mph
+  { pct: 0.08, spd: 0.15 }, // T1 exit — 27 mph
   { pct: 0.10, spd: 0.45 }, // T2 exit acceleration
   { pct: 0.15, spd: 0.82 }, // Short straight
-  { pct: 0.19, spd: 0.18 }, // Hairpin braking — 27 mph
-  { pct: 0.24, spd: 0.35 }, // Hairpin apex — 52 mph
+  { pct: 0.185, spd: 0.30 }, // Hairpin braking — 53 mph
+  { pct: 0.19, spd: 0.02 }, // Hairpin apex — 4 mph
+  { pct: 0.22, spd: 0.15 }, // Hairpin exit crawl — 27 mph
+  { pct: 0.26, spd: 0.50 }, // Accelerating out
   { pct: 0.30, spd: 0.80 }, // Back straight build
-  { pct: 0.37, spd: 1.00 }, // Back straight peak — 150 mph
-  { pct: 0.41, spd: 0.20 }, // Big braking zone — 30 mph
-  { pct: 0.46, spd: 0.55 }, // Esses entry
-  { pct: 0.52, spd: 0.40 }, // Esses mid — direction change
+  { pct: 0.37, spd: 1.00 }, // Back straight peak — 178 mph
+  { pct: 0.40, spd: 0.35 }, // Big braking zone — 62 mph
+  { pct: 0.41, spd: 0.03 }, // Turn apex — 5 mph
+  { pct: 0.44, spd: 0.25 }, // Exit — 45 mph
+  { pct: 0.48, spd: 0.55 }, // Esses entry
+  { pct: 0.52, spd: 0.30 }, // Esses mid — direction change
   { pct: 0.58, spd: 0.50 }, // Esses exit
   { pct: 0.62, spd: 0.75 }, // Short straight
-  { pct: 0.67, spd: 0.92 }, // Straight — 138 mph
-  { pct: 0.72, spd: 0.22 }, // T13 hard braking — 33 mph
-  { pct: 0.77, spd: 0.48 }, // T14 exit
-  { pct: 0.82, spd: 0.70 }, // Approach to T17
-  { pct: 0.87, spd: 0.15 }, // T17 braking (slowest) — 22 mph
-  { pct: 0.91, spd: 0.38 }, // T17 exit
+  { pct: 0.67, spd: 0.92 }, // Straight — 164 mph
+  { pct: 0.715, spd: 0.30 }, // T13 braking — 53 mph
+  { pct: 0.72, spd: 0.04 }, // T13 apex — 7 mph
+  { pct: 0.75, spd: 0.25 }, // T14 exit
+  { pct: 0.80, spd: 0.70 }, // Approach to T17
+  { pct: 0.865, spd: 0.20 }, // T17 braking — 36 mph
+  { pct: 0.87, spd: 0.00 }, // T17 dead stop — 0 mph
+  { pct: 0.89, spd: 0.10 }, // T17 crawling out — 18 mph
+  { pct: 0.93, spd: 0.50 }, // Accelerating
   { pct: 0.96, spd: 0.78 }, // Onto main straight
   { pct: 1.00, spd: 0.95 }, // Wrap to start
 ];
