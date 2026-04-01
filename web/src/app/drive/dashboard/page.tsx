@@ -4,7 +4,8 @@ import { SITE_URL, SITE_NAME, CATEGORY_LABELS, LICENSE_LABELS, LICENSE_COLORS } 
 import { isAdmin } from '@/lib/admin'
 import { db, schema } from '@/db'
 import { and, eq, gt, desc } from 'drizzle-orm'
-import { Download, LogOut, BarChart3, Trophy, Shield, Car, Settings, Wifi } from 'lucide-react'
+import { Download, LogOut, BarChart3, Trophy, Shield, Car, Settings } from 'lucide-react'
+import RaceCard from './RaceCard'
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -47,15 +48,35 @@ export default async function DashboardPage() {
           .where(eq(schema.raceSessions.userId, dbUser.id))
           .orderBy(desc(schema.raceSessions.createdAt))
           .limit(20)
-      // Get the user's latest access token for API calls
-      const tokens = await db.select().from(schema.pluginTokens)
-        .where(eq(schema.pluginTokens.userId, dbUser.id))
-        .orderBy(schema.pluginTokens.createdAt)
-        .limit(1)
-      if (tokens.length > 0) {
-        userToken = tokens[0].accessToken
       }
     }
+  }
+
+  // Fetch track maps for SVG outlines
+  let trackMapLookup: Record<string, string> = {}
+  if (isPluginConnected && recentSessions.length > 0) {
+    const trackNames = [...new Set(recentSessions.map(s => s.trackName).filter(Boolean))]
+    if (trackNames.length > 0) {
+      const maps = await db.select({
+        trackName: schema.trackMaps.trackName,
+        svgPath: schema.trackMaps.svgPath,
+      }).from(schema.trackMaps)
+      // Build lookup by trackName (case-insensitive fuzzy match)
+      maps.forEach(m => {
+        trackMapLookup[m.trackName.toLowerCase()] = m.svgPath
+      })
+    }
+  }
+
+  // Build iRating history for sparkline
+  let iRatingHistory: number[] = []
+  if (isPluginConnected && dbUser) {
+    const history = await db.select({ iRating: schema.ratingHistory.iRating })
+      .from(schema.ratingHistory)
+      .where(eq(schema.ratingHistory.userId, dbUser.id))
+      .orderBy(desc(schema.ratingHistory.createdAt))
+      .limit(20)
+    iRatingHistory = history.map(h => h.iRating).reverse()  // Oldest first for sparkline
   }
 
   const hasEnoughData = raceCount >= 5
@@ -111,49 +132,22 @@ export default async function DashboardPage() {
               </p>
             </section>
 
-            {/* Race History */}
+            {/* Race History with Rich Cards */}
             <section className="mb-12">
               <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <Car size={18} className="text-[var(--k10-red)]" />
                 Race History
               </h2>
               {recentSessions.length > 0 ? (
-                <div className="rounded-xl bg-[var(--surface)] border border-[var(--border)] overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-[var(--border)] text-left">
-                        <th className="px-4 py-3 text-xs text-[var(--text-muted)] uppercase tracking-wider font-semibold">Date</th>
-                        <th className="px-4 py-3 text-xs text-[var(--text-muted)] uppercase tracking-wider font-semibold">Track</th>
-                        <th className="px-4 py-3 text-xs text-[var(--text-muted)] uppercase tracking-wider font-semibold">Car</th>
-                        <th className="px-4 py-3 text-xs text-[var(--text-muted)] uppercase tracking-wider font-semibold">Pos</th>
-                        <th className="px-4 py-3 text-xs text-[var(--text-muted)] uppercase tracking-wider font-semibold">Inc</th>
-                        <th className="px-4 py-3 text-xs text-[var(--text-muted)] uppercase tracking-wider font-semibold">Best Lap</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {recentSessions.map((s) => {
-                        const meta = (s.metadata as Record<string, any>) || {}
-                        const date = new Date(s.createdAt)
-                        const bestLap = meta.bestLapTime
-                        let lapStr = '—'
-                        if (bestLap && bestLap > 0) {
-                          const m = Math.floor(bestLap / 60)
-                          const sec = bestLap - m * 60
-                          lapStr = m + ':' + (sec < 10 ? '0' : '') + sec.toFixed(3)
-                        }
-                        return (
-                          <tr key={s.id} className="border-b border-[var(--border)] last:border-0 hover:bg-white/[0.02] transition-colors">
-                            <td className="px-4 py-3 text-[var(--text-dim)]">{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
-                            <td className="px-4 py-3 text-[var(--text-secondary)] font-medium">{s.trackName || '—'}</td>
-                            <td className="px-4 py-3 text-[var(--text-dim)]">{s.carModel || '—'}</td>
-                            <td className="px-4 py-3 font-bold">{s.finishPosition ? 'P' + s.finishPosition : '—'}</td>
-                            <td className="px-4 py-3 text-[var(--text-dim)]">{s.incidentCount ?? '—'}</td>
-                            <td className="px-4 py-3 text-[var(--text-dim)] font-mono text-xs">{lapStr}</td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
+                <div className="space-y-2">
+                  {recentSessions.map((s) => (
+                    <RaceCard
+                      key={s.id}
+                      session={s}
+                      trackSvgPath={trackMapLookup[(s.trackName || '').toLowerCase()] || null}
+                      iRatingHistory={iRatingHistory}
+                    />
+                  ))}
                 </div>
               ) : (
                 <div className="p-8 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-center">
@@ -232,7 +226,7 @@ export default async function DashboardPage() {
             </section>
 
             {/* Subtle Download Link */}
-            <section className="mb-8 text-center">
+            <section className="text-center">
               <a
                 href="/api/download/latest"
                 className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-dim)] transition-colors"
@@ -241,6 +235,13 @@ export default async function DashboardPage() {
                 Need to reinstall? Download RaceCor.io Overlay
               </a>
             </section>
+
+            {/* Footer */}
+            <footer className="mt-16 pt-6 border-t border-[var(--border)] text-center">
+              <a href={SITE_URL} className="text-xs text-[var(--text-muted)] hover:text-[var(--text-dim)] transition-colors">
+                &larr; Back to {SITE_NAME}
+              </a>
+            </footer>
           </>
         ) : (
           <>
@@ -351,15 +352,15 @@ export default async function DashboardPage() {
                 All Pro features are unlocked when your overlay is connected to your Pro Drive account.
               </p>
             </section>
+
+            {/* Footer */}
+            <footer className="mt-16 pt-6 border-t border-[var(--border)] text-center">
+              <a href={SITE_URL} className="text-xs text-[var(--text-muted)] hover:text-[var(--text-dim)] transition-colors">
+                &larr; Back to {SITE_NAME}
+              </a>
+            </footer>
           </>
         )}
-
-        {/* Footer */}
-        <footer className="mt-16 pt-6 border-t border-[var(--border)] text-center">
-          <a href={SITE_URL} className="text-xs text-[var(--text-muted)] hover:text-[var(--text-dim)] transition-colors">
-            &larr; Back to {SITE_NAME}
-          </a>
-        </footer>
       </div>
     </main>
   )
