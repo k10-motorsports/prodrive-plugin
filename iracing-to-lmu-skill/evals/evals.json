@@ -1,0 +1,23 @@
+{
+  "skill_name": "iracing-to-lmu",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "The ABS setting always shows 0 in LMU sessions. Fix it so LMU reads the correct ABS level from rF2 telemetry. The code is in TelemetrySnapshot.Capture.cs.",
+      "expected_output": "Adds a case GameId.LMU to the ABS helper method that reads Telemetry.mAntiLockBraking from rF2 raw properties. Includes correct prefix, unit notes, and null guard.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "The track map shows no opponent cars during LMU sessions because the multi-car arrays are empty. Port the CarIdxLapDistPct, CarIdxOnPitRoad, and CarIdxLapCompleted arrays to work with LMU by reading from rF2's Scoring.mVehicles data.",
+      "expected_output": "Adds a GameId.LMU case that iterates Scoring.mVehicles[N], builds equivalent arrays, normalizes mLapDist to 0-1 by dividing by track length, finds playerIdx via mIsPlayer, and handles the different data structure.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "LMU sessions are missing red flag and checkered flag detection. The flag mapping in TelemetrySnapshot.Capture.cs only handles green, yellow, blue, black, and white for LMU. Add the missing flag states using the rF2 mGamePhase and mHighestFlagColor enums.",
+      "expected_output": "Extends the LMU flag mapping to include: mHighestFlagColor=4 for red flag, mGamePhase=8 for session over / checkered, and mGamePhase=7 for session stopped / red. Uses correct bitmask values matching iRacing convention.",
+      "files": []
+    }
+  ]
+}

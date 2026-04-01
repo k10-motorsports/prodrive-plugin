@@ -37,6 +37,7 @@
     --purple: hsl(280,80%,70%);
 
     --ff: 'Barlow Condensed', 'Corbel', 'Segoe UI', system-ui, sans-serif;
+    --ff-display: 'Cinzel Decorative', 'Georgia', serif;
     --ff-mono: 'JetBrains Mono', 'Consolas', 'SF Mono', monospace;
     --fs-xl: 20px;
     --fs-lg: 13px;
@@ -93,7 +94,7 @@
 
   /* Settings hint text */
   .settings-hint {
-    font-size: 9px;
+    font-size: 14px;
     color: hsla(0,0%,100%,0.35);
     padding: 2px 0 6px;
     line-height: 1.4;
@@ -522,47 +523,9 @@
     border-top-left-radius: var(--corner-r); border-bottom-left-radius: var(--corner-r);
   }
 
-  /* ── Vertical swap for bottom corners ──
-     Reverses internal column order so panels read correctly
-     when the HUD is anchored to the bottom edge. */
-  .dashboard.layout-br .fuel-tyres-col,
-  .dashboard.layout-bl .fuel-tyres-col,
-  .dashboard.layout-br .controls-pedals-block,
-  .dashboard.layout-bl .controls-pedals-block,
-  .dashboard.layout-br .maps-col,
-  .dashboard.layout-bl .maps-col,
-  .dashboard.layout-br .pos-gaps-col,
-  .dashboard.layout-bl .pos-gaps-col,
-  .dashboard.layout-br .logo-col,
-  .dashboard.layout-bl .logo-col {
-    flex-direction: column-reverse;
-  }
-
-  /* Vswap corner rounding — bottom-right (RTL): fuel→bottom-left, tyres→top-left */
-  .dashboard.layout-br .fuel-block  { border-top-left-radius: 0; border-bottom-left-radius: var(--corner-r); }
-  .dashboard.layout-br .tyres-block { border-bottom-left-radius: 0; border-top-left-radius: var(--corner-r); }
-
-  /* Vswap corner rounding — bottom-left (LTR): fuel→bottom-right, tyres→top-right */
-  .dashboard.layout-bl .fuel-block  {
-    border-top-right-radius: 0; border-bottom-right-radius: var(--corner-r);
-    border-top-left-radius: 0; border-bottom-left-radius: 0;
-  }
-  .dashboard.layout-bl .tyres-block {
-    border-bottom-right-radius: 0; border-top-right-radius: var(--corner-r);
-    border-bottom-left-radius: 0; border-top-left-radius: 0;
-  }
-
-  /* Vswap logo column — bottom corners flip logo squares */
-  .dashboard.layout-br .logo-col .logo-square:first-child,
-  .dashboard.layout-bl .logo-col .logo-square:first-child {
-    border-top-left-radius: 0; border-top-right-radius: 0;
-    border-bottom-left-radius: var(--corner-r); border-bottom-right-radius: var(--corner-r);
-  }
-  .dashboard.layout-br .logo-col .logo-square:last-child,
-  .dashboard.layout-bl .logo-col .logo-square:last-child {
-    border-bottom-left-radius: 0; border-bottom-right-radius: 0;
-    border-top-left-radius: var(--corner-r); border-top-right-radius: var(--corner-r);
-  }
+  /* ── Vertical swap DISABLED ──
+     Previously reversed internal column order for bottom layouts.
+     Modules now keep the same orientation regardless of HUD position. */
   .dashboard::before {
     content: '';
     position: absolute;
@@ -594,8 +557,9 @@
     border-bottom-right-radius: var(--corner-r);
   }
   .panel-label {
+    font-family: var(--ff);
     font-size: var(--fs-xs);
-    font-weight: var(--fw-semi);
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--text-dim);
@@ -669,7 +633,7 @@
     position: absolute;
     bottom: 4px;
     right: 6px;
-    font-size: 8px;
+    font-size: 14px;
     font-weight: var(--fw-medium);
     color: rgba(255,255,255,0.45);
     z-index: 1;
@@ -677,8 +641,9 @@
   }
 
   .commentary-title {
+    font-family: var(--ff);
     font-size: 20px;
-    font-weight: var(--fw-black);
+    font-weight: 700;
     line-height: 1.0;
     margin-bottom: 6px;
     padding-right: 38px;  /* room for icon */
@@ -782,7 +747,7 @@
     bottom: 4px;
     right: 0;
     font-family: var(--ff-mono);
-    font-size: 11px;
+    font-size: 14px;
     font-weight: var(--fw-bold);
     color: var(--text-primary);
     opacity: 0.85;
@@ -805,7 +770,7 @@
     position: absolute;
     top: 0;
     left: 0;
-    font-size: 7px;
+    font-size: 14px;
     font-weight: var(--fw-semi);
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -917,7 +882,7 @@
     border-bottom-right-radius: var(--corner-r);
   }
   .logo-square img {
-    width: 56px;
+    width: 70%;
     height: auto;
     opacity: 1;
   }
@@ -934,12 +899,12 @@
     flex-shrink: 0;
   }
   .car-logo-icon svg {
-    width: 44px;
-    height: 44px;
+    width: 64px;
+    height: 64px;
     opacity: 0.96;
   }
   .car-model-label {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-secondary);
     text-align: center;
@@ -956,6 +921,22 @@
     margin-top: 2px;
   }
   .car-model-label:empty { display: none; }
+
+  .logo-subtitle {
+    display: block;
+    text-align: center;
+    font-family: var(--ff);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
 
   /* ═══════════════════════════════════════════════
      TACH — gear top-left, RPM top-right, speed+MPH beneath RPM
@@ -1234,7 +1215,7 @@
   .ir-bar-tick-label {
     position: absolute;
     top: 10px;
-    font-size: 6px;
+    font-size: 14px;
     font-weight: var(--fw-medium);
     color: var(--text-dim);
     transform: translateX(-50%);
@@ -1283,7 +1264,7 @@
   }
   .skew-accent { transform: skewX(-6deg); display: inline-block; }
   .pos-delta {
-    font-size: 11px;
+    font-size: 14px;
     font-weight: var(--fw-bold);
     letter-spacing: 0.02em;
     text-align: left;
@@ -1347,7 +1328,7 @@
   }
   .pos-meta-row.delta-row .val {
     font-family: var(--ff-mono);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: -0.02em;
     display: block;
@@ -1386,7 +1367,7 @@
     transition: background 0.3s, color 0.3s;
   }
   .sector-label {
-    font-size: 9px;
+    font-size: 14px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -1395,13 +1376,13 @@
   }
   .sector-time {
     font-family: var(--ff-mono);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
   }
   .sector-delta {
     font-family: var(--ff-mono);
-    font-size: 10px;
+    font-size: 14px;
     font-weight: 600;
     color: hsla(0,0%,100%,0.35);
     margin-top: 1px;
@@ -1710,7 +1691,7 @@
   }
   .race-timer-lap {
     font-family: var(--ff-mono);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
     color: var(--text-dim);
     font-variant-numeric: tabular-nums;
@@ -1735,16 +1716,25 @@
     gap: var(--gap);
     flex-shrink: 0;
     width: 96px;
+    align-self: stretch;
   }
   .map-panel {
-    flex: 1;
+    flex: 1 1 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     position: relative;
+    padding: 2px 0;
+    min-height: 0;
+    overflow: hidden;
   }
-  .map-svg { width: 92%; height: 92%; }
+  .map-svg { width: 92%; flex: 1 1 0; min-height: 0; object-fit: contain; }
+  /* Full map label: flow below SVG instead of absolute-bottom */
+  .map-panel > .map-zoom-label {
+    position: static;
+    margin-top: 4px;
+  }
   /* Track outline — three-layer rendering: thick outer edges, dark gap, thin center line */
   .map-track-outer {
     fill: none;
@@ -1993,7 +1983,7 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    font-size: 11px;
+    font-size: 14px;
     font-weight: var(--fw-bold);
     letter-spacing: 0.08em;
     color: hsla(0, 0%, 100%, 0.25);
@@ -2008,16 +1998,24 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0;
     position: relative;
   }
   .pedal-labels-row {
     display: flex;
     gap: 6px;
     justify-content: space-around;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 6;
+    pointer-events: none;
+    padding: 3px 0;
   }
   .pedal-label-group {
     text-align: center;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
   }
   .pedal-channel-label {
     font-size: var(--fs-xs);
@@ -2025,9 +2023,9 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
-  .pedal-channel-label.throttle { color: var(--green); }
-  .pedal-channel-label.brake { color: var(--red); }
-  .pedal-channel-label.clutch { color: var(--blue); }
+  .pedal-channel-label.throttle { color: hsla(0, 0%, 100%, 0.9); }
+  .pedal-channel-label.brake { color: hsla(0, 0%, 100%, 0.9); }
+  .pedal-channel-label.clutch { color: hsla(0, 0%, 100%, 0.9); }
   .pedal-pct {
     font-size: var(--fs-xs);
     font-weight: var(--fw-bold);
@@ -2093,7 +2091,7 @@
     position: absolute;
     bottom: 1px;
     right: 4px;
-    font-size: 8px;
+    font-size: 14px;
     font-weight: 600;
     color: hsla(0, 0%, 100%, 0.3);
     letter-spacing: 0.04em;
@@ -2179,7 +2177,7 @@
     gap: 3px;
   }
   .tyre-cell {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: var(--fw-black);
     text-align: center;
     padding: 3px 2px;
@@ -2192,7 +2190,7 @@
   .tyre-cell.hot { color: var(--amber); border-color: hsla(45,100%,50%,0.12); }
   .tyre-cell.danger { color: var(--red); border-color: hsla(0,70%,50%,0.15); }
   .tyre-label {
-    font-size: 6px;
+    font-size: 14px;
     color: var(--text-dim);
     text-align: center;
   }
@@ -2227,8 +2225,9 @@
     overflow: hidden;
   }
   .lb-header {
-    font-size: 9px;
-    font-weight: var(--fw-bold);
+    font-family: var(--ff);
+    font-size: 14px;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     color: hsla(0, 0%, 100%, 0.35);
@@ -2241,7 +2240,7 @@
     align-items: center;
     gap: 4px;
     padding: 3px 10px;
-    font-size: 11px;
+    font-size: 14px;
     font-variant-numeric: tabular-nums; /* TODO: extract to shared numeric-display class (used 17 times total) */
     border-bottom: 1px solid hsla(0, 0%, 100%, 0.06);
     transition: background 0.3s ease;
@@ -2282,7 +2281,7 @@
     font-weight: var(--fw-black);
     color: var(--text-dim);
     text-align: center;
-    font-size: 12px;
+    font-size: 14px;
   }
   .lb-row.lb-player .lb-pos { color: var(--cyan); }
   .lb-row.lb-player.lb-p1 .lb-pos { color: hsla(42, 80%, 60%, 1.0); }
@@ -2298,13 +2297,13 @@
   }
   .lb-row.lb-player .lb-name { color: var(--text-primary); font-weight: var(--fw-bold); }
   .lb-ir {
-    font-size: 10px;
+    font-size: 14px;
     color: var(--text-dim);
     text-align: right;
   }
   .lb-gap {
     font-family: var(--ff-mono);
-    font-size: 9px;
+    font-size: 14px;
     text-align: right;
     font-weight: 500;
     letter-spacing: -0.03em;
@@ -2314,7 +2313,7 @@
   .lb-gap.gap-player { color: var(--cyan); }
   .lb-lap {
     font-family: var(--ff-mono);
-    font-size: 9px;
+    font-size: 14px;
     text-align: right;
     font-weight: 500;
     color: var(--text-dim);
@@ -2379,12 +2378,13 @@
   .conn-card-icon.discord { background: hsla(235, 86%, 65%, 0.2); }
   .conn-card-icon svg { width: 18px; height: 18px; }
   .conn-card-title {
-    font-size: 13px;
+    font-family: var(--ff);
+    font-size: 14px;
     font-weight: 700;
     color: hsla(0,0%,100%,0.9);
   }
   .conn-card-subtitle {
-    font-size: 10px;
+    font-size: 14px;
     color: hsla(0,0%,100%,0.4);
     margin-top: 1px;
   }
@@ -2405,12 +2405,12 @@
   .conn-dot.orange { background: #ff9800; box-shadow: 0 0 6px rgba(255,152,0,0.3); }
   .conn-dot.blue { background: #5865F2; box-shadow: 0 0 6px rgba(88,101,242,0.3); }
   .conn-status-text {
-    font-size: 11px;
+    font-size: 14px;
     color: hsla(0,0%,100%,0.7);
   }
   .conn-status-text strong { font-weight: 600; color: hsla(0,0%,100%,0.9); }
   .conn-card-detail {
-    font-size: 10px;
+    font-size: 14px;
     color: hsla(0,0%,100%,0.35);
     margin-top: 4px;
     line-height: 1.4;
@@ -2424,7 +2424,7 @@
     padding: 6px 14px;
     border: none;
     border-radius: 6px;
-    font-size: 11px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: opacity 0.2s, transform 0.1s;
@@ -2470,12 +2470,12 @@
     object-fit: cover;
   }
   .conn-user-name {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     color: hsla(0,0%,100%,0.85);
   }
   .conn-user-id {
-    font-size: 9px;
+    font-size: 14px;
     color: hsla(0,0%,100%,0.3);
     font-variant-numeric: tabular-nums;
   }
@@ -2506,7 +2506,7 @@
     margin: 6px 0;
   }
   .conn-pro-feature-badge {
-    font-size: 9px;
+    font-size: 14px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.03em;
@@ -2526,13 +2526,14 @@
     margin-bottom: 10px;
   }
   .conn-pro-info-title {
-    font-size: 11px;
+    font-family: var(--ff-display);
+    font-size: 14px;
     font-weight: 700;
     color: hsla(0,0%,100%,0.6);
     margin-bottom: 4px;
   }
   .conn-pro-info-text {
-    font-size: 10px;
+    font-size: 14px;
     color: hsla(0,0%,100%,0.35);
     line-height: 1.5;
     margin-bottom: 8px;
@@ -2544,13 +2545,13 @@
     gap: 4px;
   }
   .conn-pro-feature-item {
-    font-size: 10px;
+    font-size: 14px;
     color: hsla(0,0%,100%,0.45);
     display: flex;
     align-items: center;
     gap: 4px;
   }
-  .conn-pro-feature-icon { font-size: 11px; }
+  .conn-pro-feature-icon { font-size: 14px; }
 
   /* Secondary cards (SimHub, Discord) — less prominent */
   .conn-card-secondary {
@@ -2653,8 +2654,9 @@
     position: relative;
   }
   .ds-header {
-    font-size: 9px;
-    font-weight: var(--fw-bold);
+    font-family: var(--ff);
+    font-size: 14px;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     color: hsla(0, 0%, 100%, 0.35);
@@ -2697,7 +2699,7 @@
   }
   .ds-row:last-child { border-bottom: none; }
   .ds-label {
-    font-size: 9px;
+    font-size: 14px;
     font-weight: var(--fw-semi);
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -2705,7 +2707,7 @@
   }
   .ds-value {
     font-family: var(--ff-mono);
-    font-size: 11px;
+    font-size: 14px;
     font-weight: var(--fw-semi);
     color: var(--text-secondary);
     letter-spacing: -0.02em;
@@ -2791,7 +2793,7 @@
     transition: background 0.4s ease, border-color 0.4s ease;
   }
   .inc-label {
-    font-size: 9px;
+    font-size: 14px;
     font-weight: var(--fw-bold);
     text-transform: uppercase;
     letter-spacing: 0.12em;
@@ -2851,14 +2853,14 @@
     align-items: center;
     justify-content: space-between;
     gap: 4px;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: var(--fw-medium);
     letter-spacing: 0.04em;
     color: hsla(0, 0%, 100%, 0.35);
   }
   .inc-thresh-val {
     font-weight: var(--fw-semi);
-    font-size: 12px;
+    font-size: 14px;
     font-variant-numeric: tabular-nums;
     color: hsla(0, 0%, 100%, 0.50);
     transition: color 0.4s ease;
@@ -2940,7 +2942,7 @@
     flex-shrink: 0;
   }
   .pitbox-panel.section-hidden { display: none; }
-  .pitbox-panel.pb-dismissed { opacity: 0; pointer-events: none; }
+  .pitbox-panel.pb-dismissed { opacity: 0 !important; pointer-events: none; }
 
   .pb-inner {
     background: hsla(0, 0%, 5%, 0.90);
@@ -2960,7 +2962,7 @@
   .pb-tab {
     flex: 1;
     text-align: center;
-    font-size: 9px;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: 0.5px;
     text-transform: uppercase;
@@ -2989,7 +2991,7 @@
 
   /* ── Section dividers ── */
   .pb-section-label {
-    font-size: 9px;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: 0.8px;
     text-transform: uppercase;
@@ -3008,7 +3010,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 2px 0;
-    font-size: 12px;
+    font-size: 14px;
     line-height: 1.4;
     position: relative;
   }
@@ -3019,7 +3021,7 @@
   }
   .pb-value {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
+    font-size: 14px;
     font-weight: 600;
     color: hsla(0, 0%, 100%, 0.9);
     text-align: right;
@@ -3039,35 +3041,35 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 11px;
+    font-size: 14px;
     padding: 2px 0;
     position: relative;
   }
   .pb-tire-pos {
     font-weight: 600;
-    font-size: 10px;
+    font-size: 14px;
     color: hsla(0, 0%, 100%, 0.5);
     min-width: 18px;
   }
   .pb-tire-status {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 9px;
+    font-size: 14px;
     font-weight: 600;
   }
   .pb-tire-status.changing { color: var(--green, #4ade80); }
   .pb-tire-status.keeping {
     color: hsla(0, 0%, 100%, 0.2);
-    font-size: 9px;
+    font-size: 14px;
   }
   .pb-tire-pressure {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
+    font-size: 14px;
     color: hsla(0, 0%, 100%, 0.7);
     margin-left: auto;
   }
   .pb-tire-temp {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
+    font-size: 14px;
     color: hsla(0, 0%, 100%, 0.8);
     margin-left: auto;
   }
@@ -3092,7 +3094,7 @@
   .pb-tire-bar-fill.crit { background: #ef4444; }
   .pb-tire-pct {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
+    font-size: 14px;
     color: hsla(0, 0%, 100%, 0.7);
     min-width: 28px;
     text-align: right;
@@ -3128,7 +3130,7 @@
     line-height: 1.1;
   }
   .pb-fuel-unit {
-    font-size: 10px;
+    font-size: 14px;
     font-weight: 500;
     color: hsla(0, 0%, 100%, 0.4);
     text-transform: uppercase;
@@ -3168,21 +3170,21 @@
   }
   .pb-adj-item.hidden { display: none; }
   .pb-adj-label {
-    font-size: 10px;
+    font-size: 14px;
     font-weight: 500;
-    color: hsla(0, 0%, 100%, 0.45);
+    color: hsla(0, 0%, 100%, 0.85);
   }
   .pb-adj-val {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
+    font-size: 14px;
     font-weight: 600;
-    color: hsla(0, 0%, 100%, 0.8);
+    color: hsla(0, 0%, 100%, 1);
   }
-  .pb-adj-val.zero { color: hsla(0, 0%, 100%, 0.2); }
+  .pb-adj-val.zero { color: hsla(0, 0%, 100%, 0.3); }
 
   /* ── Info text ── */
   .pb-info {
-    font-size: 10px;
+    font-size: 14px;
     color: hsla(0, 0%, 100%, 0.25);
     font-style: italic;
     text-align: center;
@@ -3214,7 +3216,7 @@
   /* ── No data state ── */
   .pb-no-data {
     text-align: center;
-    font-size: 10px;
+    font-size: 14px;
     color: hsla(0, 0%, 100%, 0.3);
     padding: 8px 10px;
     font-style: italic;
@@ -3322,7 +3324,7 @@
     border-radius: 6px;
     padding: 8px 12px;
     color: #fff;
-    font-size: 13px;
+    font-size: 14px;
     font-family: var(--ff);
     outline: none;
     margin-bottom: 12px;
@@ -3334,7 +3336,7 @@
     border-radius: 6px;
     padding: 8px 24px;
     color: #fff;
-    font-size: 13px;
+    font-size: 14px;
     font-family: var(--ff);
     cursor: pointer;
     font-weight: 500;
@@ -3370,7 +3372,7 @@
     vertical-align: middle;
   }
   .settings-conn-warn .warn-title {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: hsl(10, 80%, 70%);
     display: inline;
@@ -3421,7 +3423,7 @@
     color: #e8e8f0;
   }
   .dp-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .dp-title { font-size: 24px; font-weight: 800; }
+  .dp-title { font-family: var(--ff); font-size: 24px; font-weight: 700; }
   .dp-close {
     width: 36px; height: 36px; border: none; border-radius: 8px;
     background: hsla(0,0%,100%,0.06); color: hsla(0,0%,100%,0.5);
@@ -3443,7 +3445,7 @@
     flex: 1; text-align: center;
     background: hsla(0,0%,100%,0.04); border-radius: 10px; padding: 16px 8px;
   }
-  .dp-rating-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: hsla(0,0%,100%,0.35); margin-bottom: 4px; }
+  .dp-rating-label { font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: hsla(0,0%,100%,0.35); margin-bottom: 4px; }
   .dp-rating-value { font-family: 'JetBrains Mono', monospace; font-size: 36px; font-weight: 700; }
   .dp-rating-delta { font-family: 'JetBrains Mono', monospace; font-size: 14px; margin-top: 4px; color: hsla(0,0%,100%,0.35); }
   .dp-rating-delta.positive { color: var(--green); }
@@ -3455,18 +3457,18 @@
 
   .dp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .dp-section-title {
-    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    font-family: var(--ff); font-size: 14px; font-weight: 700; text-transform: uppercase;
     letter-spacing: 0.1em; color: hsla(0,0%,100%,0.4); margin-bottom: 8px;
   }
   .dp-chart { width: 100%; border-radius: 8px; background: hsla(0,0%,100%,0.02); }
   .dp-heatmap { display: flex; flex-wrap: wrap; gap: 6px; }
   .dp-hm-cell {
-    border-radius: 6px; padding: 6px 10px; font-size: 11px; font-weight: 600;
+    border-radius: 6px; padding: 6px 10px; font-size: 14px; font-weight: 600;
     background: hsla(0,0%,100%,0.04); color: hsla(0,0%,100%,0.5);
     transition: background 0.2s;
   }
-  .dp-hm-cell .dp-hm-count { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; display: block; }
-  .dp-hm-cell .dp-hm-name { font-size: 9px; display: block; color: hsla(0,0%,100%,0.35); }
+  .dp-hm-cell .dp-hm-count { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; display: block; }
+  .dp-hm-cell .dp-hm-name { font-size: 14px; display: block; color: hsla(0,0%,100%,0.35); }
 
   /* ═══════════════════════════════════════════════
      RATING EDITOR (iRacing tab)
@@ -3519,7 +3521,7 @@
     cursor: pointer;
   }
   .re-field-hint {
-    font-size: 13px;
+    font-size: 14px;
     color: hsla(0,0%,100%,0.25);
     margin-top: 4px;
   }
@@ -3645,6 +3647,29 @@
   }
   /* Hide popout button when already in popout window */
   body.settings-popout .settings-popout-btn { display: none; }
+  .settings-titlebar-btn {
+    background: hsla(0,0%,100%,0.06);
+    border: 1px solid hsla(0,0%,100%,0.1);
+    border-radius: 6px;
+    color: hsla(0,0%,100%,0.5);
+    font-size: 14px;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+  .settings-titlebar-btn:hover {
+    background: hsla(0,0%,100%,0.12);
+    color: hsla(0,0%,100%,0.8);
+  }
+  .settings-quit-btn:hover {
+    background: hsla(0, 70%, 45%, 0.3);
+    color: hsla(0, 80%, 70%, 1);
+  }
   .settings-titlebar-logo {
     display: flex;
     align-items: center;
@@ -3675,7 +3700,7 @@
   }
   .settings-sidebar-item {
     padding: 8px 16px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: hsla(0,0%,100%,0.4);
     cursor: pointer;
@@ -3705,8 +3730,9 @@
     grid-column: 1 / -1;
   }
   .settings-title {
+    font-family: var(--ff-display);
     font-size: 16px;
-    font-weight: 900;
+    font-weight: 700;
     margin-bottom: 4px;
   }
   .settings-subtitle {
@@ -3715,7 +3741,7 @@
     margin-bottom: 16px;
   }
   .settings-group-label {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     color: hsla(0,0%,100%,0.35);
     text-transform: uppercase;
@@ -3733,7 +3759,7 @@
     flex-wrap: wrap;
   }
   .settings-subtab {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     color: hsla(0,0%,100%,0.35);
     padding: 5px 10px;
@@ -3894,7 +3920,7 @@
 
   .settings-version {
     text-align: center;
-    font-size: 10px;
+    font-size: 14px;
     color: hsla(0,0%,100%,0.2);
     padding: 0 20px 12px;
   }
@@ -3950,13 +3976,13 @@
     justify-content: center;
     gap: 12px;
     margin-top: 6px;
-    font-size: 10px;
+    font-size: 14px;
     font-weight: 600;
     letter-spacing: 0.03em;
   }
   .curve-legend-item { opacity: 0.6; }
   .settings-info-text {
-    font-size: 11px;
+    font-size: 14px;
     color: hsla(0, 0%, 100%, 0.3);
     padding: 4px 0;
     line-height: 1.5;
@@ -3970,7 +3996,7 @@
     padding: 8px 10px;
     margin-top: 4px;
     font-family: 'JetBrains Mono', 'SF Mono', monospace;
-    font-size: 10px;
+    font-size: 14px;
     line-height: 1.6;
   }
   .moza-debug-row {
@@ -3991,7 +4017,7 @@
     max-width: 180px;
   }
   .moza-debug-json {
-    font-size: 8px;
+    font-size: 14px;
     max-width: 180px;
     word-break: break-all;
     white-space: normal;
@@ -4094,7 +4120,7 @@
   .rc-title {
     font-family: var(--ff);
     font-size: 28px;
-    font-weight: var(--fw-black);
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.10em;
     color: #FFFFFF;
@@ -4233,7 +4259,7 @@
     border-radius: 50%;
     background: hsl(200, 80%, 60%);
     display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 800; color: #000;
+    font-size: 14px; font-weight: 800; color: #000;
     line-height: 1;
   }
   .pit-label {
@@ -4244,7 +4270,7 @@
     color: hsl(200, 80%, 70%);
   }
   .pit-speed {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: var(--fw-bold);
     color: hsla(0, 0%, 100%, 0.60);
     font-variant-numeric: tabular-nums;
@@ -4464,7 +4490,7 @@
   /* Limit value: pulsing red */
   .pit-banner.pit-bonkers .pit-limit {
     color: hsla(0, 100%, 65%, 0.8) !important;
-    font-size: 13px !important;
+    font-size: 14px !important;
   }
 
   /* ── Spark particles (spawned by JS) ── */
@@ -4600,7 +4626,7 @@
   .re-title {
     font-family: var(--ff);
     font-size: 32px;
-    font-weight: var(--fw-black);
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     margin: 0 0 4px 0;
@@ -4608,7 +4634,7 @@
     color: var(--text-primary);
   }
   .re-subtitle {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: var(--fw-regular);
     color: var(--text-secondary);
     margin: 0;
@@ -4623,7 +4649,7 @@
     border: 1px solid var(--green);
     border-radius: var(--corner-r-sm);
     color: var(--green);
-    font-size: 10px;
+    font-size: 14px;
     font-weight: var(--fw-bold);
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -4646,7 +4672,7 @@
     flex: 1;
   }
   .re-stat-label {
-    font-size: 10px;
+    font-size: 14px;
     font-weight: var(--fw-semi);
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -4768,8 +4794,9 @@
   .sp-inner.sp-danger .sp-icon { color: hsl(0, 70%, 65%); }
   .sp-inner.sp-clear .sp-icon { color: hsl(145, 60%, 60%); }
   .sp-header {
-    font-size: 9px;
-    font-weight: var(--fw-bold);
+    font-family: var(--ff);
+    font-size: 14px;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     color: hsla(220, 60%, 60%, 0.55);
@@ -4859,8 +4886,9 @@
     position: absolute;
   }
   .grid-title {
-    font-size: 10px;
-    font-weight: var(--fw-bold);
+    font-family: var(--ff);
+    font-size: 14px;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.18em;
     color: hsla(220, 60%, 65%, 0.60);
@@ -4916,7 +4944,7 @@
   }
 
   .grid-start-type {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: var(--fw-semi);
     text-transform: uppercase;
     letter-spacing: 0.14em;
@@ -5410,7 +5438,7 @@ body.opaque-mode .spotter-panel::before {
   border: 1px solid hsla(0, 0%, 100%, 0.15);
   border-radius: 4px;
   padding: 4px 12px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: background 200ms ease, border-color 200ms ease;
@@ -5426,6 +5454,55 @@ body.opaque-mode .spotter-panel::before {
 }
 
 /* ═══════════════════════════════════════════════
+   PRESET BUTTONS (Minimal, Minimal+, Standard)
+   ═══════════════════════════════════════════════ */
+.settings-preset-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.settings-preset-btn {
+  flex: 1;
+  background: hsla(0, 0%, 100%, 0.08);
+  color: hsla(0, 0%, 100%, 0.7);
+  border: 1px solid hsla(0, 0%, 100%, 0.15);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  position: relative;
+}
+.settings-preset-btn:hover {
+  background: hsla(0, 0%, 100%, 0.12);
+  border-color: hsla(0, 0%, 100%, 0.3);
+  color: hsla(0, 0%, 100%, 0.9);
+}
+.settings-preset-btn.active {
+  background: hsla(280, 80%, 70%, 0.25);
+  border-color: hsl(280, 80%, 70%);
+  color: hsl(280, 80%, 80%);
+}
+.settings-preset-btn.pro-locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.settings-preset-btn.pro-locked::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  background: no-repeat center;
+  background-size: 10px;
+  opacity: 0.6;
+}
+
+/* ═══════════════════════════════════════════════
    AMBIENT CAPTURE PREVIEW (in settings panel)
    ═══════════════════════════════════════════════ */
 .ambient-preview-container {
@@ -5436,7 +5513,7 @@ body.opaque-mode .spotter-panel::before {
   border: 1px solid hsla(0, 0%, 100%, 0.08);
 }
 .ambient-preview-label {
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
   color: hsla(0, 0%, 100%, 0.5);
   text-transform: uppercase;
@@ -5451,7 +5528,7 @@ body.opaque-mode .spotter-panel::before {
   display: block;
 }
 .ambient-preview-info {
-  font-size: 11px;
+  font-size: 14px;
   color: hsla(0, 0%, 100%, 0.4);
   margin-top: 4px;
   text-align: center;
@@ -5614,31 +5691,6 @@ html, body {
   <div class="main-row">
   <div class="main-area">
 
-    <!-- COL: Fuel (top) + Tyres (bottom) — separate panels -->
-    <div class="fuel-tyres-col">
-      <div class="panel fuel-block">
-        <div class="panel-label">Fuel</div>
-        <div class="fuel-remaining">— <span class="unit">L</span></div>
-        <div class="fuel-bar-outer">
-          <div class="fuel-bar-inner healthy" style="width: 0%;"></div>
-        </div>
-        <div class="fuel-stats">
-          <span>Avg <span class="val">—</span> L/lap</span>
-          <span>Est <span class="val">—</span> laps</span>
-        </div>
-        <div class="fuel-pit-suggest"></div>
-      </div>
-      <div class="panel tyres-block">
-        <div class="panel-label">Tyres °F</div>
-        <div class="tyre-grid">
-          <div><div class="tyre-label">FL</div><div class="tyre-cell">—</div><div class="tyre-wear-bar"><div class="tyre-wear-fill" style="width:0%;"></div></div></div>
-          <div><div class="tyre-label">FR</div><div class="tyre-cell">—</div><div class="tyre-wear-bar"><div class="tyre-wear-fill" style="width:0%;"></div></div></div>
-          <div><div class="tyre-label">RL</div><div class="tyre-cell">—</div><div class="tyre-wear-bar"><div class="tyre-wear-fill" style="width:0%;"></div></div></div>
-          <div><div class="tyre-label">RR</div><div class="tyre-cell">—</div><div class="tyre-wear-bar"><div class="tyre-wear-fill" style="width:0%;"></div></div></div>
-        </div>
-      </div>
-    </div>
-
     <!-- COL: Controls + Layered Pedals -->
     <div class="controls-pedals-block">
       <div class="panel car-controls">
@@ -5651,15 +5703,15 @@ html, body {
         <div class="pedal-labels-row">
           <div class="pedal-label-group">
             <div class="pedal-channel-label throttle">THROTTLE</div>
-            <div class="pedal-pct" style="color:var(--green);">0%</div>
+            <div class="pedal-pct" style="color:hsla(0,0%,100%,0.85);">0%</div>
           </div>
           <div class="pedal-label-group">
             <div class="pedal-channel-label brake">BRAKE</div>
-            <div class="pedal-pct" style="color:var(--red);">0%</div>
+            <div class="pedal-pct" style="color:hsla(0,0%,100%,0.85);">0%</div>
           </div>
           <div class="pedal-label-group" id="clutchLabelGroup">
             <div class="pedal-channel-label clutch">CLUTCH</div>
-            <div class="pedal-pct" style="color:var(--blue);">0%</div>
+            <div class="pedal-pct" style="color:hsla(0,0%,100%,0.85);">0%</div>
           </div>
         </div>
         <div class="pedal-viz-stack">
@@ -5831,7 +5883,7 @@ html, body {
     <div class="logo-col">
       <div class="logo-square" id="k10LogoSquare">
         <canvas class="gl-overlay" id="k10LogoGlCanvas" style="z-index:1;"></canvas>
-        <img src="images/branding/logomark.png" alt="K10 Motorsports" style="width:75%;height:auto;opacity:1;position:relative;z-index:2;">
+        <img src="images/branding/logomark.png" alt="RaceCor" style="width:75%;height:auto;opacity:1;position:relative;z-index:2;">
       </div>
       <div class="logo-square" id="carLogoSquare">
         <canvas class="mfr-flag-canvas" id="mfrFlagCanvas"></canvas>
@@ -6605,27 +6657,27 @@ const _demoModels = {
 const _defaultLogoBg = 'hsla(0, 0%, 12%, 1.0)';
 
 const _mfrBrandColors = {
-  bmw:         'hsla(204, 100%, 45%, 0.65)',
-  mclaren:     'hsla(24, 100%, 52%, 0.65)',
-  mazda:       'hsla(0, 90%, 44%, 0.65)',
-  nissan:      'hsla(0, 85%, 50%, 0.65)',
-  dallara:     'hsla(210, 85%, 48%, 0.65)',
-  ferrari:     'hsla(0, 90%, 48%, 0.65)',
-  porsche:     'hsla(0, 0%, 50%, 0.60)',
-  audi:        'hsla(0, 0%, 50%, 0.60)',
-  mercedes:    'hsla(175, 65%, 42%, 0.62)',
-  lamborghini: 'hsla(48, 90%, 48%, 0.62)',
-  chevrolet:   'hsla(40, 62%, 38%, 0.65)',
-  ford:        'hsla(237, 100%, 28%, 0.65)',
-  toyota:      'hsla(0, 85%, 48%, 0.65)',
-  hyundai:     'hsla(216, 85%, 45%, 0.65)',
-  cadillac:    'hsla(0, 0%, 50%, 0.60)',
-  astonmartin: 'hsla(155, 70%, 38%, 0.65)',
-  lotus:       'hsla(57, 100%, 50%, 0.65)',
-  ligier:      'hsla(204, 78%, 40%, 0.65)',
-  fia:         'hsla(228, 73%, 21%, 0.65)',
-  radical:     'hsla(43, 82%, 57%, 0.65)',
-  honda:       'hsla(0, 90%, 42%, 0.65)'
+  bmw:         'hsla(204, 100%, 45%, 0.55)',
+  mclaren:     'hsla(24, 100%, 52%, 0.55)',
+  mazda:       'hsla(0, 90%, 44%, 0.55)',
+  nissan:      'hsla(0, 85%, 50%, 0.55)',
+  dallara:     'hsla(210, 85%, 48%, 0.55)',
+  ferrari:     'hsla(0, 90%, 48%, 0.55)',
+  porsche:     'hsla(0, 0%, 50%, 0.50)',
+  audi:        'hsla(0, 0%, 50%, 0.50)',
+  mercedes:    'hsla(175, 65%, 42%, 0.52)',
+  lamborghini: 'hsla(48, 90%, 48%, 0.52)',
+  chevrolet:   'hsla(40, 62%, 38%, 0.55)',
+  ford:        'hsla(237, 100%, 28%, 0.55)',
+  toyota:      'hsla(0, 85%, 48%, 0.55)',
+  hyundai:     'hsla(216, 85%, 45%, 0.55)',
+  cadillac:    'hsla(0, 0%, 50%, 0.50)',
+  astonmartin: 'hsla(155, 70%, 38%, 0.55)',
+  lotus:       'hsla(57, 100%, 50%, 0.55)',
+  ligier:      'hsla(204, 78%, 40%, 0.55)',
+  fia:         'hsla(228, 73%, 21%, 0.55)',
+  radical:     'hsla(43, 82%, 57%, 0.55)',
+  honda:       'hsla(0, 90%, 42%, 0.55)'
 };
 
 // Manufacturer → ISO 3166-1 alpha-2 country code (used for flag display)
@@ -6757,9 +6809,17 @@ const _defaultSettings = {
   discordUser: null,
   rallyMode: false,
   driveMode: false,
+  // Visual modes and effects
+  visualPreset: 'standard',  // 'standard', 'minimal', 'minimal-plus'
+  showBorders: true,
+  showSentimentHalo: true,
+  showCommentaryGlow: true,
+  showRcAnimation: true,
+  showMapGlow: true,
+  showRedlineFlash: true,
   // Leaderboard
   lbFocus: 'me',        // 'me' = center on player, 'lead' = show from P1
-  lbMaxRows: 5,         // max visible opponent rows
+  lbMaxRows: 10,        // max visible opponent rows (increased from 5 to show more of full field)
   lbExpandToFill: false, // override lbMaxRows to fill available screen space
   // Datastream field toggles
   dsShowGforce: true,
@@ -6767,7 +6827,11 @@ const _defaultSettings = {
   dsShowFfb: true,
   dsShowDelta: true,
   dsShowTrackTemp: true,
-  dsShowFps: true
+  dsShowFps: true,
+  // Y-offset for bottom-positioned modules
+  bottomYOffset: 0,
+  // Logo subtitle text
+  logoSubtitle: ''
 };
 
 let _settings = Object.assign({}, _defaultSettings);
@@ -9018,6 +9082,18 @@ document.addEventListener('DOMContentLoaded', function () {
     if (zoomLabel) zoomLabel.textContent = zoomVal + '%';
     applyZoom(zoomVal);
 
+    // Bottom Y-Offset
+    var ySlider = document.getElementById('settingsBottomYOffset');
+    if (ySlider) {
+      ySlider.value = _settings.bottomYOffset || 0;
+      document.getElementById('bottomYOffsetVal').textContent = (_settings.bottomYOffset || 0) + 'px';
+    }
+
+    // Logo Subtitle
+    var subInput = document.getElementById('logoSubtitleInput');
+    if (subInput) subInput.value = _settings.logoSubtitle || '';
+    if (typeof applyLogoSubtitle === 'function') applyLogoSubtitle();
+
     // Force flag
     _forceFlagState = _settings.forceFlag || '';
     const flagSelect = document.getElementById('settingsForceFlag');
@@ -9051,6 +9127,20 @@ document.addEventListener('DOMContentLoaded', function () {
     if (_settings.logoOnlyStart !== false) {
       document.body.classList.add('logo-only');
     }
+
+    // Visual mode classes
+    const preset = _settings.visualPreset || 'standard';
+    document.body.classList.remove('mode-minimal', 'mode-minimal-plus');
+    if (preset === 'minimal') {
+      document.body.classList.add('mode-minimal');
+    } else if (preset === 'minimal-plus') {
+      document.body.classList.add('mode-minimal-plus');
+    }
+
+    // Sync preset button active states
+    document.querySelectorAll('.settings-preset-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.preset === preset);
+    });
   }
 
   // Called by poll-engine when session goes active (game running + session state > 0).
@@ -9066,13 +9156,12 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function _collapseParentColumns() {
-    // Fuel + Tyres share fuel-tyres-col
-    const ftCol = document.querySelector('.fuel-tyres-col');
-    if (ftCol) {
-      const fuelHidden = _settings.showFuel === false;
-      const tyresHidden = _settings.showTyres === false;
-      ftCol.classList.toggle('section-hidden', fuelHidden && tyresHidden);
+    // When a visual preset mode is active, CSS rules in modes.css handle all
+    // visibility. Skip the section-hidden collapse logic to avoid interfering.
+    if (document.body.classList.contains('mode-minimal') || document.body.classList.contains('mode-minimal-plus')) {
+      return;
     }
+
     // Controls + Pedals share controls-pedals-block
     const cpBlock = document.querySelector('.controls-pedals-block');
     if (cpBlock) {
@@ -9117,13 +9206,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function updateLbFocus(value) {
     _settings.lbFocus = value;
-    _lbLastJson = ''; // force re-render
+    window._lbLastJson = ''; // force re-render
     saveSettings();
   }
 
   function updateLbMaxRows(value) {
     _settings.lbMaxRows = Math.max(1, Math.min(40, +value || 5));
-    _lbLastJson = '';
+    window._lbLastJson = '';
     saveSettings();
   }
 
@@ -9131,7 +9220,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const isOn = el.classList.contains('on');
     el.classList.toggle('on', !isOn);
     _settings.lbExpandToFill = !isOn;
-    _lbLastJson = '';
+    window._lbLastJson = '';
     saveSettings();
   }
 
@@ -9152,6 +9241,78 @@ document.addEventListener('DOMContentLoaded', function () {
       const key = el.dataset.dsField;
       const show = _settings[key] !== false;
       el.style.display = show ? '' : 'none';
+    });
+  }
+
+  // ── Visual mode presets (Minimal, Minimal+, Standard) ──
+  function applyVisualPreset(preset) {
+    // Feature gate: minimal/minimal+ require K10 Pro connection
+    if (preset !== 'standard' && !_k10User) {
+      navigateToConnections();
+      return;
+    }
+
+    _settings.visualPreset = preset;
+
+    // Remove all mode classes
+    document.body.classList.remove('mode-minimal', 'mode-minimal-plus');
+
+    if (preset === 'minimal') {
+      document.body.classList.add('mode-minimal');
+      // Set all effect toggles to off for Minimal mode
+      _settings.showWebGL = false;
+      _settings.ambientMode = 'off';
+      _settings.showBorders = false;
+      _settings.showSentimentHalo = false;
+      _settings.showCommentaryGlow = false;
+      _settings.showRcAnimation = false;
+      _settings.showMapGlow = false;
+      _settings.showRedlineFlash = false;
+      _settings.showBonkers = false;
+      _settings.showK10Logo = false;
+      _settings.showCarLogo = false;
+      _settings.showGameLogo = false;
+    } else if (preset === 'minimal-plus') {
+      document.body.classList.add('mode-minimal-plus');
+      // Racing-educated Tufte: data-reactive effects on, static decoration off
+      _settings.showWebGL = true;  // but CSS reduces intensity to 60%
+      _settings.ambientMode = 'off';
+      _settings.showBorders = false;
+      _settings.showSentimentHalo = true;  // but CSS reduces to 40% alpha
+      _settings.showCommentaryGlow = false;
+      _settings.showRcAnimation = true;    // flag animation settles after 4s
+      _settings.showMapGlow = true;
+      _settings.showRedlineFlash = true;
+      _settings.showBonkers = false;
+      _settings.showK10Logo = false;
+      _settings.showCarLogo = true;  // contextual data for broadcast
+      _settings.showGameLogo = false;
+    } else {
+      // Standard — restore defaults
+      _settings.showWebGL = true;
+      _settings.ambientMode = 'reflective';
+      _settings.showBorders = true;
+      _settings.showSentimentHalo = true;
+      _settings.showCommentaryGlow = true;
+      _settings.showRcAnimation = true;
+      _settings.showMapGlow = true;
+      _settings.showRedlineFlash = true;
+      _settings.showBonkers = true;
+      _settings.showK10Logo = true;
+      _settings.showCarLogo = true;
+      _settings.showGameLogo = true;
+      // When switching back to standard, ensure mode classes are removed
+      // so _collapseParentColumns() can properly restore column states
+      document.body.classList.remove('mode-minimal', 'mode-minimal-plus');
+    }
+
+    // Sync UI toggles and save
+    applySettings();
+    saveSettings();
+
+    // Update preset button active states
+    document.querySelectorAll('.settings-preset-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.preset === preset);
     });
   }
 
@@ -9551,7 +9712,7 @@ document.addEventListener('DOMContentLoaded', function () {
   let _k10Connecting = false;
 
   // Pro features — keys map to setting toggles and sidebar items
-  const PRO_FEATURE_KEYS = ['commentary','incidents','spotter','leaderboard','datastream','webgl','reflections','modules'];
+  const PRO_FEATURE_KEYS = ['commentary','incidents','spotter','leaderboard','datastream','webgl','reflections','modules','minimal','minimal-plus','branding'];
 
   function isProFeature(key) {
     const map = {
@@ -9619,6 +9780,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // iRacing tab — enabled when K10 connected (was Discord)
     if (typeof updateIRacingTabState === 'function') updateIRacingTabState();
+
+    // Apply logo subtitle (updates when K10 connection state changes)
+    if (typeof applyLogoSubtitle === 'function') applyLogoSubtitle();
   }
 
   async function connectK10Pro() {
@@ -9626,7 +9790,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!window.k10 || !window.k10.k10Connect) {
       // Fallback: open website in browser
       if (window.k10 && window.k10.openExternal) {
-        window.k10.openExternal('https://drive.k10motorsports.racing');
+        window.k10.openExternal('https://drive.racecor.io');
       }
       return;
     }
@@ -10085,6 +10249,48 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.updateGameLogo) window.updateGameLogo(window._currentGameId || 'iracing', !isOn);
   }
 
+  // ─── Logo subtitle ───
+  function updateLogoSubtitle(value) {
+    _settings.logoSubtitle = value;
+    applyLogoSubtitle();
+    saveSettings();
+  }
+  window.updateLogoSubtitle = updateLogoSubtitle;
+
+  function applyLogoSubtitle() {
+    var label = document.getElementById('k10SubtitleLabel');
+    var logo = document.getElementById('k10LogoSquare');
+    if (!logo) return;
+
+    // Create label element if it doesn't exist
+    if (!label) {
+      label = document.createElement('span');
+      label.id = 'k10SubtitleLabel';
+      label.className = 'logo-subtitle';
+      logo.parentNode.insertBefore(label, logo.nextSibling);
+    }
+
+    var text = _settings.logoSubtitle || '';
+    // Show subtitle only when K10 Pro is connected and text is set
+    if (text && _k10User) {
+      label.textContent = text;
+      label.style.display = 'block';
+      label.style.opacity = '1';
+    } else if (!_k10User && !text) {
+      // Teaser: show placeholder for logged-out users
+      label.textContent = 'K10 Motorsports';
+      label.style.display = 'block';
+      label.style.opacity = '0.3';
+    } else if (text && !_k10User) {
+      label.textContent = text;
+      label.style.display = 'block';
+      label.style.opacity = '0.3';
+    } else {
+      label.style.display = 'none';
+    }
+  }
+  window.applyLogoSubtitle = applyLogoSubtitle;
+
   // ─── Green screen mode ───
   async function toggleGreenScreen(el) {
     const isOn = el.classList.contains('on');
@@ -10207,6 +10413,20 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── 6. Spotter: co-located with race control at top center ──
     // Positioning is handled entirely by CSS (top: 8px, left: 50%, transform).
     // No layout-dependent positioning needed.
+
+    // ── 7. Apply bottom Y-offset ──
+    // When layout is bottom-oriented, apply margin-bottom offset to relevant panels
+    // Bottom Y-offset: apply margin-bottom to bottom-oriented panels
+    var yOff = (_settings.bottomYOffset || 0) + 'px';
+    var isBottomLayout = pos.startsWith('bottom');
+    var ySecContainer = document.getElementById('secContainer');
+    var yIncPanel = document.getElementById('incidentsPanel');
+    var yCmtCol = document.getElementById('commentaryCol');
+    var yGameLogo = document.getElementById('gameLogoOverlay');
+    if (ySecContainer) ySecContainer.style.marginBottom = isBottomLayout ? yOff : '';
+    if (yIncPanel) yIncPanel.style.marginBottom = isBottomLayout ? yOff : '';
+    if (yCmtCol) yCmtCol.style.marginBottom = isBottomLayout ? yOff : '';
+    if (yGameLogo) yGameLogo.style.marginBottom = isBottomLayout ? yOff : '';
   }
 
   function updateLayoutPosition(value) {
@@ -10263,6 +10483,14 @@ document.addEventListener('DOMContentLoaded', function () {
       if (settingsOverlay) settingsOverlay.style.zoom = scale;
     }
   }
+
+  function previewBottomYOffset(val) {
+    document.getElementById('bottomYOffsetVal').textContent = val + 'px';
+    _settings.bottomYOffset = parseInt(val, 10);
+    applyLayout();
+    saveSettings();
+  }
+  window.previewBottomYOffset = previewBottomYOffset;
 
   function updateForceFlag(val) {
     _forceFlagState = val;
@@ -10356,7 +10584,11 @@ document.addEventListener('DOMContentLoaded', function () {
   // Sparkline history: keyed by driver name, stores last N lap times
   const _sparkHistory = {};
   const SPARK_MAX = 12;
-  let _lbLastJson = '';
+  // Player position history for sparkline (seeded from grid position)
+  const _posHistory = [];
+  let _posHistorySeeded = false;
+  // Use window-scoped cache key so settings.js can reliably reset it
+  window._lbLastJson = '';
 
   function updateLeaderboard(p) {
     const lbPanel = document.getElementById('leaderboardPanel');
@@ -10374,8 +10606,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const expandToFill = _settings.lbExpandToFill === true; // Ensure boolean with default false
     const settingsKey = (_settings.lbFocus || 'me') + '|' + (_settings.lbMaxRows || 5) + '|' + (expandToFill ? '1' : '0') + '|' + (window.innerHeight || 0);
     const json = JSON.stringify(raw) + '|' + settingsKey;
-    if (json === _lbLastJson) return;
-    _lbLastJson = json;
+    if (json === window._lbLastJson) return;
+    window._lbLastJson = json;
 
     const container = document.getElementById('lbRows');
     if (!container) return;
@@ -10471,72 +10703,141 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       if (pit) classes.push('lb-pit');
 
-      // Gap display
+      // Gap display based on focus mode
       let gapStr = '', gapClass = 'gap-player';
       if (isPlayer) {
         gapStr = '';
-      } else if (gap < 0) {
-        gapStr = '-' + Math.abs(gap).toFixed(1) + 's';
-        gapClass = 'gap-ahead';
-      } else if (gap > 0) {
-        gapStr = '+' + gap.toFixed(1) + 's';
-        gapClass = 'gap-behind';
+      } else if (focusMode === 'lead') {
+        // In 'lead' mode, show either lap time (P1) or gap to leader
+        if (pos === 1) {
+          // P1: show their last lap time formatted as mm:ss.fff
+          if (last > 0) {
+            const m = Math.floor(last / 60), s = last - m * 60;
+            gapStr = m + ':' + (s < 10 ? '0' : '') + s.toFixed(2);
+          }
+          gapClass = 'gap-leader';
+        } else {
+          // Others: show gap to P1 (first entry in raw array)
+          const leader = raw[0];
+          if (leader) {
+            const leaderLast = +leader[4]; // P1's lastLap
+            const gapToLeader = last > 0 && leaderLast > 0 ? last - leaderLast : 0;
+            if (gapToLeader > 0) {
+              gapStr = '+' + gapToLeader.toFixed(1) + 's';
+              gapClass = 'gap-behind';
+            } else if (gapToLeader < 0) {
+              gapStr = Math.abs(gapToLeader).toFixed(1) + 's';
+              gapClass = 'gap-ahead';
+            }
+          }
+        }
       } else {
-        gapStr = '';
+        // 'me' mode: show gap to player (original behavior)
+        if (gap < 0) {
+          gapStr = '-' + Math.abs(gap).toFixed(1) + 's';
+          gapClass = 'gap-ahead';
+        } else if (gap > 0) {
+          gapStr = '+' + gap.toFixed(1) + 's';
+          gapClass = 'gap-behind';
+        } else {
+          gapStr = '';
+        }
       }
 
       // iRating shorthand
       const irStr = ir > 0 ? (ir >= 1000 ? (ir / 1000).toFixed(1) + 'k' : '' + ir) : '';
 
-      // Update sparkline history (coerce to number, skip 0/NaN)
-      const lastNum = +last;
-      if (lastNum > 0) {
-        if (!_sparkHistory[name]) _sparkHistory[name] = [];
-        const h = _sparkHistory[name];
-        if (h.length === 0 || h[h.length - 1] !== lastNum) {
-          h.push(lastNum);
-          if (h.length > SPARK_MAX) h.shift();
+      // ── Sparkline data collection ──
+      // Non-player: track lap times. Player: track position (seeded from grid).
+      if (isPlayer) {
+        // Seed position history with grid position on first sight
+        if (!_posHistorySeeded && _startPosition > 0) {
+          _posHistory.push(_startPosition);
+          _posHistorySeeded = true;
+        }
+        // Only record real positions after green flag (not during rolling/formation).
+        // This preserves the grid → green flag position jump as the first movement.
+        if (!window._isRollingStart && pos > 0 && (_posHistory.length === 0 || _posHistory[_posHistory.length - 1] !== pos)) {
+          _posHistory.push(pos);
+          if (_posHistory.length > SPARK_MAX) _posHistory.shift();
+        }
+      } else {
+        // Non-player: track lap times as before
+        const lastNum = +last;
+        if (lastNum > 0) {
+          if (!_sparkHistory[name]) _sparkHistory[name] = [];
+          const h = _sparkHistory[name];
+          if (h.length === 0 || h[h.length - 1] !== lastNum) {
+            h.push(lastNum);
+            if (h.length > SPARK_MAX) h.shift();
+          }
         }
       }
 
-      // Build sparkline SVG inline (mini polyline)
+      // ── Build sparkline SVG ──
       let sparkSvg = '';
-      // Filter out any stale 0s that may have entered the history
-      const hist = _sparkHistory[name] ? _sparkHistory[name].filter(v => v > 0) : null;
-      // During rolling/formation starts, draw a flat baseline when no lap data exists
-      if ((!hist || hist.length < 2) && window._isRollingStart) {
-        const w = 44, h2 = 14;
-        const midY = (h2 / 2).toFixed(1);
-        const col = isPlayer ? 'hsla(210,75%,55%,0.5)' : 'hsla(0,0%,100%,0.15)';
-        sparkSvg = '<svg class="lb-spark" viewBox="0 0 ' + w + ' ' + h2 + '" preserveAspectRatio="none">'
-          + '<line x1="0" y1="' + midY + '" x2="' + w + '" y2="' + midY + '" stroke="' + col + '" stroke-width="1" stroke-dasharray="3,2"/>'
-          + '</svg>';
-      } else if (hist && hist.length >= 2) {
-        const mn = Math.min(...hist), mx = Math.max(...hist);
+
+      if (isPlayer && _posHistory.length >= 2) {
+        // Player: position sparkline (lower = better → invert Y axis)
+        const mn = Math.min(..._posHistory), mx = Math.max(..._posHistory);
         const range = mx - mn || 1;
         const w = 44, h2 = 14;
         let pts = '';
-        for (let i = 0; i < hist.length; i++) {
-          const x = (i / (hist.length - 1)) * w;
-          const y = ((hist[i] - mn) / range) * h2;
+        for (let i = 0; i < _posHistory.length; i++) {
+          const x = (i / (_posHistory.length - 1)) * w;
+          // Invert: P1 at top (y=0), higher positions at bottom
+          const y = ((_posHistory[i] - mn) / range) * h2;
           if (i === 0) {
             pts += x.toFixed(1) + ',' + y.toFixed(1);
           } else {
-            // Step: horizontal to new x at old y, then vertical to new y
-            const prevY = ((hist[i - 1] - mn) / range) * h2;
+            const prevY = ((_posHistory[i - 1] - mn) / range) * h2;
             pts += ' ' + x.toFixed(1) + ',' + prevY.toFixed(1);
             pts += ' ' + x.toFixed(1) + ',' + y.toFixed(1);
           }
         }
-        const lastY = ((hist[hist.length - 1] - mn) / range) * h2;
-        let col = 'hsla(0,0%,100%,0.3)';
-        if (isPlayer) {
-          if (pos === 1) col = 'hsla(42,80%,55%,1)';
-          else if (_startPosition > 0 && pos < _startPosition) col = 'hsla(145,75%,50%,1)';
-          else if (_startPosition > 0 && pos > _startPosition) col = 'hsla(0,75%,50%,1)';
-          else col = 'hsla(210,75%,55%,1)';
-        }
+        const lastY = ((_posHistory[_posHistory.length - 1] - mn) / range) * h2;
+        let col;
+        if (pos === 1) col = 'hsla(42,80%,55%,1)';
+        else if (_startPosition > 0 && pos < _startPosition) col = 'hsla(145,75%,50%,1)';
+        else if (_startPosition > 0 && pos > _startPosition) col = 'hsla(0,75%,50%,1)';
+        else col = 'hsla(210,75%,55%,1)';
         sparkSvg = '<svg class="lb-spark" viewBox="0 0 ' + w + ' ' + h2 + '" preserveAspectRatio="none"><polyline points="' + pts + '" fill="none" stroke="' + col + '" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="' + (w).toFixed(1) + '" cy="' + lastY.toFixed(1) + '" r="1.5" fill="' + col + '"/></svg>';
+      } else if (isPlayer) {
+        // Player: flat baseline during rolling start / waiting for green flag
+        const w = 44, h2 = 14;
+        const midY = (h2 / 2).toFixed(1);
+        const dashCol = window._isRollingStart ? 'hsla(42,70%,55%,0.4)' : 'hsla(210,75%,55%,0.5)';
+        sparkSvg = '<svg class="lb-spark" viewBox="0 0 ' + w + ' ' + h2 + '" preserveAspectRatio="none">'
+          + '<line x1="0" y1="' + midY + '" x2="' + w + '" y2="' + midY + '" stroke="' + dashCol + '" stroke-width="1" stroke-dasharray="3,2"/>'
+          + '</svg>';
+      } else {
+        // Non-player: lap-time sparkline
+        const hist = _sparkHistory[name] ? _sparkHistory[name].filter(v => v > 0) : null;
+        if ((!hist || hist.length < 2) && window._isRollingStart) {
+          const w = 44, h2 = 14;
+          const midY = (h2 / 2).toFixed(1);
+          sparkSvg = '<svg class="lb-spark" viewBox="0 0 ' + w + ' ' + h2 + '" preserveAspectRatio="none">'
+            + '<line x1="0" y1="' + midY + '" x2="' + w + '" y2="' + midY + '" stroke="hsla(0,0%,100%,0.15)" stroke-width="1" stroke-dasharray="3,2"/>'
+            + '</svg>';
+        } else if (hist && hist.length >= 2) {
+          const mn = Math.min(...hist), mx = Math.max(...hist);
+          const range = mx - mn || 1;
+          const w = 44, h2 = 14;
+          let pts = '';
+          for (let i = 0; i < hist.length; i++) {
+            const x = (i / (hist.length - 1)) * w;
+            const y = ((hist[i] - mn) / range) * h2;
+            if (i === 0) {
+              pts += x.toFixed(1) + ',' + y.toFixed(1);
+            } else {
+              const prevY = ((hist[i - 1] - mn) / range) * h2;
+              pts += ' ' + x.toFixed(1) + ',' + prevY.toFixed(1);
+              pts += ' ' + x.toFixed(1) + ',' + y.toFixed(1);
+            }
+          }
+          const lastY = ((hist[hist.length - 1] - mn) / range) * h2;
+          sparkSvg = '<svg class="lb-spark" viewBox="0 0 ' + w + ' ' + h2 + '" preserveAspectRatio="none"><polyline points="' + pts + '" fill="none" stroke="hsla(0,0%,100%,0.3)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="' + (w).toFixed(1) + '" cy="' + lastY.toFixed(1) + '" r="1.5" fill="hsla(0,0%,100%,0.3)"/></svg>';
+        }
       }
 
       // Lap time display with color coding
@@ -11242,10 +11543,12 @@ document.addEventListener('DOMContentLoaded', function () {
       _lastIncrement = pbInc; _lastDecrement = pbDec;
       _lastToggle = pbTog;
     } else {
-      // Tab cycling
+      // Tab cycling — respond to TabCycle, TabCycleBack, Next, and Prev
       var tabDir = 0;
       if (tabCycle !== _lastTabCycle)         { _lastTabCycle = tabCycle; tabDir = 1; }
       if (tabCycleBack !== _lastTabCycleBack) { _lastTabCycleBack = tabCycleBack; tabDir = -1; }
+      if (pbNext !== _lastNext)               { _lastNext = pbNext; tabDir = 1; }
+      if (pbPrev !== _lastPrev)               { _lastPrev = pbPrev; tabDir = -1; }
       if (tabDir !== 0) {
         var panel = document.getElementById('pitBoxPanel');
         if (_pbHidden) {
@@ -11265,6 +11568,11 @@ document.addEventListener('DOMContentLoaded', function () {
           if (atEnd || atStart) {
             _pbHidden = true;
             if (panel) panel.classList.add('pb-dismissed');
+            // Deselect all tabs and pages so state is clean on re-show
+            var allTabs = document.querySelectorAll('.pb-tab');
+            var allPages = document.querySelectorAll('.pb-page');
+            for (var t = 0; t < allTabs.length; t++) allTabs[t].classList.remove('active');
+            for (var p = 0; p < allPages.length; p++) allPages[p].classList.remove('active');
           } else {
             var nextIdx = idx + tabDir;
             var nextTab = document.querySelector('.pb-tab[data-pb-tab="' + _tabOrder[nextIdx] + '"]');
@@ -11272,10 +11580,6 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         }
       }
-
-      // Element navigation / value adjustment — actions stubbed for future mapping
-      if (pbNext !== _lastNext)  { _lastNext = pbNext;  /* TODO: move focus to next element */ }
-      if (pbPrev !== _lastPrev)  { _lastPrev = pbPrev;  /* TODO: move focus to prev element */ }
       if (pbInc !== _lastIncrement)  { _lastIncrement = pbInc;  /* TODO: increment focused value */ }
       if (pbDec !== _lastDecrement)  { _lastDecrement = pbDec;  /* TODO: decrement focused value */ }
       if (pbTog !== _lastToggle) { _lastToggle = pbTog; /* TODO: toggle focused element on/off */ }
@@ -16771,13 +17075,13 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   // Logo-corner mapping: dashboard position → logo position
-  // Logo goes on the same vertical edge as the dashboard but on the
-  // opposite horizontal side — keeps it aligned with main modules.
+  // Logo goes on the opposite vertical edge AND opposite horizontal side
+  // to avoid overlap with the dashboard.
   var OPPOSITE_CORNER = {
-    'top-right':       'top-left',
-    'top-left':        'top-right',
-    'bottom-right':    'bottom-left',
-    'bottom-left':     'bottom-right',
+    'top-right':       'bottom-left',
+    'top-left':        'bottom-right',
+    'bottom-right':    'top-left',
+    'bottom-left':     'top-right',
     'absolute-center': 'bottom-left'
   };
 
@@ -16794,7 +17098,7 @@ document.addEventListener('DOMContentLoaded', function () {
     _logoEl = document.createElement('div');
     _logoEl.id = 'gameLogoOverlay';
     _logoEl.style.cssText =
-      'position:fixed;z-index:50;width:250px;pointer-events:none;' +
+      'position:fixed;z-index:50;width:180px;pointer-events:none;' +
       'opacity:0;transition:opacity 0.4s ease;' +
       'display:flex;align-items:center;justify-content:center;';
     document.body.appendChild(_logoEl);
@@ -16802,7 +17106,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function updatePosition() {
     if (!_logoEl) return;
-    var layoutPos = (window._settings && window._settings.layoutPosition) || 'top-right';
+    // Read from global _settings object (not window._settings)
+    // _settings is exposed as a global from config.js
+    var layoutPos = (_settings && _settings.layoutPosition) || 'top-right';
     var logoPos = OPPOSITE_CORNER[layoutPos] || 'bottom-left';
     var style = POS_STYLES[logoPos] || POS_STYLES['bottom-left'];
     // Reset all positioning
@@ -16890,6 +17196,19 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   // Also listen for settings changes
   window.addEventListener('k10-layout-changed', updatePosition);
+
+  // Ensure position is updated when applySettings is called
+  // (which loads _settings from localStorage)
+  var _origApplySettings = window.applySettings;
+  if (typeof _origApplySettings === 'function') {
+    window.applySettings = function() {
+      _origApplySettings.apply(this, arguments);
+      // Update logo position after settings are applied
+      if (_logoEl) {
+        updatePosition();
+      }
+    };
+  }
 })();
 
 
@@ -17787,10 +18106,15 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
 
-    // Track name
+    // Track name — prefer K10 display name, fall back to game name
     var nameEl = document.getElementById('dhMapName');
-    var trackName = p['DataCorePlugin.GameData.TrackName'] || '';
-    if (nameEl && trackName) nameEl.textContent = trackName;
+    var trackName = p['K10Motorsports.Plugin.TrackMap.TrackName']
+                 || p['DataCorePlugin.GameData.TrackName'] || '';
+    if (nameEl && trackName) {
+      var resolved = typeof _trackDisplayNameCache !== 'undefined' && _trackDisplayNameCache[trackName];
+      nameEl.textContent = resolved || trackName;
+      if (!resolved && typeof resolveTrackDisplayName === 'function') resolveTrackDisplayName(trackName);
+    }
   }
   window.updateDriveHud = updateDriveHud;
 
@@ -17865,6 +18189,31 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
     return 0;
+  }
+
+  // ─── Track display name resolver ───
+  // Fetches user-customized display names from the K10 API.
+  // Falls back to the game-provided name if no custom name is set or API is unreachable.
+  const _trackDisplayNameCache = {};    // { gameTrackName → displayName }
+  const _trackDisplayNamePending = {};  // { gameTrackName → true } (in-flight requests)
+  const K10_DISPLAY_NAME_API = 'https://drive.racecor.io/api/tracks';
+
+  function resolveTrackDisplayName(gameTrackName) {
+    if (_trackDisplayNameCache[gameTrackName] || _trackDisplayNamePending[gameTrackName]) return;
+    _trackDisplayNamePending[gameTrackName] = true;
+    fetch(K10_DISPLAY_NAME_API + '?trackName=' + encodeURIComponent(gameTrackName))
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(data) {
+        // displayName from API already falls back to trackName server-side
+        _trackDisplayNameCache[gameTrackName] = (data && data.displayName) || gameTrackName;
+      })
+      .catch(function() {
+        // API unreachable — use the game name
+        _trackDisplayNameCache[gameTrackName] = gameTrackName;
+      })
+      .finally(function() {
+        delete _trackDisplayNamePending[gameTrackName];
+      });
   }
 
   // ─── Data fetch loop (runs on setInterval — decoupled from display) ───
@@ -18864,13 +19213,22 @@ document.addEventListener('DOMContentLoaded', function () {
     const mapHeading = +v('K10Motorsports.Plugin.TrackMap.PlayerHeading') || 0;
     // Use plugin path if available; show no track when map isn't ready
     updateTrackMap(mapPath, mapPX, mapPY, mapOpp, speed, mapHeading);
-    // Full map label: show track name instead of "Full"
+    // Full map label: show display name (from K10 API) or fall back to game name
     const fullMapLbl = document.getElementById('fullMapLabel');
     if (fullMapLbl) {
       const trackName = vs('K10Motorsports.Plugin.TrackMap.TrackName')
                      || vs('DataCorePlugin.GameData.TrackName')
                      || '';
-      if (trackName && trackName !== fullMapLbl.textContent) fullMapLbl.textContent = trackName;
+      if (trackName) {
+        const resolved = _trackDisplayNameCache[trackName];
+        if (resolved) {
+          if (resolved !== fullMapLbl.textContent) fullMapLbl.textContent = resolved;
+        } else {
+          // Show game name immediately, then upgrade if K10 returns a display name
+          if (trackName !== fullMapLbl.textContent) fullMapLbl.textContent = trackName;
+          resolveTrackDisplayName(trackName);
+        }
+      }
     }
 
     // ─── Datastream ───
