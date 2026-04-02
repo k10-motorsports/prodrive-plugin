@@ -842,11 +842,14 @@ namespace K10Motorsports.Plugin
                 try
                 {
                     // Handle CORS preflight
+                    // Electron 33+ (Chromium 130+) enforces Private Network Access:
+                    // file:// → localhost requires Access-Control-Allow-Private-Network
                     if (ctx.Request.HttpMethod == "OPTIONS")
                     {
                         ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
                         ctx.Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
                         ctx.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type");
+                        ctx.Response.Headers.Add("Access-Control-Allow-Private-Network", "true");
                         ctx.Response.StatusCode = 204;
                         ctx.Response.OutputStream.Close();
                         continue;
