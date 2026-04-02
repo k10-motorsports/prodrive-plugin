@@ -11,7 +11,7 @@ import { dirname, join } from 'node:path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Dynamic import of the handler (ESM default export)
-const { default: handler } = await import(join(__dirname, 'api', 'k10mediabroadcaster.js'));
+const { default: handler } = await import(join(__dirname, 'api', 'racecor-io-pro-drive.js'));
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
 
@@ -37,5 +37,5 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`\n  ⚡ K10 Mock Telemetry API running at http://localhost:${PORT}`);
-  console.log(`     GET http://localhost:${PORT}/api/k10mediabroadcaster\n`);
+  console.log(`     GET http://localhost:${PORT}/api/racecor-io-pro-drive\n`);
 });

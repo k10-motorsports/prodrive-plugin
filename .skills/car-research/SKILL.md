@@ -1,7 +1,7 @@
 ---
 name: car-research
 description: >
-  Research, document, and maintain car data for the K10 Media Broadcaster.
+  Research, document, and maintain car data for the RaceCor overlay.
   Use this skill whenever someone asks about car facts, manufacturer history,
   engine specs, driving characteristics, or commentary material for any racing
   car — especially iRacing cars. Also use when adding a new car to the system,

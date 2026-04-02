@@ -1,8 +1,8 @@
 #!/bin/bash
-# K10 Media Broadcaster — Silent Launcher
+# RaceCor — Silent Launcher
 # Runs the Electron overlay without keeping a terminal window open.
 
-# Navigate to app root (K10 Media Broadcaster/)
+# Navigate to app root (racecor-overlay/)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_DIR="$SCRIPT_DIR/../../racecor-overlay"
 cd "$APP_DIR"

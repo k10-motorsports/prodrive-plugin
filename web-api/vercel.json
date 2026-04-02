@@ -1,7 +1,7 @@
 {
   "rewrites": [
-    { "source": "/k10mediabroadcaster", "destination": "/api/k10mediabroadcaster" },
-    { "source": "/k10mediabroadcaster/", "destination": "/api/k10mediabroadcaster" }
+    { "source": "/racecor-io-pro-drive", "destination": "/api/racecor-io-pro-drive" },
+    { "source": "/racecor-io-pro-drive/", "destination": "/api/racecor-io-pro-drive" }
   ],
   "headers": [
     {

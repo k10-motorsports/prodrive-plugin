@@ -68,9 +68,9 @@ The plugin includes a built-in **Check for updates** button in its SimHub settin
 
 ### macOS (Overlay Only)
 
-The SimHub plugin is Windows-only, but the Electron overlay can run standalone on macOS for reviewing replays, remote dashboard access, or development. Double-click `scripts/mac/K10 Media Broadcaster.command` — it auto-installs Node dependencies, fixes Electron code signing on Apple Silicon, and launches the overlay detached from the terminal. A separate `scripts/mac/install.command` handles a clean dependency install if needed.
+The SimHub plugin is Windows-only, but the Electron overlay can run standalone on macOS for reviewing replays, remote dashboard access, or development. Double-click `scripts/mac/RaceCor.command` — it auto-installs Node dependencies, fixes Electron code signing on Apple Silicon, and launches the overlay detached from the terminal. A separate `scripts/mac/install.command` handles a clean dependency install if needed.
 
-The overlay connects to a SimHub instance on the network (configure the API URL in settings, e.g. `http://your-pc:8889/k10mediabroadcaster`).
+The overlay connects to a SimHub instance on the network (configure the API URL in settings, e.g. `http://your-pc:8889/racecor-io-pro-drive`).
 
 ### Manual Install (SimHub Plugin Only)
 

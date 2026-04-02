@@ -143,11 +143,11 @@ jobs:
       - name: Build plugin
         run: |
           dotnet build racecor-plugin/simhub-plugin/plugin/K10Motorsports.Plugin/K10Motorsports.Plugin.csproj -c Release
-          if (!(Test-Path "racecor-plugin/simhub-plugin/K10Motorsports.Plugin.dll")) {
+          if (!(Test-Path "racecor-plugin/simhub-plugin/RaceCor-ioProDrive.dll")) {
             Write-Error "Plugin DLL not produced by build."
             exit 1
           }
-          Write-Host "Plugin DLL built: $(Get-Item racecor-plugin/simhub-plugin/K10Motorsports.Plugin.dll | Select-Object -ExpandProperty Length) bytes"
+          Write-Host "Plugin DLL built: $(Get-Item racecor-plugin/simhub-plugin/RaceCor-ioProDrive.dll | Select-Object -ExpandProperty Length) bytes"
         shell: pwsh
 
       - name: Install Inno Setup

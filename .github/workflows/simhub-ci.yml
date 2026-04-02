@@ -54,11 +54,11 @@ jobs:
 
       - name: Verify DLL was produced
         run: |
-          if (!(Test-Path "racecor-plugin/simhub-plugin/K10Motorsports.Plugin.dll")) {
+          if (!(Test-Path "racecor-plugin/simhub-plugin/RaceCor-ioProDrive.dll")) {
             Write-Error "Plugin DLL not produced by build."
             exit 1
           }
-          Write-Host "OK: K10Motorsports.Plugin.dll built successfully"
+          Write-Host "OK: RaceCor-ioProDrive.dll built successfully"
         shell: pwsh
 
   # ---------------------------------------------------------------

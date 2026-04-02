@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
-    <AssemblyName>K10Motorsports.Plugin</AssemblyName>
+    <AssemblyName>RaceCor-ioProDrive</AssemblyName>
     <RootNamespace>K10Motorsports.Plugin</RootNamespace>
     <Nullable>disable</Nullable>
     <LangVersion>8.0</LangVersion>
@@ -97,13 +97,13 @@
   </PropertyGroup>
   <Target Name="ExportToRepo" AfterTargets="Build">
     <!-- DLL -->
-    <Copy SourceFiles="$(OutputPath)K10Motorsports.Plugin.dll"
+    <Copy SourceFiles="$(OutputPath)RaceCor-ioProDrive.dll"
           DestinationFolder="$(RepoPluginDir)"
           SkipUnchangedFiles="true" />
     <!-- PDB (Debug builds only) -->
-    <Copy SourceFiles="$(OutputPath)K10Motorsports.Plugin.pdb"
+    <Copy SourceFiles="$(OutputPath)RaceCor-ioProDrive.pdb"
           DestinationFolder="$(RepoPluginDir)"
-          Condition="Exists('$(OutputPath)K10Motorsports.Plugin.pdb')"
+          Condition="Exists('$(OutputPath)RaceCor-ioProDrive.pdb')"
           SkipUnchangedFiles="true" />
     <!-- Sync recorded track maps back to repo (local dev only) -->
     <ItemGroup Condition="$(_IsLocalDev)">

@@ -394,7 +394,7 @@ read.
 After porting a feature, verify it works by checking these layers:
 
 1. **Telemetry Snapshot** — Is the field populated with sensible values during an LMU session?
-2. **HTTP API output** — Does `GET /k10mediabroadcaster/` include the correct value?
+2. **HTTP API output** — Does `GET /racecor-io-pro-drive/` include the correct value?
 3. **Dashboard overlay** — Does the relevant panel display correctly?
 4. **Commentary triggers** — Do triggers fire at appropriate thresholds for LMU data scale?
 5. **Strategy calculations** — Do fuel/tire estimates still make sense?

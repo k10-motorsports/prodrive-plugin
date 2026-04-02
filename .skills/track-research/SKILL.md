@@ -1,7 +1,7 @@
 ---
 name: track-research
 description: >
-  Research, document, and maintain track data for the K10 Media Broadcaster.
+  Research, document, and maintain track data for the RaceCor overlay.
   Use this skill whenever someone asks about track facts, sector counts, track
   history, corner names, or commentary material for any racing circuit —
   especially iRacing tracks. Also use when adding a new track to the system,
@@ -13,7 +13,7 @@ description: >
 
 # Track Research Skill
 
-This skill manages the authoritative track database for the K10 Media Broadcaster
+This skill manages the authoritative track database for the RaceCor overlay
 project. The database powers two things:
 
 1. **The HUD** — sector counts, boundary percentages, track lengths, and

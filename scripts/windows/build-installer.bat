@@ -54,9 +54,9 @@ if !ERRORLEVEL! NEQ 0 (
 )
 
 :: Copy the DLL and PDB to the expected location for Inno Setup
-copy /Y "%STAGING%\K10Motorsports.Plugin.dll" "%REPO_DIR%\racecor-plugin\K10Motorsports.Plugin.dll" >NUL
-if exist "%STAGING%\K10Motorsports.Plugin.pdb" (
-    copy /Y "%STAGING%\K10Motorsports.Plugin.pdb" "%REPO_DIR%\racecor-plugin\K10Motorsports.Plugin.pdb" >NUL
+copy /Y "%STAGING%\RaceCor-ioProDrive.dll" "%REPO_DIR%\racecor-plugin\RaceCor-ioProDrive.dll" >NUL
+if exist "%STAGING%\RaceCor-ioProDrive.pdb" (
+    copy /Y "%STAGING%\RaceCor-ioProDrive.pdb" "%REPO_DIR%\racecor-plugin\RaceCor-ioProDrive.pdb" >NUL
 )
 
 echo        OK — Plugin built successfully.
@@ -156,7 +156,7 @@ echo  Overlay (portable):
 echo    %OVERLAY_DIR%\dist\win-unpacked\
 echo.
 echo  Plugin DLL:
-echo    %REPO_DIR%\racecor-plugin\K10Motorsports.Plugin.dll
+echo    %REPO_DIR%\racecor-plugin\RaceCor-ioProDrive.dll
 echo.
 pause
 exit /b 0

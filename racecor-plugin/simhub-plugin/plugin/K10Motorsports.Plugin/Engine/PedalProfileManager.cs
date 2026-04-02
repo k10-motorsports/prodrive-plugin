@@ -363,7 +363,7 @@ namespace K10Motorsports.Plugin.Engine
                     ["throttle_deadzone"] = (int)(profile.ThrottleDeadzone * 100),
                     ["brake_deadzone"] = (int)(profile.BrakeDeadzone * 100),
                     ["clutch_deadzone"] = (int)(profile.ClutchDeadzone * 100),
-                    ["source"] = "K10MediaBroadcaster",
+                    ["source"] = "RaceCor",
                     ["timestamp"] = DateTime.UtcNow.ToString("o")
                 };
 

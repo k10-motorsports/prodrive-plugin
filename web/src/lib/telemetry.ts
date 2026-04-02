@@ -14,5 +14,5 @@ export const TELEMETRY_POLL_MS = 50
 /** Base URL of the telemetry API. */
 const isDev = process.env.NODE_ENV === 'development'
 export const TELEMETRY_API_URL = isDev
-  ? 'http://localhost:3001/api/k10mediabroadcaster'
-  : 'https://api.k10motorsports.racing/api/k10mediabroadcaster'
+  ? 'http://localhost:3001/api/racecor-io-pro-drive'
+  : 'https://api.k10motorsports.racing/api/racecor-io-pro-drive'

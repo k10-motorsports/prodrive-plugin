@@ -785,8 +785,8 @@ namespace K10Motorsports.Plugin
             // 2. localhost only — always works without admin, sufficient for local overlays
             string[] prefixes = new[]
             {
-                "http://*:8889/k10mediabroadcaster/",
-                "http://localhost:8889/k10mediabroadcaster/"
+                "http://*:8889/racecor-io-pro-drive/",
+                "http://localhost:8889/racecor-io-pro-drive/"
             };
 
             foreach (var prefix in prefixes)

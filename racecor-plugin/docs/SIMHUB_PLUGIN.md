@@ -93,7 +93,7 @@ The reflection-based capture uses a `Coalesce<T>()` helper that handles NaN valu
 
 The plugin runs its own lightweight HTTP server using `System.Net.HttpListener`, independent of SimHub's built-in web server. This serves the K10 Motorsports dashboard overlay and can be consumed by any HTTP client.
 
-**Endpoint:** `GET http://localhost:8889/k10mediabroadcaster/`
+**Endpoint:** `GET http://localhost:8889/racecor-io-pro-drive/`
 
 **Response:** A flat JSON object containing 77+ key-value pairs covering all game telemetry, commentary state, demo mode data, and track map information. Property keys match SimHub's naming convention (e.g., `DataCorePlugin.GameData.Rpms`, `K10Motorsports.Plugin.CommentaryText`).
 

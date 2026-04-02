@@ -40,8 +40,8 @@ EXPORT_BAT = os.path.join(ACTUAL_REPO_ROOT, "scripts", "windows", "export.bat")
 
 # Files the installer is expected to copy TO SimHub
 INSTALL_MANIFEST = {
-    "dll": "K10Motorsports.Plugin.dll",
-    "pdb": "K10Motorsports.Plugin.pdb",  # optional
+    "dll": "RaceCor-ioProDrive.dll",
+    "pdb": "RaceCor-ioProDrive.pdb",  # optional
     "dataset_files": [
         "k10-motorsports-data/commentary_topics.json",
         "k10-motorsports-data/commentary_fragments.json",
@@ -53,8 +53,8 @@ INSTALL_MANIFEST = {
 
 # Files the export tool copies FROM SimHub back to the repo
 EXPORT_MANIFEST = {
-    "dll": "K10Motorsports.Plugin.dll",
-    "pdb": "K10Motorsports.Plugin.pdb",
+    "dll": "RaceCor-ioProDrive.dll",
+    "pdb": "RaceCor-ioProDrive.pdb",
     "dashboard_root": "DashTemplates/k10 motorsports",
 }
 
@@ -99,9 +99,9 @@ def create_fake_simhub_with_built_files(tmpdir):
     simhub = create_fake_simhub(tmpdir)
 
     # DLL + PDB (write recognizable content so we can verify the copy)
-    with open(os.path.join(simhub, "K10Motorsports.Plugin.dll"), "wb") as f:
+    with open(os.path.join(simhub, "RaceCor-ioProDrive.dll"), "wb") as f:
         f.write(b"BUILT_DLL_CONTENT_12345")
-    with open(os.path.join(simhub, "K10Motorsports.Plugin.pdb"), "wb") as f:
+    with open(os.path.join(simhub, "RaceCor-ioProDrive.pdb"), "wb") as f:
         f.write(b"BUILT_PDB_CONTENT_12345")
 
     # Dashboard files (simulating SimHub having modified them)
@@ -156,7 +156,7 @@ class TestInstallerStructure(unittest.TestCase):
     def test_install_bat_references_correct_dll(self):
         with open(INSTALL_BAT, "r") as f:
             content = f.read()
-        self.assertIn("K10Motorsports.Plugin.dll", content)
+        self.assertIn("RaceCor-ioProDrive.dll", content)
 
     def test_install_bat_references_dataset(self):
         with open(INSTALL_BAT, "r") as f:
@@ -208,12 +208,12 @@ class TestExportStructure(unittest.TestCase):
     def test_export_bat_references_dll(self):
         with open(EXPORT_BAT, "r") as f:
             content = f.read()
-        self.assertIn("K10Motorsports.Plugin.dll", content)
+        self.assertIn("RaceCor-ioProDrive.dll", content)
 
     def test_export_bat_references_pdb(self):
         with open(EXPORT_BAT, "r") as f:
             content = f.read()
-        self.assertIn("K10Motorsports.Plugin.pdb", content)
+        self.assertIn("RaceCor-ioProDrive.pdb", content)
 
     def test_export_bat_references_dashtemplates(self):
         with open(EXPORT_BAT, "r") as f:
@@ -287,8 +287,8 @@ class TestSimulatedInstall(unittest.TestCase):
     def _simulate_install(self):
         """Replicate what install.bat does using Python file operations."""
         # Step 1: Copy DLL (build artifact — may not exist in CI)
-        src = os.path.join(REPO_ROOT, "K10Motorsports.Plugin.dll")
-        dst = os.path.join(self.simhub, "K10Motorsports.Plugin.dll")
+        src = os.path.join(REPO_ROOT, "RaceCor-ioProDrive.dll")
+        dst = os.path.join(self.simhub, "RaceCor-ioProDrive.dll")
         if os.path.exists(src):
             shutil.copy2(src, dst)
         else:
@@ -297,11 +297,11 @@ class TestSimulatedInstall(unittest.TestCase):
                 f.write(b"STUB_DLL_FOR_TESTING")
 
         # Step 1b: Copy PDB if present (build artifact — optional)
-        pdb_src = os.path.join(REPO_ROOT, "K10Motorsports.Plugin.pdb")
+        pdb_src = os.path.join(REPO_ROOT, "RaceCor-ioProDrive.pdb")
         if os.path.exists(pdb_src):
-            shutil.copy2(pdb_src, os.path.join(self.simhub, "K10Motorsports.Plugin.pdb"))
+            shutil.copy2(pdb_src, os.path.join(self.simhub, "RaceCor-ioProDrive.pdb"))
         else:
-            with open(os.path.join(self.simhub, "K10Motorsports.Plugin.pdb"), "wb") as f:
+            with open(os.path.join(self.simhub, "RaceCor-ioProDrive.pdb"), "wb") as f:
                 f.write(b"STUB_PDB_FOR_TESTING")
 
         # Step 2: Copy dataset
@@ -311,10 +311,10 @@ class TestSimulatedInstall(unittest.TestCase):
 
     def test_dll_installed(self):
         self._simulate_install()
-        dll = os.path.join(self.simhub, "K10Motorsports.Plugin.dll")
+        dll = os.path.join(self.simhub, "RaceCor-ioProDrive.dll")
         self.assertTrue(os.path.isfile(dll))
         # Verify content matches repo (only when the real DLL exists)
-        repo_dll = os.path.join(REPO_ROOT, "K10Motorsports.Plugin.dll")
+        repo_dll = os.path.join(REPO_ROOT, "RaceCor-ioProDrive.dll")
         if os.path.isfile(repo_dll):
             with open(repo_dll, "rb") as f:
                 repo_content = f.read()
@@ -325,7 +325,7 @@ class TestSimulatedInstall(unittest.TestCase):
 
     def test_pdb_installed(self):
         self._simulate_install()
-        pdb = os.path.join(self.simhub, "K10Motorsports.Plugin.pdb")
+        pdb = os.path.join(self.simhub, "RaceCor-ioProDrive.pdb")
         self.assertTrue(os.path.isfile(pdb))
 
     def test_all_dataset_files_installed(self):
@@ -361,7 +361,7 @@ class TestSimulatedInstall(unittest.TestCase):
         self._simulate_install()  # second run
 
         # All files should still be present
-        dll = os.path.join(self.simhub, "K10Motorsports.Plugin.dll")
+        dll = os.path.join(self.simhub, "RaceCor-ioProDrive.dll")
         self.assertTrue(os.path.isfile(dll))
         for relpath in INSTALL_MANIFEST["dataset_files"]:
             self.assertTrue(os.path.isfile(os.path.join(self.simhub, relpath)))
@@ -392,7 +392,7 @@ class TestSimulatedExport(unittest.TestCase):
     def _simulate_export(self):
         """Replicate what export.bat does using Python file operations."""
         # Copy DLL + PDB from SimHub to repo root
-        for fname in ["K10Motorsports.Plugin.dll", "K10Motorsports.Plugin.pdb"]:
+        for fname in ["RaceCor-ioProDrive.dll", "RaceCor-ioProDrive.pdb"]:
             src = os.path.join(self.simhub, fname)
             dst = os.path.join(self.fake_repo, fname)
             if os.path.exists(src):
@@ -407,14 +407,14 @@ class TestSimulatedExport(unittest.TestCase):
 
     def test_dll_exported(self):
         self._simulate_export()
-        dll = os.path.join(self.fake_repo, "K10Motorsports.Plugin.dll")
+        dll = os.path.join(self.fake_repo, "RaceCor-ioProDrive.dll")
         self.assertTrue(os.path.isfile(dll))
         with open(dll, "rb") as f:
             self.assertEqual(f.read(), b"BUILT_DLL_CONTENT_12345")
 
     def test_pdb_exported(self):
         self._simulate_export()
-        pdb = os.path.join(self.fake_repo, "K10Motorsports.Plugin.pdb")
+        pdb = os.path.join(self.fake_repo, "RaceCor-ioProDrive.pdb")
         self.assertTrue(os.path.isfile(pdb))
         with open(pdb, "rb") as f:
             self.assertEqual(f.read(), b"BUILT_PDB_CONTENT_12345")
@@ -506,7 +506,7 @@ class TestLiveInstall(unittest.TestCase):
 
         # Verify files landed
         self.assertTrue(os.path.isfile(
-            os.path.join(self.simhub, "K10Motorsports.Plugin.dll")))
+            os.path.join(self.simhub, "RaceCor-ioProDrive.dll")))
         self.assertTrue(os.path.isdir(
             os.path.join(self.simhub, "k10-motorsports-data")))
 
@@ -516,7 +516,7 @@ class TestLiveInstall(unittest.TestCase):
         env["SIMHUB_PATH"] = self.simhub
 
         # Rename the DLL temporarily
-        dll = os.path.join(REPO_ROOT, "K10Motorsports.Plugin.dll")
+        dll = os.path.join(REPO_ROOT, "RaceCor-ioProDrive.dll")
         dll_backup = dll + ".testbackup"
         os.rename(dll, dll_backup)
         try:

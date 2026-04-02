@@ -54,7 +54,7 @@ so they always build with the correct version already in place.
 The C# plugin builds with `dotnet build` targeting .NET Framework 4.8.
 SimHub SDK DLLs are committed in `racecor-plugin/simhub-plugin/lib/simhub-refs/` so the plugin compiles
 on CI without a SimHub installation. The output DLL lands at
-`racecor-plugin/K10Motorsports.Plugin.dll`.
+`racecor-plugin/RaceCor-ioProDrive.dll`.
 
 ## Installer
 

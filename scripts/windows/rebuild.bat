@@ -37,7 +37,7 @@ if "!SH:~-1!"=="\" set "SH=!SH:~0,-1!"
 
 set "SH_EXE=!SH!\SimHubWPF.exe"
 :: Project path is relative to repo root (this script lives in scripts/)
-set "PROJ=%~dp0..\racecor-plugin\plugin\K10Motorsports.Plugin\K10Motorsports.Plugin.csproj"
+set "PROJ=%~dp0..\racecor-plugin\plugin\K10Motorsports.Plugin\K10Motorsports.Plugin/K10Motorsports.Plugin.csproj"
 
 echo.
 echo  ╔══════════════════════════════════════════════╗

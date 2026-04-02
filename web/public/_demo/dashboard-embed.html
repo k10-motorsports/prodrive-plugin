@@ -6248,7 +6248,7 @@ html, body {
 // SIMHUB HTTP API CONFIGURATION
 // ═══════════════════════════════════════════════════════════════
 
-const SIMHUB_URL = 'http://localhost:8889/k10mediabroadcaster/';
+const SIMHUB_URL = 'http://localhost:8889/racecor-io-pro-drive/';
 const POLL_MS = 33; // ~30fps
 
 // All properties we need, batched into a single request
@@ -6801,7 +6801,7 @@ const _defaultSettings = {
   logoOnlyStart: true, // Start in logo-only mode; HUD reveals when session goes active
   showFuel: true, showTyres: true, showControls: true, showPedals: true,
   showMaps: true, showPosition: true, showTacho: true, showCommentary: true,
-  showK10Logo: true, showCarLogo: true, showGameLogo: true, simhubUrl: 'http://localhost:8889/k10mediabroadcaster/',
+  showK10Logo: true, showCarLogo: true, showGameLogo: true, simhubUrl: 'http://localhost:8889/racecor-io-pro-drive/',
   layoutPosition: 'top-right',
   greenScreen: false, showWebGL: true, showBonkers: true, ambientMode: 'reflective',
   zoom: 165, forceFlag: '', showLeaderboard: true, showDatastream: true, showPitBox: true, showIncidents: true, showSpotter: true,
@@ -7098,7 +7098,7 @@ function _fmtLapTime(secs) {
     if (!host) return;
     // Strip protocol/path if user pasted a full URL
     host = host.replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/:.*$/, '');
-    const newUrl = `http://${host}:8889/k10mediabroadcaster/`;
+    const newUrl = `http://${host}:8889/racecor-io-pro-drive/`;
     window._simhubUrlOverride = newUrl;
     _settings.simhubUrl = newUrl;
     saveSettings();
@@ -9115,7 +9115,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // SimHub URL
     const urlInput = document.getElementById('settingsSimhubUrl');
-    if (urlInput) urlInput.value = _settings.simhubUrl || 'http://localhost:8889/k10mediabroadcaster/';
+    if (urlInput) urlInput.value = _settings.simhubUrl || 'http://localhost:8889/racecor-io-pro-drive/';
     // Restore saved URL override so polling uses the persisted URL
     if (_settings.simhubUrl && _settings.simhubUrl !== SIMHUB_URL) {
       window._simhubUrlOverride = _settings.simhubUrl;
@@ -9784,7 +9784,7 @@ document.addEventListener('DOMContentLoaded', function () {
   //  CONNECTIONS TAB — K10 Pro, SimHub, Discord
   // ═══════════════════════════════════════════════════════════════
 
-  const DISCORD_GUILD_INVITE = 'https://discord.gg/k10mediabroadcaster';
+  const DISCORD_GUILD_INVITE = 'https://discord.gg/racecor';
   // _discordUser declared in config.js
   let _discordConnecting = false;
 
