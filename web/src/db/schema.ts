@@ -37,6 +37,21 @@ export const authCodes = pgTable('auth_codes', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
+// ── iRacing Accounts (linked iRacing profiles for data import) ──
+export const iracingAccounts = pgTable('iracing_accounts', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  iracingCustId: integer('iracing_cust_id').notNull(),
+  iracingDisplayName: varchar('iracing_display_name', { length: 128 }),
+  accessToken: text('access_token'),
+  refreshToken: text('refresh_token'),
+  tokenExpiresAt: timestamp('token_expires_at'),
+  lastImportAt: timestamp('last_import_at'),
+  importStatus: varchar('import_status', { length: 16 }).default('pending'), // pending, importing, complete, error
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
 // ── Track Maps (community-contributed SVG track outlines) ──
 export const trackMaps = pgTable('track_maps', {
   id: uuid('id').defaultRandom().primaryKey(),

@@ -39,6 +39,9 @@ namespace K10Motorsports.Plugin
         private FeedbackEngine _feedback;
         private PedalProfileManager _pedalProfiles;
 
+        // iRacing Data API client — reads local cookies / credentials to fetch career data
+        private readonly Engine.IRacingDataClient _iracingData = new Engine.IRacingDataClient();
+
         // Car change detection for pedal profile auto-switch
         private string _lastCarModel = "";
 
@@ -785,8 +788,8 @@ namespace K10Motorsports.Plugin
             // 2. localhost only — always works without admin, sufficient for local overlays
             string[] prefixes = new[]
             {
-                "http://*:8889/k10mediabroadcaster/",
-                "http://localhost:8889/k10mediabroadcaster/"
+                "http://*:8889/racecor-io-pro-drive/",
+                "http://localhost:8889/racecor-io-pro-drive/"
             };
 
             foreach (var prefix in prefixes)
@@ -993,6 +996,111 @@ namespace K10Motorsports.Plugin
                         ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
                         ctx.Response.StatusCode = 200;
                         ctx.Response.OutputStream.Write(resultBytes, 0, resultBytes.Length);
+                        ctx.Response.OutputStream.Close();
+                        continue;
+                    }
+
+                    // ── iRacing Data API — career history import ─────────────
+                    if (action == "iracingImport")
+                    {
+                        // Run on a background thread to avoid blocking the HTTP server
+                        string resultJson;
+                        try
+                        {
+                            // Try local cookies first, then fall back to stored credentials
+                            if (!_iracingData.IsAuthenticated)
+                            {
+                                _iracingData.TryLoadLocalCookies();
+                            }
+
+                            // If still not authenticated, try stored credentials from settings
+                            if (!_iracingData.IsAuthenticated
+                                && !string.IsNullOrEmpty(Settings.IRacingEmail)
+                                && !string.IsNullOrEmpty(Settings.IRacingPassword))
+                            {
+                                _iracingData.Authenticate(Settings.IRacingEmail, Settings.IRacingPassword);
+                            }
+
+                            if (!_iracingData.IsAuthenticated)
+                            {
+                                resultJson = "{\"ok\":false,\"error\":\"Not authenticated to iRacing. "
+                                    + "Make sure iRacing is running and you're logged in, "
+                                    + "or add your iRacing email and password in plugin settings.\"}";
+                            }
+                            else
+                            {
+                                var career = _iracingData.ExportFullCareer();
+                                if (career != null)
+                                {
+                                    resultJson = "{\"ok\":true,\"data\":" + career.ToString(Newtonsoft.Json.Formatting.None) + "}";
+                                }
+                                else
+                                {
+                                    resultJson = "{\"ok\":false,\"error\":\"" + Escape(_iracingData.LastError ?? "Export failed") + "\"}";
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            SimHub.Logging.Current.Error($"[K10Motorsports] iRacing import error: {ex}");
+                            resultJson = "{\"ok\":false,\"error\":\"" + Escape(ex.Message) + "\"}";
+                        }
+
+                        byte[] importBytes = Encoding.UTF8.GetBytes(resultJson);
+                        ctx.Response.ContentType = "application/json";
+                        ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                        ctx.Response.StatusCode = 200;
+                        ctx.Response.OutputStream.Write(importBytes, 0, importBytes.Length);
+                        ctx.Response.OutputStream.Close();
+                        continue;
+                    }
+
+                    // ── iRacing auth — direct login with email/password ──────
+                    if (action == "iracingAuth")
+                    {
+                        string authResultJson;
+                        try
+                        {
+                            var qs = ctx.Request.QueryString;
+                            string email = qs["email"] ?? "";
+                            string password = qs["password"] ?? "";
+
+                            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
+                            {
+                                authResultJson = "{\"ok\":false,\"error\":\"Email and password required\"}";
+                            }
+                            else if (_iracingData.Authenticate(email, password))
+                            {
+                                authResultJson = "{\"ok\":true}";
+                            }
+                            else
+                            {
+                                authResultJson = "{\"ok\":false,\"error\":\"" + Escape(_iracingData.LastError ?? "Auth failed") + "\"}";
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            authResultJson = "{\"ok\":false,\"error\":\"" + Escape(ex.Message) + "\"}";
+                        }
+
+                        byte[] authBytes = Encoding.UTF8.GetBytes(authResultJson);
+                        ctx.Response.ContentType = "application/json";
+                        ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                        ctx.Response.StatusCode = 200;
+                        ctx.Response.OutputStream.Write(authBytes, 0, authBytes.Length);
+                        ctx.Response.OutputStream.Close();
+                        continue;
+                    }
+
+                    // ── iRacing auth status ──────────────────────────────────
+                    if (action == "iracingStatus")
+                    {
+                        string statusJson = "{\"authenticated\":" + (_iracingData.IsAuthenticated ? "true" : "false") + "}";
+                        byte[] statusBytes = Encoding.UTF8.GetBytes(statusJson);
+                        ctx.Response.ContentType = "application/json";
+                        ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                        ctx.Response.StatusCode = 200;
+                        ctx.Response.OutputStream.Write(statusBytes, 0, statusBytes.Length);
                         ctx.Response.OutputStream.Close();
                         continue;
                     }
