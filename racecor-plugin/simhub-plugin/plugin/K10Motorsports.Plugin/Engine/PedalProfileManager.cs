@@ -221,16 +221,94 @@ namespace K10Motorsports.Plugin.Engine
 
         private void DetectMoza()
         {
+            // Check if we have a manually saved Pithouse path from a previous session
+            var savedPathFile = Path.Combine(_profileDir, "_moza_path.txt");
+            if (File.Exists(savedPathFile))
+            {
+                try
+                {
+                    string savedPath = File.ReadAllText(savedPathFile).Trim();
+                    if (!string.IsNullOrEmpty(savedPath) && Directory.Exists(savedPath))
+                    {
+                        MozaPithousePath = savedPath;
+                        MozaDetected = true;
+                        SimHub.Logging.Current.Info($"[K10Motorsports] Moza Pithouse detected (saved path): {savedPath}");
+                        return;
+                    }
+                }
+                catch { /* ignore corrupt file */ }
+            }
+
+            // Try the hardcoded search paths
             foreach (var searchPath in MozaPithouseSearchPaths)
             {
                 if (Directory.Exists(searchPath))
                 {
                     MozaPithousePath = searchPath;
                     MozaDetected = true;
+                    SimHub.Logging.Current.Info($"[K10Motorsports] Moza Pithouse detected: {searchPath}");
                     return;
                 }
             }
             MozaDetected = false;
+            SimHub.Logging.Current.Info("[K10Motorsports] Moza Pithouse not detected at any known path");
+        }
+
+        /// <summary>
+        /// Manually set the Moza Pithouse path (when the user browses for it).
+        /// Persists the path so it's remembered across sessions.
+        /// Returns true if the path looks like a valid Pithouse directory.
+        /// </summary>
+        public bool SetMozaPath(string path)
+        {
+            if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+                return false;
+
+            // Validate it looks like a Pithouse directory (has DeviceConfig or profiles subfolder,
+            // or at least some .json config files)
+            bool valid = Directory.Exists(Path.Combine(path, "DeviceConfig"))
+                      || Directory.Exists(Path.Combine(path, "profiles"))
+                      || Directory.GetFiles(path, "*.json", SearchOption.AllDirectories).Length > 0;
+
+            if (!valid)
+                return false;
+
+            MozaPithousePath = path;
+            MozaDetected = true;
+
+            // Persist for next session
+            try
+            {
+                var savedPathFile = Path.Combine(_profileDir, "_moza_path.txt");
+                File.WriteAllText(savedPathFile, path);
+            }
+            catch (Exception ex)
+            {
+                SimHub.Logging.Current.Warn($"[K10Motorsports] Could not save Moza path: {ex.Message}");
+            }
+
+            SimHub.Logging.Current.Info($"[K10Motorsports] Moza Pithouse path set manually: {path}");
+
+            // Auto-import now that we have a valid path
+            AutoImportFromMoza();
+
+            return true;
+        }
+
+        /// <summary>
+        /// Returns the list of paths that were searched for Moza Pithouse,
+        /// useful for diagnostics in the UI.
+        /// </summary>
+        public List<string> GetSearchedPaths()
+        {
+            var paths = new List<string>(MozaPithouseSearchPaths);
+            var savedPathFile = Path.Combine(_profileDir, "_moza_path.txt");
+            if (File.Exists(savedPathFile))
+            {
+                try { paths.Insert(0, "(saved) " + File.ReadAllText(savedPathFile).Trim()); }
+                catch { }
+            }
+            return paths;
         }
 
         /// <summary>
@@ -363,7 +441,7 @@ namespace K10Motorsports.Plugin.Engine
                     ["throttle_deadzone"] = (int)(profile.ThrottleDeadzone * 100),
                     ["brake_deadzone"] = (int)(profile.BrakeDeadzone * 100),
                     ["clutch_deadzone"] = (int)(profile.ClutchDeadzone * 100),
-                    ["source"] = "K10MediaBroadcaster",
+                    ["source"] = "RaceCor",
                     ["timestamp"] = DateTime.UtcNow.ToString("o")
                 };
 

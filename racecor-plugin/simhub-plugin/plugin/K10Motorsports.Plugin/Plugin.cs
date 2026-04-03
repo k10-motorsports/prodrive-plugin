@@ -1000,6 +1000,63 @@ namespace K10Motorsports.Plugin
                         continue;
                     }
 
+                    // ── Moza: set custom Pithouse folder path ────────────────
+                    if (action == "setMozaPath" && _pedalProfiles != null)
+                    {
+                        var qs = ctx.Request.QueryString;
+                        string mozaPath = qs["path"] ?? "";
+                        string setPathJson;
+
+                        if (string.IsNullOrEmpty(mozaPath))
+                        {
+                            setPathJson = "{\"ok\":false,\"error\":\"No path provided\"}";
+                        }
+                        else if (_pedalProfiles.SetMozaPath(mozaPath))
+                        {
+                            setPathJson = "{\"ok\":true,\"path\":\"" + Escape(mozaPath) + "\"}";
+                        }
+                        else
+                        {
+                            setPathJson = "{\"ok\":false,\"error\":\"Not a valid Moza Pithouse folder. "
+                                + "Expected a folder containing DeviceConfig or profiles subdirectory.\"}";
+                        }
+
+                        byte[] setPathBytes = Encoding.UTF8.GetBytes(setPathJson);
+                        ctx.Response.ContentType = "application/json";
+                        ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                        ctx.Response.StatusCode = 200;
+                        ctx.Response.OutputStream.Write(setPathBytes, 0, setPathBytes.Length);
+                        ctx.Response.OutputStream.Close();
+                        continue;
+                    }
+
+                    // ── Moza: get detection diagnostics ──────────────────────
+                    if (action == "mozaInfo" && _pedalProfiles != null)
+                    {
+                        var searchedPaths = _pedalProfiles.GetSearchedPaths();
+                        var sb2 = new StringBuilder();
+                        sb2.Append("{\"detected\":");
+                        sb2.Append(_pedalProfiles.MozaDetected ? "true" : "false");
+                        sb2.Append(",\"path\":");
+                        sb2.Append(_pedalProfiles.MozaPithousePath != null
+                            ? "\"" + Escape(_pedalProfiles.MozaPithousePath) + "\""
+                            : "null");
+                        sb2.Append(",\"searchedPaths\":[");
+                        for (int si = 0; si < searchedPaths.Count; si++)
+                        {
+                            if (si > 0) sb2.Append(",");
+                            sb2.Append("\"" + Escape(searchedPaths[si]) + "\"");
+                        }
+                        sb2.Append("]}");
+                        byte[] infoBytes = Encoding.UTF8.GetBytes(sb2.ToString());
+                        ctx.Response.ContentType = "application/json";
+                        ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                        ctx.Response.StatusCode = 200;
+                        ctx.Response.OutputStream.Write(infoBytes, 0, infoBytes.Length);
+                        ctx.Response.OutputStream.Close();
+                        continue;
+                    }
+
                     // ── iRacing Data API — career history import ─────────────
                     if (action == "iracingImport")
                     {
@@ -1584,7 +1641,7 @@ namespace K10Motorsports.Plugin
         private string ResolveDatasetFile(string filename)
         {
             string dllDir = Path.GetDirectoryName(typeof(Plugin).Assembly.Location) ?? "";
-            string candidate = Path.Combine(dllDir, "k10-motorsports-data", filename);
+            string candidate = Path.Combine(dllDir, "racecorio-prodrive-data", filename);
             if (File.Exists(candidate)) return candidate;
 
             string pluginsData = Path.Combine(
@@ -1592,7 +1649,7 @@ namespace K10Motorsports.Plugin
                 "SimHub", "PluginsData", "K10Motorsports", filename);
             if (File.Exists(pluginsData)) return pluginsData;
 
-            SimHub.Logging.Current.Warn($"[K10Motorsports] {filename} not found in k10-motorsports-data folder");
+            SimHub.Logging.Current.Warn($"[K10Motorsports] {filename} not found in racecorio-prodrive-data folder");
             return "";
         }
     }

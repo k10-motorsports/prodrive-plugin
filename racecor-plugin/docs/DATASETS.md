@@ -1,6 +1,6 @@
 # Dataset Documentation
 
-All data files live in `k10-motorsports-data/` and are copied to the SimHub installation directory at build time. The plugin loads them at startup. The fragment generation tooling and source index also live here.
+All data files live in `racecorio-prodrive-data/` and are copied to the SimHub installation directory at build time. The plugin loads them at startup. The fragment generation tooling and source index also live here.
 
 ## Files
 

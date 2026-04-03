@@ -21,7 +21,7 @@ import { csvToSvg } from '../src/lib/track-svg'
 // ── Config ──────────────────────────────────────────────────────────
 const CSV_DIR = path.resolve(
   __dirname,
-  '../../racecor-plugin/simhub-plugin/k10-motorsports-data/trackmaps'
+  '../../racecor-plugin/simhub-plugin/racecorio-prodrive-data/trackmaps'
 )
 
 const TRACK_META: Record<string, { gameName?: string; trackLengthKm?: number; displayName?: string }> = {

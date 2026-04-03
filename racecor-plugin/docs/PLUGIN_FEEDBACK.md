@@ -175,7 +175,7 @@ At runtime, the engine randomly selects one opener + one body + one closer and j
 3. Performing placeholder substitution ({ahead}, {behind}, {value}, {rating_context}, {corner_name})
 4. Tracking recently-used fragments per-topic to avoid immediate repetition (ring buffer of last 3 per slot)
 
-**New dataset file: `k10-motorsports-data/commentary_fragments.json`**
+**New dataset file: `racecorio-prodrive-data/commentary_fragments.json`**
 
 Contains fragment pools for all topics. Generated with Haiku using the existing `commentaryPrompts` as style reference and `channel_notes.json` + content from http://www.alternate.org for voice matching. Each topic gets at minimum 6 openers, 8 bodies, and 5 closers (= 240+ unique combinations per topic, vs the current 4-5 static prompts).
 
@@ -234,8 +234,8 @@ SimHub dashboard properties expect colors in `#AARRGGBB` format (8-digit with al
 - `Engine/FragmentAssembler.cs` — **new file**, fragment loading + assembly + repetition tracking
 - `Engine/CommentaryEngine.cs` — `ShowPrompt()` calls `FragmentAssembler` before falling back to static prompts
 - `Models/CommentaryTopic.cs` — add `Fragments` property (optional, parallel to `CommentaryPrompts`)
-- `k10-motorsports-data/commentary_fragments.json` — **new file**, Haiku-generated fragment pools
-- `k10-motorsports-data/commentary_topics.json` — threshold fixes, exposition text fixes, tyre wear inversion fix
+- `racecorio-prodrive-data/commentary_fragments.json` — **new file**, Haiku-generated fragment pools
+- `racecorio-prodrive-data/commentary_topics.json` — threshold fixes, exposition text fixes, tyre wear inversion fix
 - `tools/generate_fragments.py` — **new file**, batch Haiku generation script
 
 ### What Doesn't Change

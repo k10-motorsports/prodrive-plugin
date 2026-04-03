@@ -426,7 +426,7 @@ Phase 1 is achievable in weeks with the existing data pipeline. Phase 2 adds the
 
 5. **Full opponent leaderboard** — Currently `BuildLeaderboard()` returns the full field but the dashboard only shows a window. The strategy module needs the full array for race projection. The server-side data is already there, just needs to be stored for the strategy coordinator rather than discarded after JSON serialization.
 
-6. **Historical data across sessions** — The most powerful version of this system would learn track-specific fuel burn, tire wear rates, and sector times across multiple sessions. The telemetry recording system (now writing to `k10-motorsports-data/recordings/`) could serve as a foundation for this — replay past recordings to bootstrap the models.
+6. **Historical data across sessions** — The most powerful version of this system would learn track-specific fuel burn, tire wear rates, and sector times across multiple sessions. The telemetry recording system (now writing to `racecorio-prodrive-data/recordings/`) could serve as a foundation for this — replay past recordings to bootstrap the models.
 
 ---
 

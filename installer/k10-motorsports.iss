@@ -8,7 +8,7 @@
 ; ═══════════════════════════════════════════════════════════════
 ;
 ; Prerequisites (build these BEFORE compiling this installer):
-;   1. dotnet build the plugin  → produces K10Motorsports.Plugin.dll
+;   1. dotnet build the plugin  → produces RaceCor-ioProDrive.dll
 ;   2. npm run build:win        → produces racecor-overlay/dist/win-unpacked/
 ;                                  and    racecor-overlay/dist/win-arm64-unpacked/
 ;
@@ -73,11 +73,11 @@ Source: "..\racecor-overlay\dist\win-unpacked\*"; DestDir: "{app}"; Flags: ignor
 Source: "..\racecor-overlay\dist\win-arm64-unpacked\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs solidbreak; Components: overlay; Check: IsArm64
 
 ; ── SimHub plugin DLL (AnyCPU — works on both architectures) ──
-Source: "..\racecor-plugin\simhub-plugin\K10Motorsports.Plugin.dll"; DestDir: "{code:GetSimHubDir}"; Flags: ignoreversion; Components: plugin
-Source: "..\racecor-plugin\simhub-plugin\K10Motorsports.Plugin.pdb"; DestDir: "{code:GetSimHubDir}"; Flags: ignoreversion skipifsourcedoesntexist; Components: plugin
+Source: "..\racecor-plugin\simhub-plugin\RaceCor-ioProDrive.dll"; DestDir: "{code:GetSimHubDir}"; Flags: ignoreversion; Components: plugin
+Source: "..\racecor-plugin\simhub-plugin\RaceCor-ioProDrive.pdb"; DestDir: "{code:GetSimHubDir}"; Flags: ignoreversion skipifsourcedoesntexist; Components: plugin
 
 ; ── Dataset files ──
-Source: "..\racecor-plugin\simhub-plugin\k10-motorsports-data\*"; DestDir: "{code:GetSimHubDir}\k10-motorsports-data"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: plugin
+Source: "..\racecor-plugin\simhub-plugin\racecorio-prodrive-data\*"; DestDir: "{code:GetSimHubDir}\racecorio-prodrive-data"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: plugin
 
 ; ── Stream Deck profile ──
 Source: "..\racecor-overlay\streamdeck\*"; DestDir: "{app}\streamdeck"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: overlay
@@ -90,10 +90,25 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent; Components: overlay
 
+[InstallDelete]
+; Remove legacy plugin files from before the rename to RaceCor-ioProDrive
+Type: files; Name: "{code:GetSimHubDir}\K10Motorsports.Plugin.dll"
+Type: files; Name: "{code:GetSimHubDir}\K10Motorsports.Plugin.pdb"
+Type: files; Name: "{code:GetSimHubDir}\K10MediaBroadcaster.Plugin.dll"
+Type: files; Name: "{code:GetSimHubDir}\K10MediaBroadcaster.Plugin.pdb"
+; Remove old data folder name (replaced by racecorio-prodrive-data)
+Type: filesandordirs; Name: "{code:GetSimHubDir}\racecorio-prodrive-data"
+
 [UninstallDelete]
-Type: filesandordirs; Name: "{code:GetSimHubDir}\K10Motorsports.Plugin.dll"
-Type: filesandordirs; Name: "{code:GetSimHubDir}\K10Motorsports.Plugin.pdb"
-Type: filesandordirs; Name: "{code:GetSimHubDir}\k10-motorsports-data"
+Type: filesandordirs; Name: "{code:GetSimHubDir}\RaceCor-ioProDrive.dll"
+Type: filesandordirs; Name: "{code:GetSimHubDir}\RaceCor-ioProDrive.pdb"
+Type: filesandordirs; Name: "{code:GetSimHubDir}\racecorio-prodrive-data"
+; Also clean up any leftover legacy files
+Type: files; Name: "{code:GetSimHubDir}\K10Motorsports.Plugin.dll"
+Type: files; Name: "{code:GetSimHubDir}\K10Motorsports.Plugin.pdb"
+Type: files; Name: "{code:GetSimHubDir}\K10MediaBroadcaster.Plugin.dll"
+Type: files; Name: "{code:GetSimHubDir}\K10MediaBroadcaster.Plugin.pdb"
+Type: filesandordirs; Name: "{code:GetSimHubDir}\racecorio-prodrive-data"
 
 [Code]
 var

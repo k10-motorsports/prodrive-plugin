@@ -690,7 +690,7 @@ namespace K10Motorsports.Plugin.Engine
 
         /// <summary>
         /// Resolve the trackmaps directory. Checks two locations in order:
-        ///   1. {SimHub}/k10-motorsports-data/trackmaps/  (post-build copy location)
+        ///   1. {SimHub}/racecorio-prodrive-data/trackmaps/  (post-build copy location)
         ///   2. {SimHub}/trackmaps/  (simple flat folder)
         /// Returns the first one that exists, or the primary path if neither does.
         /// </summary>
@@ -698,8 +698,8 @@ namespace K10Motorsports.Plugin.Engine
         {
             if (string.IsNullOrEmpty(_simhubDir)) return "";
 
-            // Primary: nested under k10-motorsports-data
-            string primary = Path.Combine(_simhubDir, "k10-motorsports-data", "trackmaps");
+            // Primary: nested under racecorio-prodrive-data
+            string primary = Path.Combine(_simhubDir, "racecorio-prodrive-data", "trackmaps");
             if (Directory.Exists(primary)) return primary;
 
             // Fallback: flat trackmaps folder in SimHub root
@@ -717,7 +717,7 @@ namespace K10Motorsports.Plugin.Engine
         {
             var paths = new List<string>();
             if (string.IsNullOrEmpty(_simhubDir)) return paths;
-            paths.Add(Path.Combine(_simhubDir, "k10-motorsports-data", "trackmaps"));
+            paths.Add(Path.Combine(_simhubDir, "racecorio-prodrive-data", "trackmaps"));
             paths.Add(Path.Combine(_simhubDir, "trackmaps"));
             paths.Add(GetOwnCacheDir());
             return paths;
@@ -742,7 +742,7 @@ namespace K10Motorsports.Plugin.Engine
             // Check both possible trackmaps directories
             string[] dirs = new[]
             {
-                Path.Combine(_simhubDir, "k10-motorsports-data", "trackmaps"),
+                Path.Combine(_simhubDir, "racecorio-prodrive-data", "trackmaps"),
                 Path.Combine(_simhubDir, "trackmaps"),
             };
 
@@ -827,7 +827,7 @@ namespace K10Motorsports.Plugin.Engine
             // Scan all trackmaps directories
             string[] dirs = string.IsNullOrEmpty(_simhubDir) ? new string[0] : new[]
             {
-                Path.Combine(_simhubDir, "k10-motorsports-data", "trackmaps"),
+                Path.Combine(_simhubDir, "racecorio-prodrive-data", "trackmaps"),
                 Path.Combine(_simhubDir, "trackmaps"),
             };
 
@@ -859,7 +859,7 @@ namespace K10Motorsports.Plugin.Engine
             var inDir = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             string[] dirs = string.IsNullOrEmpty(_simhubDir) ? new string[0] : new[]
             {
-                Path.Combine(_simhubDir, "k10-motorsports-data", "trackmaps"),
+                Path.Combine(_simhubDir, "racecorio-prodrive-data", "trackmaps"),
                 Path.Combine(_simhubDir, "trackmaps"),
             };
 
@@ -895,7 +895,7 @@ namespace K10Motorsports.Plugin.Engine
             var inDir = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             string[] dirs = string.IsNullOrEmpty(_simhubDir) ? new string[0] : new[]
             {
-                Path.Combine(_simhubDir, "k10-motorsports-data", "trackmaps"),
+                Path.Combine(_simhubDir, "racecorio-prodrive-data", "trackmaps"),
                 Path.Combine(_simhubDir, "trackmaps"),
             };
 
