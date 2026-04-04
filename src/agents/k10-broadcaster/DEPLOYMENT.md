@@ -1,8 +1,8 @@
-# K10 Motorsports MCP - Deployment Guide
+# RaceCorProDrive MCP - Deployment Guide
 
 ## Overview
 
-This MCP server provides structured access to the K10 Motorsports dashboard overlay source code. It replaces the need to manually read from dashboard.html or parse raw files.
+This MCP server provides structured access to the RaceCorProDrive dashboard overlay source code. It replaces the need to manually read from dashboard.html or parse raw files.
 
 ## Files Created
 
@@ -45,7 +45,7 @@ mcp/k10-broadcaster/
 
 ## Architecture
 
-The MCP reads from the K10 Motorsports source at:
+The MCP reads from the RaceCorProDrive source at:
 
 ```
 k10-motorsports/src/src/
@@ -222,4 +222,4 @@ Expected: JSON response with all 12 tools listed.
 - ✅ File reads return correct content
 - ✅ Search functionality operational
 
-This MCP is production-ready and replaces manual file reading for K10 Broadcaster source exploration.
+This MCP is production-ready and replaces manual file reading for RaceCor Broadcaster source exploration.

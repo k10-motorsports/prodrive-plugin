@@ -1,4 +1,4 @@
-# K10 Motorsports SimHub Plugin
+# RaceCorProDrive SimHub Plugin
 
 ## Overview
 
@@ -98,7 +98,7 @@ Install Instructions
 1. Open plugin/RaceCorProDrive.Plugin.sln in Visual Studio on Windows
 2. Set the SIMHUB_PATH environment variable to your SimHub install folder (default: C:\Program Files (x86)\SimHub\)
 3. Build in Release|x64 — DLL deploys directly to SimHub, dataset is copied alongside it
-4. In SimHub → Additional Plugins → enable K10 Motorsports, then restart SimHub
+4. In SimHub → Additional Plugins → enable RaceCorProDrive, then restart SimHub
 5. Copy the dashboard/RaceCorProDrive/ folder into SimHub's Dashboards folder, then open it via Dash Studio
 6. Launch iRacing and drive
 

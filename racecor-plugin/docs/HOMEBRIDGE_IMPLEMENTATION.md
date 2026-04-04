@@ -2,7 +2,7 @@
 
 ## Overview
 
-A complete Homebridge platform plugin has been created to integrate SimHub K10 Motorsports telemetry with HomeKit-connected smart lights. The plugin polls SimHub's HTTP API and maps race flags, driver proximity, and event severity to light colors in real-time.
+A complete Homebridge platform plugin has been created to integrate SimHub RaceCorProDrive telemetry with HomeKit-connected smart lights. The plugin polls SimHub's HTTP API and maps race flags, driver proximity, and event severity to light colors in real-time.
 
 ## Architecture
 
@@ -28,7 +28,7 @@ homebridge-plugin/
 ### Communication Flow
 
 ```
-SimHub (K10 Motorsports plugin)
+SimHub (RaceCorProDrive plugin)
          ↓
    HTTP API (port 8888)
          ↓
@@ -199,13 +199,13 @@ Provides a UI form in Homebridge with:
 
 3. Configure:
    - Go to Homebridge settings
-   - Find "K10 Motorsports Lights" platform
+   - Find "RaceCorProDrive Lights" platform
    - Set SimHub URL, polling interval, and light mode
    - Add lights to HomeKit if desired
 
 4. Enable in SimHub:
    - Enable "Web Server" in SimHub settings
-   - Ensure K10 Motorsports plugin is active
+   - Ensure RaceCorProDrive plugin is active
 
 ## TypeScript Implementation Details
 
@@ -231,8 +231,8 @@ Provides a UI form in Homebridge with:
 ## File Locations
 
 All files are located at:
-- Homebridge plugin: `/sessions/gracious-elegant-shannon/mnt/k10-motorsports-plugin/homebridge-plugin/`
-- SimHub plugin update: `/sessions/gracious-elegant-shannon/mnt/k10-motorsports-plugin/plugin/RaceCorProDrive.Plugin/Plugin.cs`
+- Homebridge plugin: `homebridge-plugin/`
+- SimHub plugin update: `plugin/RaceCorProDrive.Plugin/Plugin.cs`
 
 ## Testing
 

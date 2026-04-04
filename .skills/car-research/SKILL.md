@@ -13,8 +13,8 @@ description: >
 
 # Car Research Skill
 
-This skill manages the authoritative car and manufacturer database for the K10
-Media Broadcaster project. The database powers two things:
+This skill manages the authoritative car and manufacturer database for the RaceCor
+project. The database powers two things:
 
 1. **The commentary engine** — rich facts, driving character descriptions,
    engine specs, and broadcast-ready talking points that make the AI commentator

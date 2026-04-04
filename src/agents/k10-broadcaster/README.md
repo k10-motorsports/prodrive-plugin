@@ -1,6 +1,6 @@
-# K10 Broadcaster MCP Server
+# RaceCor Broadcaster MCP Server
 
-Part of the [K10 Motorsports](https://github.com/alternatekev/media-coach-simhub-plugin) sim racing platform. A Model Context Protocol (MCP) server providing structured access to the K10 Motorsports dashboard overlay source code — 28+ JavaScript modules, 10 CSS modules, WebGL shaders, and the Electron main process. Enables Claude to understand the overlay's architecture, module relationships, and styling without parsing raw HTML or manually reading files.
+Part of the [RaceCorProDrive](https://github.com/alternatekev/media-coach-simhub-plugin) sim racing platform. A Model Context Protocol (MCP) server providing structured access to the RaceCorProDrive dashboard overlay source code — 28+ JavaScript modules, 10 CSS modules, WebGL shaders, and the Electron main process. Enables Claude to understand the overlay's architecture, module relationships, and styling without parsing raw HTML or manually reading files.
 
 ## Location
 
@@ -17,7 +17,7 @@ mcp/k10-broadcaster/
 
 ## Features
 
-The MCP provides 12 specialized tools for exploring the K10 Broadcaster dashboard codebase:
+The MCP provides 12 specialized tools for exploring the RaceCor Broadcaster dashboard codebase:
 
 ### Dashboard Module Management
 - **`list_components`** - Lists all dashboard modules with categories (HUD, panels, overlays, settings, layout)
@@ -47,7 +47,7 @@ The MCP provides 12 specialized tools for exploring the K10 Broadcaster dashboar
 
 ## Source Structure
 
-The MCP reads from the K10 Motorsports dashboard source:
+The MCP reads from the RaceCorProDrive dashboard source:
 
 ```
 racecor-overlay/
@@ -280,7 +280,7 @@ Dashboard (Main Layout)
 │   │   ├── PositionPanel
 │   │   └── GapsPanel
 │   ├── Tachometer Column
-│   └── Logo Column (K10 + Car)
+│   └── Logo Column (RaceCor + Car)
 ├── Timer Row (placeholder)
 ├── Commentary Column (right side)
 ├── Secondary Panels (opposite side)

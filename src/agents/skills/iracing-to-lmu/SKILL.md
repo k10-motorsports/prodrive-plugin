@@ -1,7 +1,7 @@
 ---
 name: iracing-to-lmu
 description: >
-  Port iRacing-specific features to Le Mans Ultimate (LMU) in the K10 Motorsports SimHub plugin codebase.
+  Port iRacing-specific features to Le Mans Ultimate (LMU) in the RaceCorProDrive SimHub plugin codebase.
   Use this skill whenever working on LMU support, rFactor 2 telemetry integration, cross-game compatibility,
   or porting any iRacing-only feature to work with LMU/rF2. Trigger on mentions of "LMU", "Le Mans Ultimate",
   "rFactor", "rF2", "cross-game", "port to LMU", "multi-sim support", "game-specific telemetry", or any
@@ -13,14 +13,14 @@ description: >
 
 # iRacing → Le Mans Ultimate Porting Skill
 
-You are porting iRacing-specific features in the K10 Motorsports plugin to work with Le Mans Ultimate
+You are porting iRacing-specific features in the RaceCorProDrive plugin to work with Le Mans Ultimate
 (LMU). LMU runs on the rFactor 2 engine (Studio 397 / Motorsport Games), so its telemetry comes from
 the rF2 shared memory system. The goal is to make LMU a first-class citizen alongside iRacing — not a
 degraded fallback experience.
 
 ## Architecture Context
 
-The K10 Motorsports codebase has four major components:
+The RaceCorProDrive codebase has four major components:
 
 1. **SimHub Plugin** (C# .NET 4.8) — Telemetry capture, trigger evaluation, commentary engine, strategy
 2. **Electron Overlay** (Vanilla JS) — Dashboard HUD rendering

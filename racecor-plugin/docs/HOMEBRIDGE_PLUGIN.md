@@ -26,7 +26,7 @@ homebridge-plugin/
 ## Communication Flow
 
 ```
-SimHub (K10 Motorsports properties)
+SimHub (RaceCorProDrive properties)
   → SimHub HTTP API (port 8888)
   → Homebridge Plugin (polling at configurable interval)
   → HomeKit Lightbulb characteristics

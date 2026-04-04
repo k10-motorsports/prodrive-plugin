@@ -1,4 +1,4 @@
-# K10 Motorsports MCP - Complete Index
+# RaceCorProDrive MCP - Complete Index
 
 ## Quick Links
 
@@ -30,7 +30,7 @@ src/agents/k10-broadcaster/
 
 ## What This MCP Does
 
-The K10 Motorsports MCP provides 12 specialized tools for understanding the K10 Motorsports dashboard overlay source code. Instead of manually reading files or parsing HTML, Claude can use structured MCP tools to:
+The RaceCorProDrive MCP provides 12 specialized tools for understanding the RaceCorProDrive dashboard overlay source code. Instead of manually reading files or parsing HTML, Claude can use structured MCP tools to:
 
 - Discover and read dashboard modules
 - Understand configuration and data definitions
@@ -245,4 +245,4 @@ FOR REFERENCE:
 
 ---
 
-**K10 Broadcaster MCP v1.0.0** - Structured access to dashboard overlay source code for Claude
+**RaceCor Broadcaster MCP v1.0.0** - Structured access to dashboard overlay source code for Claude

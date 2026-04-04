@@ -1,4 +1,4 @@
-# K10 Motorsports — Missing & Broken Data Audit
+# RaceCor — Missing & Broken Data Audit
 
 Comprehensive audit of on-screen fields that are failing, falling back, hardcoded, or using the wrong data source. Each entry lists what the dashboard shows today and the iRacing SDK / SimHub property that should be wired instead.
 

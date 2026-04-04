@@ -1,6 +1,6 @@
 # K10 Plugin MCP Server
 
-Part of the [K10 Motorsports](https://github.com/alternatekev/media-coach-simhub-plugin) sim racing platform. An MCP (Model Context Protocol) server that provides structured access to the K10 Motorsports SimHub plugin's C# source code, strategy engine, commentary dataset, telemetry schema, and HTTP API surface.
+Part of the [RaceCorProDrive](https://github.com/alternatekev/media-coach-simhub-plugin) sim racing platform. An MCP (Model Context Protocol) server that provides structured access to the RaceCorProDrive SimHub plugin's C# source code, strategy engine, commentary dataset, telemetry schema, and HTTP API surface.
 
 ## Overview
 

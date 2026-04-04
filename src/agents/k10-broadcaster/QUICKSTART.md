@@ -1,4 +1,4 @@
-# K10 Motorsports MCP - Quick Start Guide
+# RaceCorProDrive MCP - Quick Start Guide
 
 ## What is this?
 
@@ -187,6 +187,6 @@ If the MCP doesn't start:
 
 ## That's It!
 
-Your K10 Broadcaster MCP is built, tested, and ready to use with Claude. It replaces the need to manually read and parse source files, giving Claude structured access to your entire overlay codebase.
+Your RaceCor Broadcaster MCP is built, tested, and ready to use with Claude. It replaces the need to manually read and parse source files, giving Claude structured access to your entire overlay codebase.
 
 Happy coding!
