@@ -1,4 +1,4 @@
-# K10 Motorsports Plugin Feedback
+# RaceCorProDrive Plugin Feedback
 
 This document contains my observations from an hour of testing the plugin and dashboard last night. read them all, formulate a plan for how to do this work with the "next steps" in mind as a future version (without actually performing that work right now). execute that plan, possibly re-evaluating the original data sources for more granular information.
 
@@ -125,7 +125,7 @@ If the API key is empty, the network is unavailable, or the call exceeds a 1.5s 
 - `Control.xaml` / `Control.xaml.cs` — API key input + AI toggle
 - `Engine/CommentaryGenerator.cs` — new file, async Anthropic API wrapper
 - `Engine/CommentaryEngine.cs` — `ShowPrompt()` calls `CommentaryGenerator` when AI is enabled, handles callback
-- `K10Motorsports.Plugin.csproj` — add `System.Net.Http` reference if not already present
+- `RaceCorProDrive.Plugin.csproj` — add `System.Net.Http` reference if not already present
 
 ---
 
@@ -175,7 +175,7 @@ At runtime, the engine randomly selects one opener + one body + one closer and j
 3. Performing placeholder substitution ({ahead}, {behind}, {value}, {rating_context}, {corner_name})
 4. Tracking recently-used fragments per-topic to avoid immediate repetition (ring buffer of last 3 per slot)
 
-**New dataset file: `k10-motorsports-data/commentary_fragments.json`**
+**New dataset file: `racecorprodrive-data/commentary_fragments.json`**
 
 Contains fragment pools for all topics. Generated with Haiku using the existing `commentaryPrompts` as style reference and `channel_notes.json` + content from http://www.alternate.org for voice matching. Each topic gets at minimum 6 openers, 8 bodies, and 5 closers (= 240+ unique combinations per topic, vs the current 4-5 static prompts).
 
@@ -234,8 +234,8 @@ SimHub dashboard properties expect colors in `#AARRGGBB` format (8-digit with al
 - `Engine/FragmentAssembler.cs` — **new file**, fragment loading + assembly + repetition tracking
 - `Engine/CommentaryEngine.cs` — `ShowPrompt()` calls `FragmentAssembler` before falling back to static prompts
 - `Models/CommentaryTopic.cs` — add `Fragments` property (optional, parallel to `CommentaryPrompts`)
-- `k10-motorsports-data/commentary_fragments.json` — **new file**, Haiku-generated fragment pools
-- `k10-motorsports-data/commentary_topics.json` — threshold fixes, exposition text fixes, tyre wear inversion fix
+- `racecorprodrive-data/commentary_fragments.json` — **new file**, Haiku-generated fragment pools
+- `racecorprodrive-data/commentary_topics.json` — threshold fixes, exposition text fixes, tyre wear inversion fix
 - `tools/generate_fragments.py` — **new file**, batch Haiku generation script
 
 ### What Doesn't Change
@@ -250,7 +250,7 @@ SimHub dashboard properties expect colors in `#AARRGGBB` format (8-digit with al
 
 ## Homebridge Light Control Plugin
 
-A companion Homebridge plugin that maps SimHub telemetry state to Apple HomeKit-connected smart lights. The plugin reads K10 Motorsports properties from SimHub's built-in HTTP API and drives Lightbulb accessories with color changes based on race flags, driver proximity, and event severity.
+A companion Homebridge plugin that maps SimHub telemetry state to Apple HomeKit-connected smart lights. The plugin reads RaceCorProDrive properties from SimHub's built-in HTTP API and drives Lightbulb accessories with color changes based on race flags, driver proximity, and event severity.
 
 ### Architecture
 
@@ -262,13 +262,13 @@ A companion Homebridge plugin that maps SimHub telemetry state to Apple HomeKit-
 
 **Communication flow:**
 ```
-SimHub (K10 Motorsports properties) → SimHub HTTP API → Homebridge Plugin → HomeKit → Apple Home lights
+SimHub (RaceCorProDrive properties) → SimHub HTTP API → Homebridge Plugin → HomeKit → Apple Home lights
 ```
 
 SimHub exposes all plugin properties via its built-in HTTP API at `http://localhost:8888/api/`. The Homebridge plugin polls this endpoint at a configurable interval (default: 500ms) to read:
-- `K10Motorsports.Plugin.CommentarySeverity` — current event severity (0-5)
-- `K10Motorsports.Plugin.CommentarySentimentColor` — the AARRGGBB color string
-- `K10Motorsports.Plugin.CommentaryVisible` — whether a prompt is active (1/0)
+- `RaceCorProDrive.Plugin.CommentarySeverity` — current event severity (0-5)
+- `RaceCorProDrive.Plugin.CommentarySentimentColor` — the AARRGGBB color string
+- `RaceCorProDrive.Plugin.CommentaryVisible` — whether a prompt is active (1/0)
 - Standard SimHub properties for flag state: `DataCorePlugin.GameRawData.Telemetry.SessionFlags`
 - Opponent proximity data (for close-racing detection)
 
@@ -335,7 +335,7 @@ Optionally, if the user has multiple lights, the plugin can expose multiple acce
 
 ```json
 {
-  "pluginAlias": "K10MotorsportsLights",
+  "pluginAlias": "RaceCorProDriveLights",
   "pluginType": "platform",
   "schema": {
     "type": "object",
@@ -356,7 +356,7 @@ Optionally, if the user has multiple lights, the plugin can expose multiple acce
 SimHub's HTTP API is available when "SimHub Web Dashboard Server" is enabled in SimHub settings. Properties are read via:
 
 ```
-GET http://localhost:8888/api/pluginproperty/K10Motorsports.Plugin.CommentarySeverity
+GET http://localhost:8888/api/pluginproperty/RaceCorProDrive.Plugin.CommentarySeverity
 ```
 
 The plugin uses a simple HTTP polling loop (Node.js `http` module or `node-fetch`) on a `setInterval` at the configured poll rate. Each tick:
@@ -414,7 +414,7 @@ this.AttachDelegate("CurrentFlagState", () =>
 1. `cd homebridge-plugin && npm install`
 2. `npm run build` (compiles TypeScript → `dist/`)
 3. `npm link` (registers with local Homebridge for development)
-4. In Homebridge UI: configure the `K10MotorsportsLights` platform with your SimHub URL
+4. In Homebridge UI: configure the `RaceCorProDriveLights` platform with your SimHub URL
 5. Ensure SimHub's web server is enabled and the K10 Motorsports plugin is active
 
 ---

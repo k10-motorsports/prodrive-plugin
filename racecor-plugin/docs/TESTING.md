@@ -6,7 +6,7 @@ The test suite covers five layers: C# unit tests for the SimHub plugin logic, Py
 
 | Suite | Language | Framework | Tests | What It Covers |
 |-------|----------|-----------|-------|----------------|
-| K10Motorsports.Tests | C# | NUnit (.NET 6.0) | 200+ | Trigger evaluation, fragment assembly, color resolution, dataset validation |
+| RaceCorProDrive.Tests | C# | NUnit (.NET 6.0) | 200+ | Trigger evaluation, fragment assembly, color resolution, dataset validation |
 | validate_datasets.py | Python | unittest | 28 | JSON structure, cross-references, threshold regressions |
 | Homebridge tests | TypeScript | Jest | 133 | Color mapping, SimHub client, per-light mode overrides |
 | test_installer.py | Python | unittest | 34 | Installer structure, simulated install/export, file manifests |
@@ -14,7 +14,7 @@ The test suite covers five layers: C# unit tests for the SimHub plugin logic, Py
 ## C# Unit Tests
 
 ```
-tests/K10Motorsports.Tests/
+tests/RaceCorProDrive.Tests/
 ├── TriggerEvaluatorTests.cs        84 tests — all 18 trigger conditions
 ├── FragmentAssemblerTests.cs       35 tests — assembly, repetition, placeholders
 ├── ColorResolverTests.cs           50+ tests — category/severity colors, flag collisions
@@ -37,7 +37,7 @@ The TestHelpers mirror the plugin's logic exactly. They're kept in sync manually
 ### Running
 
 ```bash
-cd tests/K10Motorsports.Tests
+cd tests/RaceCorProDrive.Tests
 dotnet test --verbosity normal
 ```
 
@@ -136,7 +136,7 @@ python3 tests/validate_datasets.py
 python3 tools/test_installer.py
 
 # C# (.NET 6.0 SDK)
-cd tests/K10Motorsports.Tests && dotnet test
+cd tests/RaceCorProDrive.Tests && dotnet test
 
 # Homebridge (Node.js 18+)
 cd homebridge-plugin && npm ci && npm test

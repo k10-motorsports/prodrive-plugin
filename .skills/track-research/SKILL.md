@@ -36,7 +36,7 @@ Track data comes from several places, in priority order:
    commentary-grade facts. Wikipedia, official circuit sites, F1/WEC/IMSA
    results pages.
 4. **The bundled track map CSVs** in
-   `racecor-plugin/simhub-plugin/k10-motorsports-data/trackmaps/` — waypoint data for the
+   `racecor-plugin/simhub-plugin/racecorprodrive-data/trackmaps/` — waypoint data for the
    map visualization. If a CSV exists for a track, it's a "bundled" track
    with first-class support.
 

@@ -48,11 +48,11 @@ Smart Lights
 Handles HTTP polling of SimHub properties:
 
 - **Polling properties:**
-  - `K10Motorsports.Plugin.CommentarySeverity` (0-5)
-  - `K10Motorsports.Plugin.CommentaryVisible` (0/1)
-  - `K10Motorsports.Plugin.CommentarySentimentColor` (#AARRGGBB)
-  - `K10Motorsports.Plugin.CurrentFlagState` (green/yellow/red/black/blue/debris/none)
-  - `K10Motorsports.Plugin.NearestCarDistance` (0.0-1.0)
+  - `RaceCorProDrive.Plugin.CommentarySeverity` (0-5)
+  - `RaceCorProDrive.Plugin.CommentaryVisible` (0/1)
+  - `RaceCorProDrive.Plugin.CommentarySentimentColor` (#AARRGGBB)
+  - `RaceCorProDrive.Plugin.CurrentFlagState` (green/yellow/red/black/blue/debris/none)
+  - `RaceCorProDrive.Plugin.NearestCarDistance` (0.0-1.0)
 
 - **Features:**
   - Non-blocking async HTTP GET requests
@@ -92,7 +92,7 @@ Maps SimHub state to HomeKit HSB colors:
   - Black/debris: 0.5 Hz (pulse)
   - Close proximity: 2 Hz (urgent)
 
-### 3. K10MotorsportsLightsPlatform (platform.ts)
+### 3. RaceCorProDriveLightsPlatform (platform.ts)
 
 Main platform plugin class:
 
@@ -112,7 +112,7 @@ Main platform plugin class:
   - `events_only` - Only display proximity/events
   - `all_colors` - Priority: flags > severity > proximity > ambient
 
-### 4. K10MotorsportsLightAccessory (platformAccessory.ts)
+### 4. RaceCorProDriveLightAccessory (platformAccessory.ts)
 
 Wraps a single HomeKit Lightbulb service:
 
@@ -232,7 +232,7 @@ Provides a UI form in Homebridge with:
 
 All files are located at:
 - Homebridge plugin: `/sessions/gracious-elegant-shannon/mnt/k10-motorsports-plugin/homebridge-plugin/`
-- SimHub plugin update: `/sessions/gracious-elegant-shannon/mnt/k10-motorsports-plugin/plugin/K10Motorsports.Plugin/Plugin.cs`
+- SimHub plugin update: `/sessions/gracious-elegant-shannon/mnt/k10-motorsports-plugin/plugin/RaceCorProDrive.Plugin/Plugin.cs`
 
 ## Testing
 

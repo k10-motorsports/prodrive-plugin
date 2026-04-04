@@ -19,19 +19,19 @@ The `.csproj` references SimHub DLLs from the SimHub installation directory. Set
 # Environment variable (recommended)
 set SIMHUB_PATH=C:\Program Files (x86)\SimHub\
 
-# Or edit plugin/K10Motorsports.Plugin/K10Motorsports.Plugin.csproj directly:
+# Or edit plugin/RaceCorProDrive.Plugin/RaceCorProDrive.Plugin.csproj directly:
 # <SimHubPath>C:\Your\SimHub\Path\</SimHubPath>
 ```
 
 ### Building
 
 ```bash
-dotnet build plugin/K10Motorsports.Plugin/K10Motorsports.Plugin.sln
+dotnet build plugin/RaceCorProDrive.Plugin/RaceCorProDrive.Plugin.sln
 ```
 
 The build automatically:
 1. Compiles `RaceCor-ioProDrive.dll` to the SimHub directory
-2. Copies `k10-motorsports-data/` to `SimHub\dataset\` (post-build target `CopyDataset`)
+2. Copies `racecorprodrive-data/` to `SimHub\dataset\` (post-build target `CopyDataset`)
 3. Copies `DashTemplates/` to `SimHub\DashTemplates\` (post-build target `CopyDashboard`)
 
 In Debug configuration, pressing F5 in Visual Studio launches SimHub directly for debugging.
@@ -93,7 +93,7 @@ npm run test:coverage
 npm run lint
 ```
 
-After `npm link`, restart Homebridge to pick up changes. The plugin is registered as `homebridge-k10-motorsports-lights` and uses the `K10MotorsportsLights` platform alias.
+After `npm link`, restart Homebridge to pick up changes. The plugin is registered as `homebridge-k10-motorsports-lights` and uses the `RaceCorProDriveLights` platform alias.
 
 ### Dependencies
 
@@ -103,7 +103,7 @@ The plugin has zero runtime dependencies. All functionality uses Node.js built-i
 
 ### Editing Topics and Fragments
 
-Edit the JSON files in `k10-motorsports-data/` directly. After changes:
+Edit the JSON files in `racecorprodrive-data/` directly. After changes:
 
 ```bash
 # Validate structural integrity (28 tests)
@@ -135,7 +135,7 @@ All test suites run without SimHub, iRacing, or any external service:
 
 ```bash
 # C# unit tests (200+ tests, NUnit, .NET 6.0)
-cd tests/K10Motorsports.Tests && dotnet test
+cd tests/RaceCorProDrive.Tests && dotnet test
 
 # Python dataset validation (28 tests)
 python3 tests/validate_datasets.py
@@ -164,7 +164,7 @@ The export tool copies:
 - `RaceCor-ioProDrive.dll` and `.pdb` from SimHub to the repo root
 - The `DashTemplates/k10 motorsports/` folder from SimHub to the repo (excluding `_Backups/`)
 
-It does **not** copy the `k10-motorsports-data/` folder back — the repo is the source of truth for dataset files. Changes to datasets should be made in the repo and pushed to SimHub via `install.bat` or a rebuild.
+It does **not** copy the `racecorprodrive-data/` folder back — the repo is the source of truth for dataset files. Changes to datasets should be made in the repo and pushed to SimHub via `install.bat` or a rebuild.
 
 ```bash
 # After export, the typical commit flow is:
@@ -175,15 +175,15 @@ git commit -m "Update built plugin and dashboard"
 ## Project Layout
 
 ```
-├── plugin/K10Motorsports.Plugin/    SimHub plugin source (C#)
+├── plugin/RaceCorProDrive.Plugin/    SimHub plugin source (C#)
 │   ├── Engine/                     Core logic (no manual edits to .csproj needed)
 │   ├── Models/                     Data models
 │   └── Properties/                 Assembly info
 ├── homebridge-plugin/              Homebridge plugin source (TypeScript)
 │   └── src/__tests__/              Jest tests
-├── k10-motorsports-data/                        Shared data files (JSON)
+├── racecorprodrive-data/                        Shared data files (JSON)
 ├── tests/
-│   ├── K10Motorsports.Tests/        C# unit tests (.NET 6.0, NUnit)
+│   ├── RaceCorProDrive.Tests/        C# unit tests (.NET 6.0, NUnit)
 │   ├── validate_datasets.py        Python dataset validation
 ├── tools/
 │   ├── generate_fragments.py       Fragment generation (Haiku)

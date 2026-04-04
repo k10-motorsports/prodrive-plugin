@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 :: ════════════════════════════════════════════════════════════════
-::  K10 Motorsports — SimHub Plugin Rebuild & Restart
+::  RaceCor ProDrive — SimHub Plugin Rebuild & Restart
 :: ════════════════════════════════════════════════════════════════
 ::
 ::  Usage:  rebuild.bat              (uses defaults)
@@ -37,11 +37,11 @@ if "!SH:~-1!"=="\" set "SH=!SH:~0,-1!"
 
 set "SH_EXE=!SH!\SimHubWPF.exe"
 :: Project path is relative to repo root (this script lives in scripts/)
-set "PROJ=%~dp0..\racecor-plugin\plugin\K10Motorsports.Plugin\K10Motorsports.Plugin/K10Motorsports.Plugin.csproj"
+set "PROJ=%~dp0..\racecor-plugin\plugin\RaceCorProDrive.Plugin\RaceCorProDrive.Plugin/RaceCorProDrive.Plugin.csproj"
 
 echo.
 echo  ╔══════════════════════════════════════════════╗
-echo  ║   K10 Motorsports — Rebuild ^& Restart       ║
+echo  ║   RaceCor ProDrive — Rebuild ^& Restart       ║
 echo  ╚══════════════════════════════════════════════╝
 echo.
 echo  Config:     %CONFIG%
@@ -157,7 +157,7 @@ if exist "!SH_EXE!" (
 
 echo.
 echo  ══════════════════════════════════════════════
-echo   Done. K10 Motorsports rebuilt and restarted.
+echo   Done. RaceCor ProDrive rebuilt and restarted.
 echo  ══════════════════════════════════════════════
 echo.
 

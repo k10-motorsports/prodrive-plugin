@@ -1,11 +1,11 @@
 @echo off
 setlocal enabledelayedexpansion
 
-title K10 Motorsports — Build Installer
+title RaceCor ProDrive — Build Installer
 
 echo.
 echo  ============================================
-echo   K10 Motorsports — Build Installer
+echo   RaceCor ProDrive — Build Installer
 echo  ============================================
 echo.
 echo  Builds the SimHub plugin, packages the Electron
@@ -19,7 +19,7 @@ echo.
 set "SCRIPTS_DIR=%~dp0"
 if "%SCRIPTS_DIR:~-1%"=="\" set "SCRIPTS_DIR=%SCRIPTS_DIR:~0,-1%"
 for %%I in ("%SCRIPTS_DIR%\..\..") do set "REPO_DIR=%%~fI"
-set "PLUGIN_DIR=%REPO_DIR%\racecor-plugin\plugin\K10Motorsports.Plugin"
+set "PLUGIN_DIR=%REPO_DIR%\racecor-plugin\plugin\RaceCorProDrive.Plugin"
 set "OVERLAY_DIR=%REPO_DIR%\racecor-overlay"
 set "INSTALLER_DIR=%REPO_DIR%\installer"
 
@@ -39,7 +39,7 @@ echo  [1/4] Building SimHub plugin (dotnet build Release)...
 set "STAGING=%REPO_DIR%\installer\staging"
 if not exist "%STAGING%" mkdir "%STAGING%"
 
-dotnet build "%PLUGIN_DIR%\K10Motorsports.Plugin.csproj" ^
+dotnet build "%PLUGIN_DIR%\RaceCorProDrive.Plugin.csproj" ^
   -c Release ^
   -p:OutputPath="%STAGING%" ^
   -p:AppendTargetFrameworkToOutputPath=false ^

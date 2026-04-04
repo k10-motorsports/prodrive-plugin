@@ -51,7 +51,7 @@ jobs:
             installer/k10-motorsports.iss
 
           # AssemblyInfo.cs
-          ASMFILE="racecor-plugin/simhub-plugin/plugin/K10Motorsports.Plugin/Properties/AssemblyInfo.cs"
+          ASMFILE="racecor-plugin/simhub-plugin/plugin/RaceCorProDrive.Plugin/Properties/AssemblyInfo.cs"
           sed -i -E "s/AssemblyVersion\(\"[^\"]+\"\)/AssemblyVersion(\"$ASM_VER\")/" "$ASMFILE"
           sed -i -E "s/AssemblyFileVersion\(\"[^\"]+\"\)/AssemblyFileVersion(\"$ASM_VER\")/" "$ASMFILE"
 
@@ -62,7 +62,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add racecor-overlay/package.json installer/k10-motorsports.iss \
-                 racecor-plugin/simhub-plugin/plugin/K10Motorsports.Plugin/Properties/AssemblyInfo.cs
+                 racecor-plugin/simhub-plugin/plugin/RaceCorProDrive.Plugin/Properties/AssemblyInfo.cs
           git diff --cached --quiet && echo "No changes to commit" && exit 0
           git commit -m "chore: bump version to ${{ steps.version.outputs.VERSION }} [skip ci]"
           git push origin main
@@ -142,7 +142,7 @@ jobs:
 
       - name: Build plugin
         run: |
-          dotnet build racecor-plugin/simhub-plugin/plugin/K10Motorsports.Plugin/K10Motorsports.Plugin.csproj -c Release
+          dotnet build racecor-plugin/simhub-plugin/plugin/RaceCorProDrive.Plugin/RaceCorProDrive.Plugin.csproj -c Release
           if (!(Test-Path "racecor-plugin/simhub-plugin/RaceCor-ioProDrive.dll")) {
             Write-Error "Plugin DLL not produced by build."
             exit 1

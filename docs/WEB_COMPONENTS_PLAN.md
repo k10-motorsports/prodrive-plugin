@@ -907,7 +907,7 @@ class RaceCorFuelGauge extends HTMLElement {
   // ─── Data update (called from poll-engine via event) ─────
 
   updateData(snapshot, isImperial = false) {
-    const dsPre = snapshot._demo ? 'K10Motorsports.Plugin.Demo.DS.' : 'K10Motorsports.Plugin.DS.';
+    const dsPre = snapshot._demo ? 'RaceCorProDrive.Plugin.Demo.DS.' : 'RaceCorProDrive.Plugin.DS.';
     const fuel = +(snapshot['DataCorePlugin.GameData.Fuel'] || 0);
     const maxFuel = +(snapshot['DataCorePlugin.GameData.MaxFuel'] || 0);
 

@@ -1,18 +1,18 @@
 <p align="center">
-  <img src="src/images/logomark.png" alt="K10 Motorsports" width="200">
+  <img src="src/images/logomark.png" alt="RaceCorProDrive" width="200">
 </p>
 
-# K10 Motorsports
+# RaceCorProDrive
 
 ![Dashboard](racecor-plugin/simhub-plugin/docs/dashboard-screenshot.png)
 
-A broadcast-grade sim racing HUD and telemetry platform. K10 Motorsports replaces your in-sim dashboard with a transparent overlay that displays real-time telemetry, race strategy, AI-generated commentary, and ambient smart lighting — all from a single SimHub plugin.
+A broadcast-grade sim racing HUD and telemetry platform. RaceCorProDrive replaces your in-sim dashboard with a transparent overlay that displays real-time telemetry, race strategy, AI-generated commentary, and ambient smart lighting — all from a single SimHub plugin.
 
 Built for iRacing. Cross-game support via SimHub's telemetry abstraction.
 
 ## Overview
 
-K10 Motorsports is four things in one repository:
+RaceCorProDrive is four things in one repository:
 
 **A SimHub plugin** that processes raw telemetry at ~100ms intervals — evaluating 33+ trigger conditions, tracking tire wear and fuel consumption, computing sector splits, estimating iRating, normalizing cross-game data, and serving everything over HTTP as a flat JSON API.
 
@@ -20,7 +20,7 @@ K10 Motorsports is four things in one repository:
 
 **A Homebridge plugin** that maps the same telemetry to Apple HomeKit smart lights, so your room reacts to race flags, proximity warnings, and event severity in real-time.
 
-**A marketing site** at [k10motorsports.racing](https://k10motorsports.racing) with a Discord-authenticated Pro Drive members area at [prodrive.racecor.io](https://prodrive.racecor.io).
+**A marketing site** at [racecorprodrive.racing](https://racecorprodrive.racing) with a Discord-authenticated Pro Drive members area at [prodrive.racecor.io](https://prodrive.racecor.io).
 
 ## Feature Highlights
 
@@ -30,7 +30,7 @@ The SimHub plugin captures telemetry snapshots every ~100ms and runs them throug
 
 Key systems include a **commentary engine** with composable sentence fragments (opener + body + closer), severity-based interruption, and cooldown management across 33 topics and 240+ prompt combinations; a **strategy engine** with real-time tire lifecycle tracking (grip degradation scoring, wear estimation, temperature state), fuel computation (burn variance, pit window calculation, fuel saving detection), and stint-aware evaluation with severity-graded coaching calls; a **sector tracker** that auto-detects native track boundaries from iRacing telemetry and falls back to equidistant sectors; an **iRating estimator** for pre-qualifying rating display; and **country flag normalization** mapping iRacing's full country names to ISO 2-letter codes for the flag sprite system.
 
-The plugin exposes 10 configurable actions (prefixed `K10Motorsports.*`) for wheel button and Stream Deck mapping — dismiss prompts, cycle pitbox tabs, navigate pit strategy options, and provide commentary feedback.
+The plugin exposes 10 configurable actions (prefixed `RaceCorProDrive.*`) for wheel button and Stream Deck mapping — dismiss prompts, cycle pitbox tabs, navigate pit strategy options, and provide commentary feedback.
 
 ### Dashboard Overlay (Electron / Vanilla JS)
 
@@ -56,7 +56,7 @@ Maps telemetry to HomeKit light colors in real-time. Three modes: flags only (gr
 
 ### Web (Next.js 16)
 
-Marketing site at [k10motorsports.racing](https://k10motorsports.racing) built with Next.js 16, React 19, and Tailwind CSS 4. Includes a Discord-authenticated Pro Drive members area at [prodrive.racecor.io](https://prodrive.racecor.io) with Strapi CMS backing the content layer.
+Marketing site at [racecorprodrive.racing](https://racecorprodrive.racing) built with Next.js 16, React 19, and Tailwind CSS 4. Includes a Discord-authenticated Pro Drive members area at [prodrive.racecor.io](https://prodrive.racecor.io) with Strapi CMS backing the content layer.
 
 ## Install
 
@@ -78,9 +78,9 @@ Prerequisites: [SimHub](https://www.simhubdash.com/) installed on Windows.
 
 **iRacing users:** Install the [iRacing Extra Properties](https://drive.google.com/drive/folders/1AiIWHviD4j-_D-zgRrjJU1AFhJ_xmass) plugin by RomainRob for iRating and Safety Rating display. Copy `RSC.iRacingExtraProperties.dll` into your SimHub folder while SimHub is closed.
 
-**Double-click `install.bat`** (in `scripts/windows/`). After installation, launch SimHub, enable "K10 Motorsports" in the plugin list, and configure display timing and category filters in the plugin settings panel.
+**Double-click `install.bat`** (in `scripts/windows/`). After installation, launch SimHub, enable "RaceCorProDrive" in the plugin list, and configure display timing and category filters in the plugin settings panel.
 
-The plugin exposes all data as SimHub properties (prefixed `K10Motorsports.Plugin.*`), so you can build your own dashboard layout or integrate the properties into an existing one.
+The plugin exposes all data as SimHub properties (prefixed `RaceCorProDrive.Plugin.*`), so you can build your own dashboard layout or integrate the properties into an existing one.
 
 Build from source: **[racecor-plugin/simhub-plugin/docs/DEVELOPMENT.md](racecor-plugin/simhub-plugin/docs/DEVELOPMENT.md)**
 
@@ -92,12 +92,12 @@ Prerequisites: [Homebridge](https://homebridge.io/) (v1.6+), Node.js 18+, SimHub
 cd racecor-plugin/homebridge-plugin && npm install && npm run build && npm link
 ```
 
-Add the `K10MotorsportsLights` platform to your Homebridge `config.json`:
+Add the `RaceCorProDriveLights` platform to your Homebridge `config.json`:
 
 ```json
 {
-  "platform": "K10MotorsportsLights",
-  "name": "K10 Motorsports Lights",
+  "platform": "RaceCorProDriveLights",
+  "name": "RaceCorProDrive Lights",
   "simhubUrl": "http://localhost:8888",
   "mode": "all_colors",
   "enableBlink": true,
@@ -134,7 +134,7 @@ Full setup walkthrough with multi-light configuration and automation scripts: **
 │   └── images/                           Branding, car logos, country flags
 ├── racecor-plugin/                       SimHub C# plugin + homebridge plugin
 │   ├── simhub-plugin/                    SimHub plugin + data
-│   │   ├── plugin/K10Motorsports.Plugin/ C# source (.NET Framework 4.8, WPF)
+│   │   ├── plugin/RaceCorProDrive.Plugin/ C# source (.NET Framework 4.8, WPF)
 │   │   │   ├── Plugin.cs                 Entry point, HTTP server, action registration
 │   │   │   └── Engine/                   Core systems
 │   │   │       ├── CommentaryEngine.cs   Trigger evaluation + prompt assembly
@@ -149,7 +149,7 @@ Full setup walkthrough with multi-light configuration and automation scripts: **
 │   │   │           ├── TireTracker.cs          Grip scoring, wear estimation, temp monitoring
 │   │   │           ├── FuelComputer.cs         Burn stats, pit window, fuel saving detection
 │   │   │           └── StintData.cs            Per-stint telemetry history
-│   │   ├── k10-motorsports-data/         Commentary topics, fragments, sentiments (JSON)
+│   │   ├── racecorprodrive-data/         Commentary topics, fragments, sentiments (JSON)
 │   │   ├── tests/                        C# unit tests + Python dataset validation
 │   │   ├── tools/                        Telemetry replay, fragment generation
 │   │   └── DashTemplates/                SimHub dashboard templates
@@ -193,7 +193,7 @@ Three test suites run without SimHub, iRacing, or any external service:
 
 ```bash
 # C# unit tests (200+ tests, NUnit)
-cd racecor-plugin/simhub-plugin/tests/K10Motorsports.Tests && dotnet test
+cd racecor-plugin/simhub-plugin/tests/RaceCorProDrive.Tests && dotnet test
 
 # Python dataset validation (28 tests)
 python3 racecor-plugin/simhub-plugin/tests/validate_datasets.py
@@ -248,7 +248,7 @@ The composable fragment system (opener + body + closer) is directly inspired by 
 
 ### AI-Assisted Content
 
-Commentary fragments in `racecor-plugin/simhub-plugin/k10-motorsports-data/commentary_fragments.json` were generated using [Claude](https://claude.ai) (Anthropic's `claude-haiku-4-5` model) with the commentary topics, sentiment vocabulary, and channel style profiles as input. The generation is a one-time offline process — no AI API calls occur at runtime in the current version.
+Commentary fragments in `racecor-plugin/simhub-plugin/racecorprodrive-data/commentary_fragments.json` were generated using [Claude](https://claude.ai) (Anthropic's `claude-haiku-4-5` model) with the commentary topics, sentiment vocabulary, and channel style profiles as input. The generation is a one-time offline process — no AI API calls occur at runtime in the current version.
 
 Plugin codebase, test suites, dataset structures, documentation, dashboard overlay, strategy engine, and Homebridge companion plugin built with [Claude Code](https://claude.ai/claude-code) (Anthropic's `claude-opus-4-6`).
 

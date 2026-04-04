@@ -43,11 +43,11 @@ INSTALL_MANIFEST = {
     "dll": "RaceCor-ioProDrive.dll",
     "pdb": "RaceCor-ioProDrive.pdb",  # optional
     "dataset_files": [
-        "k10-motorsports-data/commentary_topics.json",
-        "k10-motorsports-data/commentary_fragments.json",
-        "k10-motorsports-data/sentiments.json",
-        "k10-motorsports-data/channel_notes.json",
-        "k10-motorsports-data/commentary_sources.json",
+        "racecorprodrive-data/commentary_topics.json",
+        "racecorprodrive-data/commentary_fragments.json",
+        "racecorprodrive-data/sentiments.json",
+        "racecorprodrive-data/channel_notes.json",
+        "racecorprodrive-data/commentary_sources.json",
     ],
 }
 
@@ -161,7 +161,7 @@ class TestInstallerStructure(unittest.TestCase):
     def test_install_bat_references_dataset(self):
         with open(INSTALL_BAT, "r") as f:
             content = f.read()
-        self.assertIn("k10-motorsports-data", content)
+        self.assertIn("racecorprodrive-data", content)
 
     def test_install_bat_checks_simhub_exe(self):
         with open(INSTALL_BAT, "r") as f:
@@ -305,8 +305,8 @@ class TestSimulatedInstall(unittest.TestCase):
                 f.write(b"STUB_PDB_FOR_TESTING")
 
         # Step 2: Copy dataset
-        dataset_src = os.path.join(REPO_ROOT, "k10-motorsports-data")
-        dataset_dst = os.path.join(self.simhub, "k10-motorsports-data")
+        dataset_src = os.path.join(REPO_ROOT, "racecorprodrive-data")
+        dataset_dst = os.path.join(self.simhub, "racecorprodrive-data")
         shutil.copytree(dataset_src, dataset_dst, dirs_exist_ok=True)
 
     def test_dll_installed(self):
@@ -456,7 +456,7 @@ class TestSimulatedExport(unittest.TestCase):
         """Dataset files live in the repo and are pushed TO SimHub.
         Export should never copy dataset FROM SimHub back to repo."""
         self._simulate_export()
-        dataset_dir = os.path.join(self.fake_repo, "k10-motorsports-data")
+        dataset_dir = os.path.join(self.fake_repo, "racecorprodrive-data")
         self.assertFalse(os.path.isdir(dataset_dir),
                          "Export should not copy dataset from SimHub to repo")
 
@@ -508,7 +508,7 @@ class TestLiveInstall(unittest.TestCase):
         self.assertTrue(os.path.isfile(
             os.path.join(self.simhub, "RaceCor-ioProDrive.dll")))
         self.assertTrue(os.path.isdir(
-            os.path.join(self.simhub, "k10-motorsports-data")))
+            os.path.join(self.simhub, "racecorprodrive-data")))
 
     def test_install_bat_fails_without_dll(self):
         """If the DLL is missing from repo root, installer should fail."""

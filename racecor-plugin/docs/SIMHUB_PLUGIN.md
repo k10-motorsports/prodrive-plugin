@@ -5,12 +5,12 @@ The K10 Motorsports plugin is a .NET Framework 4.8 WPF plugin for [SimHub](https
 ## Project Structure
 
 ```
-plugin/K10Motorsports.Plugin/
+plugin/RaceCorProDrive.Plugin/
 ├── Plugin.cs                           Entry point, lifecycle, dashboard properties
 ├── Settings.cs                         User-configurable settings (serialized by SimHub)
 ├── Control.xaml / Control.xaml.cs       WPF settings panel
-├── K10Motorsports.Plugin.csproj         Build config (targets SimHub install directory)
-├── K10Motorsports.Plugin.sln            Solution file
+├── RaceCorProDrive.Plugin.csproj         Build config (targets SimHub install directory)
+├── RaceCorProDrive.Plugin.sln            Solution file
 ├── Properties/AssemblyInfo.cs          Assembly metadata
 └── Engine/
     ├── CommentaryEngine.cs             Core logic: trigger eval, prompt selection, color
@@ -70,12 +70,12 @@ The `.csproj` targets .NET Framework 4.8 and builds directly into the SimHub ins
 
 ```bash
 # Build
-dotnet build plugin/K10Motorsports.Plugin/K10Motorsports.Plugin.sln
+dotnet build plugin/RaceCorProDrive.Plugin/RaceCorProDrive.Plugin.sln
 
 # The DLL and dataset folder are copied to SimHub automatically via post-build targets
 ```
 
-The post-build step also copies the `k10-motorsports-data/` folder and `DashTemplates/` to the SimHub directory so the plugin can find its data files at runtime.
+The post-build step also copies the `racecorprodrive-data/` folder and `DashTemplates/` to the SimHub directory so the plugin can find its data files at runtime.
 
 Dependencies are all SimHub-provided DLLs (GameReaderCommon, SimHub.Plugins, SimHub.Logging, Newtonsoft.Json, log4net) referenced with `Private=False` so they aren't copied to output.
 
@@ -95,7 +95,7 @@ The plugin runs its own lightweight HTTP server using `System.Net.HttpListener`,
 
 **Endpoint:** `GET http://localhost:8889/racecor-io-pro-drive/`
 
-**Response:** A flat JSON object containing 77+ key-value pairs covering all game telemetry, commentary state, demo mode data, and track map information. Property keys match SimHub's naming convention (e.g., `DataCorePlugin.GameData.Rpms`, `K10Motorsports.Plugin.CommentaryText`).
+**Response:** A flat JSON object containing 77+ key-value pairs covering all game telemetry, commentary state, demo mode data, and track map information. Property keys match SimHub's naming convention (e.g., `DataCorePlugin.GameData.Rpms`, `RaceCorProDrive.Plugin.CommentaryText`).
 
 The server includes CORS headers (`Access-Control-Allow-Origin: *`) so the dashboard can be loaded from `file://` URLs or different origins. OPTIONS preflight requests are handled automatically.
 
@@ -105,7 +105,7 @@ SimHub's built-in web server (port 8888) does not expose plugin properties via R
 
 ### Demo Mode Properties
 
-When demo mode is active (`K10Motorsports.Plugin.DemoMode = 1`), the server serves simulated telemetry under the `K10Motorsports.Plugin.Demo.*` namespace. The dashboard automatically switches data sources — reading from `Demo.Gear` instead of `DataCorePlugin.GameData.Gear`, for example. This allows the full dashboard to run without a live sim session.
+When demo mode is active (`RaceCorProDrive.Plugin.DemoMode = 1`), the server serves simulated telemetry under the `RaceCorProDrive.Plugin.Demo.*` namespace. The dashboard automatically switches data sources — reading from `Demo.Gear` instead of `DataCorePlugin.GameData.Gear`, for example. This allows the full dashboard to run without a live sim session.
 
 ## Dashboard Integration
 

@@ -32,7 +32,7 @@ All project documentation on GitHub. Links go to the `main` branch.
 - [Screenshot Testing Spec](https://github.com/alternatekev/media-coach-simhub-plugin/blob/main/racecor-plugin/simhub-plugin/docs/SCREENSHOT_TESTING_SPEC.md) — automated visual regression testing
 - [Plugin Feedback](https://github.com/alternatekev/media-coach-simhub-plugin/blob/main/racecor-plugin/simhub-plugin/docs/PLUGIN_FEEDBACK.md) — behavior observations and improvement notes
 - [SimHub SDK References](https://github.com/alternatekev/media-coach-simhub-plugin/blob/main/racecor-plugin/simhub-plugin/lib/simhub-refs/README.md) — committed SDK DLLs for compilation
-- [Test Project](https://github.com/alternatekev/media-coach-simhub-plugin/blob/main/racecor-plugin/simhub-plugin/tests/K10Motorsports.Tests/README.md) — NUnit test project for triggers, fragments, and datasets
+- [Test Project](https://github.com/alternatekev/media-coach-simhub-plugin/blob/main/racecor-plugin/simhub-plugin/tests/RaceCorProDrive.Tests/README.md) — NUnit test project for triggers, fragments, and datasets
 
 ---
 

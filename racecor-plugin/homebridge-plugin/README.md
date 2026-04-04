@@ -1,10 +1,10 @@
-# Homebridge K10 Motorsports Lights Plugin
+# Homebridge RaceCorProDrive Lights Plugin
 
-Part of the [K10 Motorsports](https://github.com/alternatekev/media-coach-simhub-plugin) sim racing platform. This Homebridge plugin maps real-time telemetry from the K10 Motorsports SimHub plugin to Apple HomeKit smart lights — race flags, proximity warnings, commentary severity, and strategy calls all drive light color and brightness in real-time.
+Part of the [RaceCorProDrive](https://github.com/alternatekev/media-coach-simhub-plugin) sim racing platform. This Homebridge plugin maps real-time telemetry from the RaceCorProDrive SimHub plugin to Apple HomeKit smart lights — race flags, proximity warnings, commentary severity, and strategy calls all drive light color and brightness in real-time.
 
 ## Features
 
-- Polls SimHub HTTP API for K10 Motorsports plugin state
+- Polls SimHub HTTP API for RaceCorProDrive plugin state
 - Maps race flags (green, yellow, red, black, blue, debris) to light colors
 - Proximity-based warnings (car distance on track)
 - Event severity coloring (info through critical)
@@ -16,7 +16,7 @@ Part of the [K10 Motorsports](https://github.com/alternatekev/media-coach-simhub
 
 ### Prerequisites
 
-1. **SimHub** running with the K10 Motorsports plugin active
+1. **SimHub** running with the RaceCorProDrive plugin active
 2. **SimHub Web Server** enabled (SimHub Settings → Plugins → Web Server)
 3. **Homebridge** installed (v1.6.0 or later)
 
@@ -29,7 +29,7 @@ Part of the [K10 Motorsports](https://github.com/alternatekev/media-coach-simhub
 
 2. Configure the plugin:
    - Go to Homebridge → Settings
-   - Find "K10 Motorsports Lights" platform
+   - Find "RaceCorProDrive Lights" platform
    - Enter your SimHub HTTP API URL (default: `http://localhost:8888`)
    - Set poll interval (default: 500ms)
    - Choose light mode (flags_only, events_only, or all_colors)
@@ -39,7 +39,7 @@ Part of the [K10 Motorsports](https://github.com/alternatekev/media-coach-simhub
    - Open Apple Home app
    - Tap + in top left corner
    - Select "Add Accessory"
-   - Choose "K10 Motorsports" from Homebridge
+   - Choose "RaceCorProDrive" from Homebridge
    - Assign to a room
 
 ## Configuration
@@ -106,7 +106,7 @@ When enabled (default), lights blink for:
 - Check SimHub web server is enabled (Settings → Plugins → Web Server)
 - Verify SimHub URL in plugin config (default: `http://localhost:8888`)
 - Check Homebridge logs for connection errors
-- Ensure K10 Motorsports plugin is active in SimHub
+- Ensure RaceCorProDrive plugin is active in SimHub
 
 ### Colors not showing
 - Verify HomeKit light supports color changes (RGB bulbs required)
@@ -188,18 +188,18 @@ Homebridge v1.x.x is running on port 51370
 
 ## API Reference
 
-The plugin expects SimHub K10 Motorsports plugin to expose these properties via HTTP API:
+The plugin expects SimHub RaceCorProDrive plugin to expose these properties via HTTP API:
 
-- `K10Motorsports.Plugin.CommentarySeverity` - Event severity (0-5)
-- `K10Motorsports.Plugin.CommentaryVisible` - Event visible flag (0/1)
-- `K10Motorsports.Plugin.CommentarySentimentColor` - Sentiment color (#AARRGGBB)
-- `K10Motorsports.Plugin.CurrentFlagState` - Race flag state (green/yellow/red/etc.)
-- `K10Motorsports.Plugin.NearestCarDistance` - Nearest opponent distance (0.0-1.0)
-- `K10Motorsports.Plugin.Strategy.CurrentSeverity` - Strategy call severity (0-5)
+- `RaceCorProDrive.Plugin.CommentarySeverity` - Event severity (0-5)
+- `RaceCorProDrive.Plugin.CommentaryVisible` - Event visible flag (0/1)
+- `RaceCorProDrive.Plugin.CommentarySentimentColor` - Sentiment color (#AARRGGBB)
+- `RaceCorProDrive.Plugin.CurrentFlagState` - Race flag state (green/yellow/red/etc.)
+- `RaceCorProDrive.Plugin.NearestCarDistance` - Nearest opponent distance (0.0-1.0)
+- `RaceCorProDrive.Plugin.Strategy.CurrentSeverity` - Strategy call severity (0-5)
 
-## Part of K10 Motorsports
+## Part of RaceCorProDrive
 
-This plugin is one component of the K10 Motorsports platform, which also includes a broadcast-grade transparent dashboard overlay (Electron), a real-time strategy engine, an AI commentary system, and a Next.js web presence. See the [main repository](https://github.com/alternatekev/media-coach-simhub-plugin) for the full project.
+This plugin is one component of the RaceCorProDrive platform, which also includes a broadcast-grade transparent dashboard overlay (Electron), a real-time strategy engine, an AI commentary system, and a Next.js web presence. See the [main repository](https://github.com/alternatekev/media-coach-simhub-plugin) for the full project.
 
 ## License
 
@@ -207,4 +207,4 @@ MIT
 
 ## Author
 
-Kevin Conboy — [k10motorsports.racing](https://k10motorsports.racing)
+Kevin Conboy — [racecorprodrive.racing](https://racecorprodrive.racing)

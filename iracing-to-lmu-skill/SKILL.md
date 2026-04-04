@@ -284,7 +284,7 @@ private const string Rf2Prefix = "DataCorePlugin.GameRawData.";  // rF2 raw prop
 - SimHub normalized fields use PascalCase (e.g., `SpeedKmh`, `BrakeBias`)
 
 ### Testing
-- Unit tests live in `racecor-plugin/simhub-plugin/tests/K10Motorsports.Tests/`
+- Unit tests live in `racecor-plugin/simhub-plugin/tests/RaceCorProDrive.Tests/`
 - Use NUnit framework
 - Mock `PluginManager` and `GameData` for telemetry tests
 - Dataset validation in `tests/validate_datasets.py`
@@ -401,7 +401,7 @@ After porting a feature, verify it works by checking these layers:
 6. **Homebridge colors** — Do flags map to the correct light colors?
 
 If you can't run a live LMU session, write unit tests with mock rF2 telemetry data that exercises
-the new code paths. The existing test suite in `K10Motorsports.Tests` has patterns for this.
+the new code paths. The existing test suite in `RaceCorProDrive.Tests` has patterns for this.
 
 ---
 

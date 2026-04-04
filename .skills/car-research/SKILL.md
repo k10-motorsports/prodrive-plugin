@@ -36,7 +36,7 @@ Car data comes from several places, in priority order:
 
 ## Database location
 
-`racecor-plugin/simhub-plugin/k10-motorsports-data/commentary_cars.json` — the master
+`racecor-plugin/simhub-plugin/racecorprodrive-data/commentary_cars.json` — the master
 reference file. Contains both `cars` (individual car entries) and
 `manufacturers` (brand-level commentary data).
 

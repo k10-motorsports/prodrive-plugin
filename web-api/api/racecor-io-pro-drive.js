@@ -1,4 +1,4 @@
-// K10 Motorsports — Vercel Mock Telemetry Server
+// RaceCorProDrive — Vercel Mock Telemetry Server
 // Serves the same flat JSON blob the SimHub plugin produces,
 // driven by wall-clock time so every request gets a coherent snapshot.
 
@@ -405,9 +405,9 @@ function generateSnapshot(nowMs) {
   const remainingTime = RACE_DURATION - elapsed;
 
   // ─── Assemble the flat JSON blob ───
-  const dsPre = 'K10Motorsports.Plugin.DS.';
-  const demoPre = 'K10Motorsports.Plugin.Demo.';
-  const demoDsPre = 'K10Motorsports.Plugin.Demo.DS.';
+  const dsPre = 'RaceCorProDrive.Plugin.DS.';
+  const demoPre = 'RaceCorProDrive.Plugin.Demo.';
+  const demoDsPre = 'RaceCorProDrive.Plugin.Demo.DS.';
 
   const p = {};
 
@@ -461,40 +461,40 @@ function generateSnapshot(nowMs) {
   p['IRacingExtraProperties.iRacing_Opponent_Behind_IRating'] = behind ? behind.ir : 0;
 
   // K10 plugin meta
-  p['K10Motorsports.Plugin.GameId'] = 'iracing';
-  p['K10Motorsports.Plugin.DemoMode'] = 0;
-  p['K10Motorsports.Plugin.SessionTypeName'] = 'Race';
-  p['K10Motorsports.Plugin.DriverFirstName'] = 'Kevin';
-  p['K10Motorsports.Plugin.DriverLastName'] = 'Alternate';
+  p['RaceCorProDrive.Plugin.GameId'] = 'iracing';
+  p['RaceCorProDrive.Plugin.DemoMode'] = 0;
+  p['RaceCorProDrive.Plugin.SessionTypeName'] = 'Race';
+  p['RaceCorProDrive.Plugin.DriverFirstName'] = 'Kevin';
+  p['RaceCorProDrive.Plugin.DriverLastName'] = 'Alternate';
 
   // Commentary — cycles through race-contextual prompts
   const commentary = pickCommentary(elapsed, currentLap, position, fuel, fuelLapsRemaining, remainingLaps, wearBase, ahead, behind);
-  p['K10Motorsports.Plugin.CommentaryVisible'] = commentary ? 1 : 0;
-  p['K10Motorsports.Plugin.CommentaryText'] = commentary ? commentary.text : '';
-  p['K10Motorsports.Plugin.CommentaryTopicTitle'] = commentary ? commentary.title : '';
-  p['K10Motorsports.Plugin.CommentaryTopicId'] = commentary ? commentary.topicId : '';
-  p['K10Motorsports.Plugin.CommentaryCategory'] = commentary ? commentary.category : '';
-  p['K10Motorsports.Plugin.CommentarySentimentColor'] = commentary ? commentary.color : '';
-  p['K10Motorsports.Plugin.CommentarySeverity'] = commentary ? commentary.severity : 0;
-  p['K10Motorsports.Plugin.CommentaryTrackImage'] = commentary ? (commentary.image || '') : '';
+  p['RaceCorProDrive.Plugin.CommentaryVisible'] = commentary ? 1 : 0;
+  p['RaceCorProDrive.Plugin.CommentaryText'] = commentary ? commentary.text : '';
+  p['RaceCorProDrive.Plugin.CommentaryTopicTitle'] = commentary ? commentary.title : '';
+  p['RaceCorProDrive.Plugin.CommentaryTopicId'] = commentary ? commentary.topicId : '';
+  p['RaceCorProDrive.Plugin.CommentaryCategory'] = commentary ? commentary.category : '';
+  p['RaceCorProDrive.Plugin.CommentarySentimentColor'] = commentary ? commentary.color : '';
+  p['RaceCorProDrive.Plugin.CommentarySeverity'] = commentary ? commentary.severity : 0;
+  p['RaceCorProDrive.Plugin.CommentaryTrackImage'] = commentary ? (commentary.image || '') : '';
 
   // Strategy
-  p['K10Motorsports.Plugin.Strategy.Visible'] = 0;
-  p['K10Motorsports.Plugin.Strategy.Text'] = '';
-  p['K10Motorsports.Plugin.Strategy.Label'] = '';
-  p['K10Motorsports.Plugin.Strategy.Severity'] = 0;
-  p['K10Motorsports.Plugin.Strategy.Color'] = '';
-  p['K10Motorsports.Plugin.Strategy.TextColor'] = '';
-  p['K10Motorsports.Plugin.Strategy.FuelLapsRemaining'] = +fuelLapsRemaining.toFixed(1);
-  p['K10Motorsports.Plugin.Strategy.FuelHealthState'] = fuel < 10 ? 'critical' : fuel < 30 ? 'warning' : 'ok';
-  p['K10Motorsports.Plugin.Strategy.CanMakeItToEnd'] = fuelLapsRemaining >= remainingLaps ? 1 : 0;
-  p['K10Motorsports.Plugin.Strategy.PitWindowOpen'] = 0;
-  p['K10Motorsports.Plugin.Strategy.PitWindowClose'] = 0;
-  p['K10Motorsports.Plugin.Strategy.TireHealthState'] = wearBase < 0.5 ? 'warning' : 'ok';
-  p['K10Motorsports.Plugin.Strategy.TireLapsRemaining'] = +((wearBase - 0.3) / 0.04).toFixed(1);
-  p['K10Motorsports.Plugin.Strategy.GripScore'] = +(wearBase * 100).toFixed(0);
-  p['K10Motorsports.Plugin.Strategy.StintNumber'] = Math.floor(completedLaps / 15) + 1;
-  p['K10Motorsports.Plugin.Strategy.StintLaps'] = completedLaps % 15;
+  p['RaceCorProDrive.Plugin.Strategy.Visible'] = 0;
+  p['RaceCorProDrive.Plugin.Strategy.Text'] = '';
+  p['RaceCorProDrive.Plugin.Strategy.Label'] = '';
+  p['RaceCorProDrive.Plugin.Strategy.Severity'] = 0;
+  p['RaceCorProDrive.Plugin.Strategy.Color'] = '';
+  p['RaceCorProDrive.Plugin.Strategy.TextColor'] = '';
+  p['RaceCorProDrive.Plugin.Strategy.FuelLapsRemaining'] = +fuelLapsRemaining.toFixed(1);
+  p['RaceCorProDrive.Plugin.Strategy.FuelHealthState'] = fuel < 10 ? 'critical' : fuel < 30 ? 'warning' : 'ok';
+  p['RaceCorProDrive.Plugin.Strategy.CanMakeItToEnd'] = fuelLapsRemaining >= remainingLaps ? 1 : 0;
+  p['RaceCorProDrive.Plugin.Strategy.PitWindowOpen'] = 0;
+  p['RaceCorProDrive.Plugin.Strategy.PitWindowClose'] = 0;
+  p['RaceCorProDrive.Plugin.Strategy.TireHealthState'] = wearBase < 0.5 ? 'warning' : 'ok';
+  p['RaceCorProDrive.Plugin.Strategy.TireLapsRemaining'] = +((wearBase - 0.3) / 0.04).toFixed(1);
+  p['RaceCorProDrive.Plugin.Strategy.GripScore'] = +(wearBase * 100).toFixed(0);
+  p['RaceCorProDrive.Plugin.Strategy.StintNumber'] = Math.floor(completedLaps / 15) + 1;
+  p['RaceCorProDrive.Plugin.Strategy.StintLaps'] = completedLaps % 15;
 
   // Datastream (DS.*)
   p[dsPre + 'LatG'] = +latG.toFixed(3);
@@ -568,16 +568,16 @@ function generateSnapshot(nowMs) {
   p[dsPre + 'AmbientHasData'] = 0;
 
   // Track map
-  p['K10Motorsports.Plugin.TrackMap.Ready'] = 1;
-  p['K10Motorsports.Plugin.TrackMap.TrackName'] = 'Sebring International';
-  p['K10Motorsports.Plugin.TrackMap.SvgPath'] = SEBRING_SVG;
-  p['K10Motorsports.Plugin.TrackMap.PlayerX'] = +mapX.toFixed(1);
-  p['K10Motorsports.Plugin.TrackMap.PlayerY'] = +mapY.toFixed(1);
-  p['K10Motorsports.Plugin.TrackMap.PlayerHeading'] = +heading.toFixed(1);
-  p['K10Motorsports.Plugin.TrackMap.Opponents'] = oppParts.join(';');
+  p['RaceCorProDrive.Plugin.TrackMap.Ready'] = 1;
+  p['RaceCorProDrive.Plugin.TrackMap.TrackName'] = 'Sebring International';
+  p['RaceCorProDrive.Plugin.TrackMap.SvgPath'] = SEBRING_SVG;
+  p['RaceCorProDrive.Plugin.TrackMap.PlayerX'] = +mapX.toFixed(1);
+  p['RaceCorProDrive.Plugin.TrackMap.PlayerY'] = +mapY.toFixed(1);
+  p['RaceCorProDrive.Plugin.TrackMap.PlayerHeading'] = +heading.toFixed(1);
+  p['RaceCorProDrive.Plugin.TrackMap.Opponents'] = oppParts.join(';');
 
   // Leaderboard
-  p['K10Motorsports.Plugin.Leaderboard'] = JSON.stringify(lbArr);
+  p['RaceCorProDrive.Plugin.Leaderboard'] = JSON.stringify(lbArr);
 
   // Flag — cycle through flag states to showcase the overlay
   // Each flag event fires at a specific lap-time window, then clears
@@ -608,47 +608,47 @@ function generateSnapshot(nowMs) {
   p['currentFlagState'] = activeFlag;
 
   // Grid (racing state = 4)
-  p['K10Motorsports.Plugin.Grid.SessionState'] = 4;
-  p['K10Motorsports.Plugin.Grid.GriddedCars'] = DRIVERS.length;
-  p['K10Motorsports.Plugin.Grid.TotalCars'] = DRIVERS.length;
-  p['K10Motorsports.Plugin.Grid.PaceMode'] = 0;
-  p['K10Motorsports.Plugin.Grid.StartType'] = 'Competitive Start';
-  p['K10Motorsports.Plugin.Grid.LightsPhase'] = 0;
-  p['K10Motorsports.Plugin.Grid.TrackCountry'] = 'US';
+  p['RaceCorProDrive.Plugin.Grid.SessionState'] = 4;
+  p['RaceCorProDrive.Plugin.Grid.GriddedCars'] = DRIVERS.length;
+  p['RaceCorProDrive.Plugin.Grid.TotalCars'] = DRIVERS.length;
+  p['RaceCorProDrive.Plugin.Grid.PaceMode'] = 0;
+  p['RaceCorProDrive.Plugin.Grid.StartType'] = 'Competitive Start';
+  p['RaceCorProDrive.Plugin.Grid.LightsPhase'] = 0;
+  p['RaceCorProDrive.Plugin.Grid.TrackCountry'] = 'US';
 
   // PitBox defaults
-  p['K10Motorsports.Plugin.PitBox.PitSvFlags'] = 0;
-  p['K10Motorsports.Plugin.PitBox.PitSvFuel'] = 50;
-  p['K10Motorsports.Plugin.PitBox.PitSvLFP'] = 172;
-  p['K10Motorsports.Plugin.PitBox.PitSvRFP'] = 172;
-  p['K10Motorsports.Plugin.PitBox.PitSvLRP'] = 165;
-  p['K10Motorsports.Plugin.PitBox.PitSvRRP'] = 165;
-  p['K10Motorsports.Plugin.PitBox.TireCompound'] = 0;
-  p['K10Motorsports.Plugin.PitBox.FastRepair'] = 0;
-  p['K10Motorsports.Plugin.PitBox.Windshield'] = 0;
-  p['K10Motorsports.Plugin.PitBox.TireLF'] = 1;
-  p['K10Motorsports.Plugin.PitBox.TireRF'] = 1;
-  p['K10Motorsports.Plugin.PitBox.TireLR'] = 1;
-  p['K10Motorsports.Plugin.PitBox.TireRR'] = 1;
-  p['K10Motorsports.Plugin.PitBox.TiresRequested'] = 1;
-  p['K10Motorsports.Plugin.PitBox.FuelRequested'] = 50;
-  p['K10Motorsports.Plugin.PitBox.FastRepairRequested'] = 0;
-  p['K10Motorsports.Plugin.PitBox.WindshieldRequested'] = 0;
-  p['K10Motorsports.Plugin.PitBox.FuelDisplay'] = '50.0 L';
-  p['K10Motorsports.Plugin.PitBox.PressureLF'] = 172;
-  p['K10Motorsports.Plugin.PitBox.PressureRF'] = 172;
-  p['K10Motorsports.Plugin.PitBox.PressureLR'] = 165;
-  p['K10Motorsports.Plugin.PitBox.PressureRR'] = 165;
-  p['K10Motorsports.Plugin.PitBox.HasTC'] = 1;
-  p['K10Motorsports.Plugin.PitBox.HasABS'] = 1;
-  p['K10Motorsports.Plugin.PitBox.HasARBFront'] = 1;
-  p['K10Motorsports.Plugin.PitBox.HasARBRear'] = 1;
-  p['K10Motorsports.Plugin.PitBox.HasEnginePower'] = 0;
-  p['K10Motorsports.Plugin.PitBox.HasFuelMixture'] = 0;
-  p['K10Motorsports.Plugin.PitBox.HasWeightJackerL'] = 0;
-  p['K10Motorsports.Plugin.PitBox.HasWeightJackerR'] = 0;
-  p['K10Motorsports.Plugin.PitBox.HasWingFront'] = 0;
-  p['K10Motorsports.Plugin.PitBox.HasWingRear'] = 0;
+  p['RaceCorProDrive.Plugin.PitBox.PitSvFlags'] = 0;
+  p['RaceCorProDrive.Plugin.PitBox.PitSvFuel'] = 50;
+  p['RaceCorProDrive.Plugin.PitBox.PitSvLFP'] = 172;
+  p['RaceCorProDrive.Plugin.PitBox.PitSvRFP'] = 172;
+  p['RaceCorProDrive.Plugin.PitBox.PitSvLRP'] = 165;
+  p['RaceCorProDrive.Plugin.PitBox.PitSvRRP'] = 165;
+  p['RaceCorProDrive.Plugin.PitBox.TireCompound'] = 0;
+  p['RaceCorProDrive.Plugin.PitBox.FastRepair'] = 0;
+  p['RaceCorProDrive.Plugin.PitBox.Windshield'] = 0;
+  p['RaceCorProDrive.Plugin.PitBox.TireLF'] = 1;
+  p['RaceCorProDrive.Plugin.PitBox.TireRF'] = 1;
+  p['RaceCorProDrive.Plugin.PitBox.TireLR'] = 1;
+  p['RaceCorProDrive.Plugin.PitBox.TireRR'] = 1;
+  p['RaceCorProDrive.Plugin.PitBox.TiresRequested'] = 1;
+  p['RaceCorProDrive.Plugin.PitBox.FuelRequested'] = 50;
+  p['RaceCorProDrive.Plugin.PitBox.FastRepairRequested'] = 0;
+  p['RaceCorProDrive.Plugin.PitBox.WindshieldRequested'] = 0;
+  p['RaceCorProDrive.Plugin.PitBox.FuelDisplay'] = '50.0 L';
+  p['RaceCorProDrive.Plugin.PitBox.PressureLF'] = 172;
+  p['RaceCorProDrive.Plugin.PitBox.PressureRF'] = 172;
+  p['RaceCorProDrive.Plugin.PitBox.PressureLR'] = 165;
+  p['RaceCorProDrive.Plugin.PitBox.PressureRR'] = 165;
+  p['RaceCorProDrive.Plugin.PitBox.HasTC'] = 1;
+  p['RaceCorProDrive.Plugin.PitBox.HasABS'] = 1;
+  p['RaceCorProDrive.Plugin.PitBox.HasARBFront'] = 1;
+  p['RaceCorProDrive.Plugin.PitBox.HasARBRear'] = 1;
+  p['RaceCorProDrive.Plugin.PitBox.HasEnginePower'] = 0;
+  p['RaceCorProDrive.Plugin.PitBox.HasFuelMixture'] = 0;
+  p['RaceCorProDrive.Plugin.PitBox.HasWeightJackerL'] = 0;
+  p['RaceCorProDrive.Plugin.PitBox.HasWeightJackerR'] = 0;
+  p['RaceCorProDrive.Plugin.PitBox.HasWingFront'] = 0;
+  p['RaceCorProDrive.Plugin.PitBox.HasWingRear'] = 0;
 
   // Additional car adjustments
   p['DataCorePlugin.GameRawData.Telemetry.dcEnginePower'] = 0;
@@ -717,7 +717,7 @@ function generateSnapshot(nowMs) {
   // Demo Grid mirror
   const gridKeys = ['SessionState','GriddedCars','TotalCars','PaceMode','LightsPhase','StartType','TrackCountry'];
   for (const k of gridKeys) {
-    p['K10Motorsports.Plugin.Demo.Grid.' + k] = p['K10Motorsports.Plugin.Grid.' + k];
+    p['RaceCorProDrive.Plugin.Demo.Grid.' + k] = p['RaceCorProDrive.Plugin.Grid.' + k];
   }
 
   return p;

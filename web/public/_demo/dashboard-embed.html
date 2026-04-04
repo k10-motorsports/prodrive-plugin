@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>K10 Motorsports — Dashboard Demo</title>
+<title>RaceCorProDrive — Dashboard Demo</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500&family=Barlow+Semi+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
 <style>
 /* ── modules/styles/base.css ── */
@@ -6240,7 +6240,7 @@ html, body {
 
 <script>
 // ── modules/js/config.js ──
-// K10 Motorsports Dashboard — Shared Configuration & State
+// RaceCorProDrive Dashboard — Shared Configuration & State
 // This module defines all global constants and state variables used across other modules.
 // All variables are implicitly global (shared scope) since modules load via <script src> tags.
 
@@ -7041,7 +7041,7 @@ function _fmtLapTime(secs) {
     const el = document.getElementById('connStatus');
     if (!el) return;
     el.className = 'conn-status ' + state;
-    const titles = { connected: 'Connected to plugin server', disconnected: 'Cannot reach plugin server — is the K10 Motorsports plugin loaded in SimHub?', connecting: 'Connecting to plugin server...' };
+    const titles = { connected: 'Connected to plugin server', disconnected: 'Cannot reach plugin server — is the RaceCorProDrive plugin loaded in SimHub?', connecting: 'Connecting to plugin server...' };
     el.title = titles[state] || '';
 
     // Settings-embedded warning banner
@@ -7115,7 +7115,7 @@ function _fmtLapTime(secs) {
     const banner = document.getElementById('connBanner');
     if (banner) banner.classList.remove('visible');
     if (window.k10?.releaseInteractive) window.k10.releaseInteractive();
-    console.log('[K10 Motorsports] SimHub URL changed to ' + newUrl);
+    console.log('[RaceCorProDrive] SimHub URL changed to ' + newUrl);
   }
 
   function dismissConnBanner() {
@@ -7160,7 +7160,7 @@ function _fmtLapTime(secs) {
     _connFails++;
     _backoffUntil = Date.now() + Math.min(1000 * Math.pow(2, _connFails - 1), 10000);
     _updateConnStatus('disconnected');
-    if (_connFails <= 3) console.warn(`[K10 Motorsports] Plugin server unreachable at ${window._simhubUrlOverride || SIMHUB_URL} — fail #${_connFails}`);
+    if (_connFails <= 3) console.warn(`[RaceCorProDrive] Plugin server unreachable at ${window._simhubUrlOverride || SIMHUB_URL} — fail #${_connFails}`);
     return null;
   }
 
@@ -9462,7 +9462,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.k10 && window.k10.getVersion) {
       window.k10.getVersion().then(function(ver) {
         var el = document.getElementById('settingsVersionLabel');
-        if (el && ver) el.textContent = 'K10 Motorsports v' + ver + ' \u2014 Media Overlay';
+        if (el && ver) el.textContent = 'RaceCorProDrive v' + ver + ' \u2014 Media Overlay';
       });
     }
   });
@@ -10358,7 +10358,7 @@ document.addEventListener('DOMContentLoaded', function () {
       label.style.opacity = '1';
     } else if (!_k10User && !text) {
       // Teaser: show placeholder for logged-out users
-      label.textContent = 'K10 Motorsports';
+      label.textContent = 'RaceCorProDrive';
       label.style.display = 'block';
       label.style.opacity = '0.3';
     } else if (text && !_k10User) {
@@ -17135,7 +17135,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // ── modules/js/game-logo.js ──
 // ═══════════════════════════════════════════════════════════════
-// K10 Motorsports — Game Logo Overlay
+// RaceCorProDrive — Game Logo Overlay
 // Shows the current game's logo (iRacing, LMU, etc.) in the
 // corner opposite the main dashboard layout position.
 // ═══════════════════════════════════════════════════════════════
@@ -18237,7 +18237,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Works as standalone browser overlay or OBS Browser Source.
   // The JavascriptExtensions file is unused in this mode.
   //
-  // Config: K10 Motorsports plugin HTTP server (port 8889)
+  // Config: RaceCorProDrive plugin HTTP server (port 8889)
   // The plugin serves all telemetry, demo, commentary and track map data
   // as a flat JSON map from its own HTTP server — no SimHub web API needed.
   // ═══════════════════════════════════════════════════════════════
@@ -19382,7 +19382,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // telemetry, demo, commentary, and track map data as a single JSON blob.
   // Load external assets before starting the poll loop
   Promise.all([loadCarLogos(), loadCountryFlags()]).then(() => {
-    console.log('[K10 Motorsports] Assets loaded, polling SimHub HTTP API at ' + SIMHUB_URL);
+    console.log('[RaceCorProDrive] Assets loaded, polling SimHub HTTP API at ' + SIMHUB_URL);
 
     // Initialize logo cycling (before we connect, the logos will cycle to be visible)
     _logoCycleTimer = setInterval(() => {

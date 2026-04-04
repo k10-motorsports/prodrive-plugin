@@ -183,7 +183,7 @@ echo    %PLUGIN_DIR%\DashTemplates\k10 motorsports\
 echo    %PLUGIN_DIR%\DashTemplates\k10 motorsports\
 echo.
 echo  NOTE: Dataset files are NOT exported from SimHub.
-echo  The k10-motorsports-data/ folder in the repo is the source of
+echo  The racecorprodrive-data/ folder in the repo is the source of
 echo  truth. Edit dataset files in the repo, then use
 echo  install.bat or rebuild.bat to push them to SimHub.
 echo.

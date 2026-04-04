@@ -101,7 +101,7 @@ def wait_for_step(expected_title, timeout=10):
     """Poll until the dashboard shows the expected topic title."""
     start = time.time()
     while time.time() - start < timeout:
-        title = requests.get(f"{SIMHUB_URL}/K10Motorsports.Plugin.CommentaryTitle").text.strip('"')
+        title = requests.get(f"{SIMHUB_URL}/RaceCorProDrive.Plugin.CommentaryTitle").text.strip('"')
         if title == expected_title:
             time.sleep(0.3)  # let the dashboard render
             return True

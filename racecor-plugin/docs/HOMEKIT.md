@@ -36,7 +36,7 @@ Open SimHub, go to **Settings**, and enable **Web Dashboard Server**. The defaul
 Verify the API is working by visiting this URL in a browser:
 
 ```
-http://localhost:8888/api/pluginproperty/K10Motorsports.Plugin.CommentaryVisible
+http://localhost:8888/api/pluginproperty/RaceCorProDrive.Plugin.CommentaryVisible
 ```
 
 You should see a `0` or `1` response. If you get an error, confirm the K10 Motorsports plugin is loaded and SimHub's web server is active.
@@ -47,7 +47,7 @@ Open the Homebridge UI and find **K10 Motorsports Lights** in the plugin list. A
 
 ```json
 {
-  "platform": "K10MotorsportsLights",
+  "platform": "RaceCorProDriveLights",
   "name": "K10 Motorsports Lights",
   "simhubUrl": "http://localhost:8888",
   "pollIntervalMs": 500,
@@ -285,7 +285,7 @@ You can control multiple lights independently. Each light in the `lights` array 
 
 ```json
 {
-  "platform": "K10MotorsportsLights",
+  "platform": "RaceCorProDriveLights",
   "name": "K10 Motorsports Lights",
   "simhubUrl": "http://192.168.1.50:8888",
   "mode": "all_colors",
@@ -349,9 +349,9 @@ This would set a very dim blue ambient instead.
 ## Troubleshooting
 
 **Lights don't respond at all**
-- Confirm SimHub's web server is enabled and reachable from the Homebridge host. Try `curl http://<simhub-ip>:8888/api/pluginproperty/K10Motorsports.Plugin.CommentaryVisible` from the Homebridge machine.
+- Confirm SimHub's web server is enabled and reachable from the Homebridge host. Try `curl http://<simhub-ip>:8888/api/pluginproperty/RaceCorProDrive.Plugin.CommentaryVisible` from the Homebridge machine.
 - Check Homebridge logs for connection errors from the K10 Motorsports Lights plugin.
-- Ensure the K10 Motorsports plugin is active in SimHub (look for "K10Motorsports.Plugin" in SimHub's plugin list).
+- Ensure the K10 Motorsports plugin is active in SimHub (look for "RaceCorProDrive.Plugin" in SimHub's plugin list).
 
 **Lights respond but colors are wrong**
 - Verify the light mode is set to `all_colors` for full color support.

@@ -13,7 +13,7 @@
 ;                                  and    racecor-overlay/dist/win-arm64-unpacked/
 ;
 ; Compile with:
-;   iscc installer/k10-motorsports.iss
+;   iscc installer/racecorprodrive.iss
 ;
 ; Paths are relative to this .iss file's directory (installer/).
 
@@ -77,7 +77,7 @@ Source: "..\racecor-plugin\simhub-plugin\RaceCor-ioProDrive.dll"; DestDir: "{cod
 Source: "..\racecor-plugin\simhub-plugin\RaceCor-ioProDrive.pdb"; DestDir: "{code:GetSimHubDir}"; Flags: ignoreversion skipifsourcedoesntexist; Components: plugin
 
 ; ── Dataset files ──
-Source: "..\racecor-plugin\simhub-plugin\k10-motorsports-data\*"; DestDir: "{code:GetSimHubDir}\k10-motorsports-data"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: plugin
+Source: "..\racecor-plugin\simhub-plugin\racecorprodrive-data\*"; DestDir: "{code:GetSimHubDir}\racecorprodrive-data"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: plugin
 
 ; ── Stream Deck profile ──
 Source: "..\racecor-overlay\streamdeck\*"; DestDir: "{app}\streamdeck"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: overlay
@@ -90,10 +90,18 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent; Components: overlay
 
+[InstallDelete]
+; ── Remove legacy plugin (renamed from K10Motorsports → RaceCor-ioProDrive) ──
+; The old assembly must be deleted AND its config entry cleaned up (see
+; CleanLegacyPluginConfig in [Code]), otherwise SimHub crashes on startup
+; trying to resolve the missing RaceCorProDrive.Plugin.Plugin type.
+Type: files; Name: "{code:GetSimHubDir}\K10Motorsports.dll"
+Type: files; Name: "{code:GetSimHubDir}\K10Motorsports.pdb"
+
 [UninstallDelete]
 Type: filesandordirs; Name: "{code:GetSimHubDir}\RaceCor-ioProDrive.dll"
 Type: filesandordirs; Name: "{code:GetSimHubDir}\RaceCor-ioProDrive.pdb"
-Type: filesandordirs; Name: "{code:GetSimHubDir}\k10-motorsports-data"
+Type: filesandordirs; Name: "{code:GetSimHubDir}\racecorprodrive-data"
 
 [Code]
 var
@@ -199,6 +207,68 @@ begin
   Result := (ExecResult = 0);
 end;
 
+// ── Legacy plugin config cleanup ────────────────────────────────
+// SimHub serialises enabled-plugin references by assembly-qualified
+// type name.  When the old K10Motorsports.dll is deleted, SimHub
+// still tries to resolve the type at startup and crashes before it
+// reaches the enable/disable gate.  This procedure strips the stale
+// entry from PluginsConfiguration.json so SimHub starts cleanly.
+// Note: We're cleaning up K10Motorsports → RaceCorProDrive migration.
+procedure CleanLegacyPluginConfig();
+var
+  ConfigPath, Content, UpperContent: String;
+  StartPos, EndPos, BraceDepth, I: Integer;
+begin
+  ConfigPath := SimHubDir + '\PluginsConfiguration.json';
+  if not FileExists(ConfigPath) then
+    Exit;
+
+  if not LoadStringFromFile(ConfigPath, Content) then
+    Exit;
+
+  UpperContent := Uppercase(Content);
+  StartPos := Pos('"K10MOTORSPORTS', UpperContent);
+  if StartPos = 0 then
+    Exit;
+
+  { Walk backwards to find the opening brace of this plugin entry }
+  I := StartPos;
+  while (I > 1) and (Content[I] <> '{') do
+    I := I - 1;
+  if I < 1 then
+    Exit;
+  StartPos := I;
+
+  { Walk forward to find the matching closing brace }
+  BraceDepth := 0;
+  EndPos := StartPos;
+  for I := StartPos to Length(Content) do
+  begin
+    if Content[I] = '{' then
+      BraceDepth := BraceDepth + 1
+    else if Content[I] = '}' then
+    begin
+      BraceDepth := BraceDepth - 1;
+      if BraceDepth = 0 then
+      begin
+        EndPos := I;
+        Break;
+      end;
+    end;
+  end;
+
+  { Remove trailing comma if present }
+  if (EndPos < Length(Content)) and (Content[EndPos + 1] = ',') then
+    EndPos := EndPos + 1
+  { Or leading comma }
+  else if (StartPos > 1) and (Content[StartPos - 1] = ',') then
+    StartPos := StartPos - 1;
+
+  Delete(Content, StartPos, EndPos - StartPos + 1);
+  SaveStringToFile(ConfigPath, Content, False);
+  Log('Cleaned legacy K10Motorsports/RaceCorProDrive entry from PluginsConfiguration.json');
+end;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   KillResult: Integer;
@@ -219,5 +289,9 @@ begin
       else
         Result := 'SimHub must be closed before installing the plugin.';
     end;
+
+    { Clean legacy plugin reference so SimHub doesn't crash on next launch }
+    if Result = '' then
+      CleanLegacyPluginConfig();
   end;
 end;

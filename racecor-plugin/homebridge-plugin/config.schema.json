@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "K10MotorsportsLights",
+  "pluginAlias": "RaceCorProDriveLights",
   "pluginType": "platform",
   "singular": true,
   "schema": {
@@ -9,7 +9,7 @@
         "title": "Platform Name",
         "type": "string",
         "required": true,
-        "default": "K10 Motorsports Lights"
+        "default": "RaceCor ProDrive Lights"
       },
       "simhubUrl": {
         "title": "SimHub HTTP API URL",
@@ -82,8 +82,8 @@
         "required": false,
         "default": [
           {
-            "name": "K10 Motorsports",
-            "uniqueId": "k10-motorsports-light-1"
+            "name": "RaceCor ProDrive",
+            "uniqueId": "racecorprodrive-light-1"
           }
         ],
         "items": {

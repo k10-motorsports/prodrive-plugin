@@ -50,7 +50,7 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Build plugin (Release)
-        run: dotnet build racecor-plugin/simhub-plugin/plugin/K10Motorsports.Plugin/K10Motorsports.Plugin.csproj -c Release
+        run: dotnet build racecor-plugin/simhub-plugin/plugin/RaceCorProDrive.Plugin/RaceCorProDrive.Plugin.csproj -c Release
 
       - name: Verify DLL was produced
         run: |
@@ -77,13 +77,13 @@ jobs:
           dotnet-version: "6.0.x"
 
       - name: Restore NuGet packages
-        run: dotnet restore racecor-plugin/simhub-plugin/tests/K10Motorsports.Tests/K10Motorsports.Tests.csproj
+        run: dotnet restore racecor-plugin/simhub-plugin/tests/RaceCorProDrive.Tests/RaceCorProDrive.Tests.csproj
 
       - name: Build test project
-        run: dotnet build racecor-plugin/simhub-plugin/tests/K10Motorsports.Tests/K10Motorsports.Tests.csproj --no-restore
+        run: dotnet build racecor-plugin/simhub-plugin/tests/RaceCorProDrive.Tests/RaceCorProDrive.Tests.csproj --no-restore
 
       - name: Run tests (200+ tests)
-        run: dotnet test racecor-plugin/simhub-plugin/tests/K10Motorsports.Tests/K10Motorsports.Tests.csproj --no-build --verbosity normal
+        run: dotnet test racecor-plugin/simhub-plugin/tests/RaceCorProDrive.Tests/RaceCorProDrive.Tests.csproj --no-build --verbosity normal
 
   # Windows Installer (live) job removed.
   # install.bat / export.bat are developer convenience scripts, not the

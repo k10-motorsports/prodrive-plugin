@@ -1,0 +1,134 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>RaceCor-ioProDrive</AssemblyName>
+    <RootNamespace>RaceCorProDrive.Plugin</RootNamespace>
+    <Nullable>disable</Nullable>
+    <LangVersion>8.0</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+
+    <!--
+      SimHubPath resolution order:
+        1. SIMHUB_PATH environment variable (if set)
+        2. Default SimHub install folder (if it exists — local dev)
+        3. lib/simhub-refs/ in the repo (CI builds)
+    -->
+    <SimHubPath Condition="'$(SIMHUB_PATH)'!=''">$(SIMHUB_PATH)</SimHubPath>
+    <SimHubPath Condition="'$(SimHubPath)'=='' And Exists('C:\Program Files (x86)\SimHub\SimHubWPF.exe')">C:\Program Files (x86)\SimHub\</SimHubPath>
+    <SimHubRefsPath>$(MSBuildProjectDirectory)\..\..\lib\simhub-refs\</SimHubRefsPath>
+    <SimHubPath Condition="'$(SimHubPath)'==''">$(SimHubRefsPath)</SimHubPath>
+
+    <!-- CI mode: when SimHub isn't installed, build to a local staging folder -->
+    <_IsLocalDev>false</_IsLocalDev>
+    <_IsLocalDev Condition="Exists('C:\Program Files (x86)\SimHub\SimHubWPF.exe') Or '$(SIMHUB_PATH)'!=''">true</_IsLocalDev>
+    <OutputPath Condition="$(_IsLocalDev)">$(SimHubPath)</OutputPath>
+    <OutputPath Condition="!$(_IsLocalDev)">$(MSBuildProjectDirectory)\..\..\build\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <!-- true: copies IRSDKSharper + YamlDotNet DLLs into output folder -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <!-- Plugin sidebar icon — embedded in the assembly -->
+  <ItemGroup>
+    <Resource Include="icon.png" />
+    <Resource Include="logo-racecor.png" />
+  </ItemGroup>
+
+  <!-- NuGet packages -->
+  <ItemGroup>
+    <PackageReference Include="IRSDKSharper" Version="1.1.4" />
+    <!-- log4net + Newtonsoft.Json via NuGet so CI doesn't need SimHub installed -->
+    <PackageReference Include="log4net" Version="2.0.15" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <!-- WinForms — needed for FolderBrowserDialog in settings panel -->
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
+  <!--
+    SimHub plugin SDK DLLs — must NOT be copied to output (Private=False).
+    HintPath tries SimHubPath first (local dev or CI via lib/simhub-refs/).
+  -->
+  <ItemGroup>
+    <Reference Include="GameReaderCommon">
+      <HintPath>$(SimHubPath)GameReaderCommon.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SimHub.Plugins">
+      <HintPath>$(SimHubPath)SimHub.Plugins.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SimHub.Logging">
+      <HintPath>$(SimHubPath)SimHub.Logging.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!--
+    Post-build (local dev only): copy the racecorprodrive-data folder
+    alongside the DLL so the plugin can find commentary_topics.json.
+  -->
+  <Target Name="CopyDataset" AfterTargets="Build" Condition="$(_IsLocalDev)">
+    <ItemGroup>
+      <DatasetFiles Include="..\..\racecorprodrive-data\**\*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(DatasetFiles)"
+          DestinationFolder="$(SimHubPath)racecorprodrive-data\%(RecursiveDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <!--
+    Post-build: export built artifacts back into the repo.
+    Local dev reads from SimHub folder; CI reads from build/ folder.
+    RepoPluginDir = racecor-plugin/ (two levels up from this .csproj).
+  -->
+  <PropertyGroup>
+    <RepoPluginDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\..'))\</RepoPluginDir>
+  </PropertyGroup>
+  <Target Name="ExportToRepo" AfterTargets="Build">
+    <!-- DLL -->
+    <Copy SourceFiles="$(OutputPath)RaceCor-ioProDrive.dll"
+          DestinationFolder="$(RepoPluginDir)"
+          SkipUnchangedFiles="true" />
+    <!-- PDB (Debug builds only) -->
+    <Copy SourceFiles="$(OutputPath)RaceCor-ioProDrive.pdb"
+          DestinationFolder="$(RepoPluginDir)"
+          Condition="Exists('$(OutputPath)RaceCor-ioProDrive.pdb')"
+          SkipUnchangedFiles="true" />
+    <!-- Sync recorded track maps back to repo (local dev only) -->
+    <ItemGroup Condition="$(_IsLocalDev)">
+      <RecordedMaps Include="$(SimHubPath)racecorprodrive-data\trackmaps\*.csv" />
+    </ItemGroup>
+    <Copy SourceFiles="@(RecordedMaps)"
+          DestinationFolder="$(RepoPluginDir)racecorprodrive-data\trackmaps\"
+          SkipUnchangedFiles="true"
+          Condition="$(_IsLocalDev)" />
+    <!-- Sync telemetry recordings back to repo (local dev only) -->
+    <ItemGroup Condition="$(_IsLocalDev)">
+      <RecordedTelemetry Include="$(SimHubPath)racecorprodrive-data\recordings\*.jsonl" />
+    </ItemGroup>
+    <Copy SourceFiles="@(RecordedTelemetry)"
+          DestinationFolder="$(RepoPluginDir)racecorprodrive-data\recordings\"
+          SkipUnchangedFiles="true"
+          Condition="$(_IsLocalDev)" />
+    <Message Importance="high"
+             Text="Exported DLL+PDB to $(RepoPluginDir)" />
+  </Target>
+
+  <!-- Debug: launch SimHub when pressing F5 -->
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+    <StartAction>Program</StartAction>
+    <StartProgram>$(SimHubPath)SimHubWPF.exe</StartProgram>
+  </PropertyGroup>
+
+</Project>
