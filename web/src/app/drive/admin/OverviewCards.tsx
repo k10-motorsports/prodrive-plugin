@@ -53,10 +53,10 @@ function OverviewCard({
   return (
     <Link
       href={href}
-      className="border border-[var(--border)] rounded-lg p-5 bg-[var(--bg-surface)] hover:border-[var(--border-accent)] hover:bg-[var(--bg-panel)] transition-all group flex flex-col"
+      className="border border-[var(--border)] rounded-lg bg-[var(--bg-surface)] hover:border-[var(--border-accent)] hover:bg-[var(--bg-panel)] transition-all group flex flex-col overflow-hidden"
     >
-      {hero && <div className="mb-3">{hero}</div>}
-      <div className="flex items-baseline justify-between mb-1">
+      {hero}
+      <div className="flex items-baseline justify-between mb-1 px-5 pt-4">
         <h2 className="text-lg font-bold tracking-wide uppercase text-[var(--k10-red)] group-hover:brightness-110 transition-colors">
           {title}
         </h2>
@@ -64,8 +64,8 @@ function OverviewCard({
           <span className="text-2xl font-bold text-[var(--text-dim)] tabular-nums">{count}</span>
         )}
       </div>
-      <p className="text-xs text-[var(--text-muted)] mb-3">{description}</p>
-      {children && <div className="mt-auto">{children}</div>}
+      <p className="text-xs text-[var(--text-muted)] mb-3 px-5">{description}</p>
+      {children && <div className="mt-auto px-5 pb-5">{children}</div>}
     </Link>
   )
 }
@@ -209,49 +209,47 @@ function pickHero<T>(items: T[], shownCount: number): T | null {
 
 function TrackHero({ track }: { track: TrackPreview }) {
   return (
-    <div className="flex items-center gap-4">
-      <div className="w-20 h-20 shrink-0 rounded-lg bg-[var(--bg-panel)] border border-[var(--border-subtle)] flex items-center justify-center">
-        <svg viewBox="0 0 100 100" className="w-16 h-16">
-          <path
-            d={track.svgPath}
-            fill="none"
-            stroke="var(--k10-red)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-0.5">Featured</p>
-        <p className="text-sm font-bold text-[var(--text)] truncate">{track.trackName}</p>
-        <p className="text-[10px] text-[var(--text-muted)] font-mono truncate">{track.trackId}</p>
-      </div>
+    <div className="h-36 bg-[var(--bg-panel)] flex items-center justify-center relative overflow-hidden">
+      {/* Faint radial glow behind the track */}
+      <div className="absolute inset-0 opacity-20" style={{
+        background: 'radial-gradient(ellipse at center, var(--k10-red) 0%, transparent 70%)',
+      }} />
+      <svg viewBox="0 0 100 100" className="w-28 h-28 relative z-10 opacity-80 group-hover:opacity-100 transition-opacity">
+        <path
+          d={track.svgPath}
+          fill="none"
+          stroke="var(--k10-red)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
     </div>
   )
 }
 
 function LogoHero({ logo }: { logo: LogoPreview }) {
   return (
-    <div className="flex items-center gap-4">
-      <div
-        className="w-20 h-20 shrink-0 rounded-lg border border-[var(--border-subtle)] flex items-center justify-center overflow-hidden"
-        style={{ background: logo.brandColorHex ? `${logo.brandColorHex}8C` : 'var(--bg-panel)' }}
-      >
-        {logo.logoSvg ? (
-          <div
-            className="w-14 h-14 flex items-center justify-center [&_svg]:max-h-full [&_svg]:max-w-full [&_svg]:h-12 [&_svg]:w-auto"
-            dangerouslySetInnerHTML={{ __html: logo.logoSvg }}
-          />
-        ) : (
-          <span className="text-lg text-white/40 font-bold uppercase">{logo.brandName.slice(0, 2)}</span>
-        )}
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-0.5">Featured</p>
-        <p className="text-sm font-bold text-[var(--text)] truncate">{logo.brandName}</p>
-        <p className="text-[10px] text-[var(--text-muted)] font-mono truncate">{logo.brandKey}</p>
-      </div>
+    <div
+      className="h-36 flex items-center justify-center relative overflow-hidden"
+      style={{ background: logo.brandColorHex ? `${logo.brandColorHex}40` : 'var(--bg-panel)' }}
+    >
+      {/* Soft gradient wash using brand color */}
+      {logo.brandColorHex && (
+        <div className="absolute inset-0 opacity-30" style={{
+          background: `radial-gradient(ellipse at center, ${logo.brandColorHex} 0%, transparent 70%)`,
+        }} />
+      )}
+      {logo.logoSvg ? (
+        <div
+          className="w-24 h-24 relative z-10 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity [&_svg]:max-h-full [&_svg]:max-w-full [&_svg]:h-20 [&_svg]:w-auto"
+          dangerouslySetInnerHTML={{ __html: logo.logoSvg }}
+        />
+      ) : (
+        <span className="text-4xl text-white/20 font-bold uppercase relative z-10">
+          {logo.brandName}
+        </span>
+      )}
     </div>
   )
 }
