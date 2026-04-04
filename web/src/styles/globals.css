@@ -57,14 +57,21 @@
 
 html {
   color-scheme: dark;
+  font-size: 16px;
 }
 
 body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--ff);
+  font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure minimum font size across all text elements */
+* {
+  font-size: max(16px, 100%);
 }
 
 /* Scrollbar */

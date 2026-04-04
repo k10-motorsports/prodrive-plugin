@@ -4,6 +4,7 @@ import { eq, desc } from 'drizzle-orm'
 import { requireAdmin } from '@/lib/admin'
 import { csvToSvg, generateSvgPreview } from '@/lib/track-svg'
 
+import { logConnection } from '@/lib/connection-logger'
 /** GET /api/admin/tracks — List all track maps */
 export async function GET() {
   const session = await requireAdmin()
