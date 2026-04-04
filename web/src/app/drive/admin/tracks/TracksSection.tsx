@@ -164,7 +164,7 @@ function TrackCard({ track, onDelete, deleting, onUpdate }: {
     <div className="border border-[var(--border)] rounded-lg p-4 bg-[var(--bg-surface)] hover:border-[var(--border-accent)] transition-colors">
       <div className="flex justify-between items-start mb-2">
         <div className="min-w-0">
-          <h3 className="text-sm font-bold text-[var(--text)] truncate">{track.trackName}</h3>
+          <h3 className="text-2xl font-bold text-[var(--text)] truncate">{track.trackName}</h3>
           <div className="flex items-center gap-2">
             <p className="text-xs text-[var(--text-muted)] truncate">{track.trackId}</p>
             {track.gameName && <GameBadge game={track.gameName} />}
