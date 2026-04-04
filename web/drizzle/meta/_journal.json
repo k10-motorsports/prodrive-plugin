@@ -8,6 +8,13 @@
       "when": 1774816594594,
       "tag": "0000_worthless_jack_murdock",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1775340977747,
+      "tag": "0001_safe_guardian",
+      "breakpoints": true
     }
   ]
 }
