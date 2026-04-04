@@ -206,15 +206,57 @@ interface HeroData {
   imageUrl: string
 }
 
-function PhotoHero({ hero }: { hero: HeroData }) {
+function TrackPhotoHero({ hero, svgPath }: { hero: HeroData; svgPath?: string }) {
   return (
-    <div className="h-40 relative overflow-hidden bg-[var(--bg-panel)]">
+    <div className="h-80 relative overflow-hidden bg-[var(--bg-panel)]">
       <img
         src={hero.imageUrl}
         alt={hero.name}
-        className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity"
+        className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-50 transition-opacity"
       />
-      {/* Bottom gradient fade into card */}
+      {/* Track SVG overlay */}
+      {svgPath && (
+        <svg viewBox="0 0 100 100" className="absolute inset-0 m-auto w-28 h-28 z-10 drop-shadow-lg opacity-90">
+          <path
+            d={svgPath}
+            fill="none"
+            stroke="var(--k10-red)"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+      <div className="absolute inset-x-0 bottom-0 h-16" style={{
+        background: 'linear-gradient(to top, var(--bg-surface), transparent)',
+      }} />
+    </div>
+  )
+}
+
+function BrandPhotoHero({ hero, logoSvg, brandColor }: { hero: HeroData; logoSvg?: string | null; brandColor?: string | null }) {
+  return (
+    <div className="h-80 relative overflow-hidden bg-[var(--bg-panel)]">
+      <img
+        src={hero.imageUrl}
+        alt={hero.name}
+        className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-50 transition-opacity"
+      />
+      {/* Brand color tint */}
+      {brandColor && (
+        <div className="absolute inset-0 opacity-20" style={{ background: brandColor }} />
+      )}
+      {/* Logo SVG overlay */}
+      {logoSvg ? (
+        <div
+          className="absolute inset-0 m-auto w-24 h-24 z-10 flex items-center justify-center drop-shadow-lg opacity-90 [&_svg]:max-h-full [&_svg]:max-w-full [&_svg]:h-20 [&_svg]:w-auto"
+          dangerouslySetInnerHTML={{ __html: logoSvg }}
+        />
+      ) : (
+        <span className="absolute inset-0 m-auto w-fit h-fit z-10 text-3xl font-bold text-white/60 uppercase drop-shadow-lg">
+          {hero.name}
+        </span>
+      )}
       <div className="absolute inset-x-0 bottom-0 h-16" style={{
         background: 'linear-gradient(to top, var(--bg-surface), transparent)',
       }} />
@@ -280,7 +322,7 @@ export default function OverviewCards() {
         title="Track Maps"
         count={trackCount}
         description="Manage track map SVGs, upload new track data from CSV files"
-        hero={trackHero ? <PhotoHero hero={trackHero} /> : undefined}
+        hero={trackHero ? <TrackPhotoHero hero={trackHero} svgPath={tracks.find(t => t.trackId.includes(trackHero.key) || trackHero.key.includes(t.trackId))?.svgPath} /> : undefined}
       >
         <TrackMultiples tracks={tracks} />
       </OverviewCard>
@@ -290,7 +332,10 @@ export default function OverviewCards() {
         title="Car Brands"
         count={logoCount}
         description={missingCount > 0 ? `${missingCount} brands still need logos` : 'Manage car brand logos, colors, and artwork'}
-        hero={brandHero ? <PhotoHero hero={brandHero} /> : undefined}
+        hero={brandHero ? (() => {
+          const match = logos.find(l => l.brandKey === brandHero.key || l.brandName.toLowerCase() === brandHero.name.toLowerCase())
+          return <BrandPhotoHero hero={brandHero} logoSvg={match?.logoSvg} brandColor={match?.brandColorHex} />
+        })() : undefined}
       >
         <LogoMultiples logos={logos} />
       </OverviewCard>
