@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 
 // ── Types (minimal, just what we need for previews) ──
@@ -200,56 +200,24 @@ function EmptyRow({ label }: { label: string }) {
   return <p className="text-[10px] text-[var(--text-muted)] italic">{label}</p>
 }
 
-// Pick a random item from the portion NOT shown in the bottom row
-function pickHero<T>(items: T[], shownCount: number): T | null {
-  if (items.length <= shownCount) return null
-  const pool = items.slice(shownCount)
-  return pool[Math.floor(Math.random() * pool.length)]
+interface HeroData {
+  key: string
+  name: string
+  imageUrl: string
 }
 
-function TrackHero({ track }: { track: TrackPreview }) {
+function PhotoHero({ hero }: { hero: HeroData }) {
   return (
-    <div className="h-36 bg-[var(--bg-panel)] flex items-center justify-center relative overflow-hidden">
-      {/* Faint radial glow behind the track */}
-      <div className="absolute inset-0 opacity-20" style={{
-        background: 'radial-gradient(ellipse at center, var(--k10-red) 0%, transparent 70%)',
+    <div className="h-40 relative overflow-hidden bg-[var(--bg-panel)]">
+      <img
+        src={hero.imageUrl}
+        alt={hero.name}
+        className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity"
+      />
+      {/* Bottom gradient fade into card */}
+      <div className="absolute inset-x-0 bottom-0 h-16" style={{
+        background: 'linear-gradient(to top, var(--bg-surface), transparent)',
       }} />
-      <svg viewBox="0 0 100 100" className="w-28 h-28 relative z-10 opacity-80 group-hover:opacity-100 transition-opacity">
-        <path
-          d={track.svgPath}
-          fill="none"
-          stroke="var(--k10-red)"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </div>
-  )
-}
-
-function LogoHero({ logo }: { logo: LogoPreview }) {
-  return (
-    <div
-      className="h-36 flex items-center justify-center relative overflow-hidden"
-      style={{ background: logo.brandColorHex ? `${logo.brandColorHex}40` : 'var(--bg-panel)' }}
-    >
-      {/* Soft gradient wash using brand color */}
-      {logo.brandColorHex && (
-        <div className="absolute inset-0 opacity-30" style={{
-          background: `radial-gradient(ellipse at center, ${logo.brandColorHex} 0%, transparent 70%)`,
-        }} />
-      )}
-      {logo.logoSvg ? (
-        <div
-          className="w-24 h-24 relative z-10 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity [&_svg]:max-h-full [&_svg]:max-w-full [&_svg]:h-20 [&_svg]:w-auto"
-          dangerouslySetInnerHTML={{ __html: logo.logoSvg }}
-        />
-      ) : (
-        <span className="text-4xl text-white/20 font-bold uppercase relative z-10">
-          {logo.brandName}
-        </span>
-      )}
     </div>
   )
 }
@@ -264,16 +232,19 @@ export default function OverviewCards() {
   const [missingCount, setMissingCount] = useState(0)
   const [users, setUsers] = useState<UserPreview[]>([])
   const [logStats, setLogStats] = useState<LogStats | null>(null)
-
-  const TRACK_ROW_COUNT = 10
-  const LOGO_ROW_COUNT = 10
-
-  // Pick a random hero from items NOT shown in the bottom row (stable per data load)
-  const trackHero = useMemo(() => pickHero(tracks, TRACK_ROW_COUNT), [tracks])
-  const logoHero = useMemo(() => pickHero(logos, LOGO_ROW_COUNT), [logos])
+  const [trackHero, setTrackHero] = useState<HeroData | null>(null)
+  const [brandHero, setBrandHero] = useState<HeroData | null>(null)
 
   useEffect(() => {
-    // Fire all four fetches concurrently
+    // Fire all fetches concurrently
+    fetch('/api/admin/heroes')
+      .then(r => r.json())
+      .then(d => {
+        if (d.trackHero) setTrackHero(d.trackHero)
+        if (d.brandHero) setBrandHero(d.brandHero)
+      })
+      .catch(() => {})
+
     fetch('/api/admin/tracks')
       .then(r => r.json())
       .then(d => {
@@ -309,7 +280,7 @@ export default function OverviewCards() {
         title="Track Maps"
         count={trackCount}
         description="Manage track map SVGs, upload new track data from CSV files"
-        hero={trackHero ? <TrackHero track={trackHero} /> : undefined}
+        hero={trackHero ? <PhotoHero hero={trackHero} /> : undefined}
       >
         <TrackMultiples tracks={tracks} />
       </OverviewCard>
@@ -319,7 +290,7 @@ export default function OverviewCards() {
         title="Car Brands"
         count={logoCount}
         description={missingCount > 0 ? `${missingCount} brands still need logos` : 'Manage car brand logos, colors, and artwork'}
-        hero={logoHero ? <LogoHero logo={logoHero} /> : undefined}
+        hero={brandHero ? <PhotoHero hero={brandHero} /> : undefined}
       >
         <LogoMultiples logos={logos} />
       </OverviewCard>
