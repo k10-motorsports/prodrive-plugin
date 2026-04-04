@@ -1,16 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db, schema } from '@/db'
-import { eq, desc } from 'drizzle-orm'
+import { eq, asc, desc } from 'drizzle-orm'
 import { requireAdmin } from '@/lib/admin'
 import { csvToSvg, generateSvgPreview } from '@/lib/track-svg'
-
 import { logConnection } from '@/lib/connection-logger'
-/** GET /api/admin/tracks — List all track maps */
-export async function GET() {
+import masterTracks from '@/data/master-tracks.json'
+
+interface MasterTrack {
+  id: string
+  name: string
+  games: string[]
+}
+
+/** GET /api/admin/tracks — List all track maps + missing tracks */
+export async function GET(request: NextRequest) {
   const session = await requireAdmin()
   if (!session) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const tracks = await db
+  const search = request.nextUrl.searchParams.get('search') || ''
+  const game = request.nextUrl.searchParams.get('game') || ''
+  const sort = request.nextUrl.searchParams.get('sort') || 'name-asc'
+
+  // Fetch all tracks
+  let tracks = await db
     .select({
       id: schema.trackMaps.id,
       trackId: schema.trackMaps.trackId,
@@ -24,9 +36,48 @@ export async function GET() {
       updatedAt: schema.trackMaps.updatedAt,
     })
     .from(schema.trackMaps)
-    .orderBy(desc(schema.trackMaps.updatedAt))
+    .orderBy(asc(schema.trackMaps.trackName))
 
-  return NextResponse.json({ tracks })
+  // Apply search
+  if (search) {
+    const q = search.toLowerCase()
+    tracks = tracks.filter(t =>
+      t.trackName.toLowerCase().includes(q) ||
+      t.trackId.toLowerCase().includes(q) ||
+      (t.displayName && t.displayName.toLowerCase().includes(q))
+    )
+  }
+
+  // Apply game filter
+  if (game) {
+    tracks = tracks.filter(t => (t.gameName || 'iracing').toLowerCase() === game.toLowerCase())
+  }
+
+  // Apply sort
+  if (sort === 'name-desc') {
+    tracks.sort((a, b) => b.trackName.localeCompare(a.trackName))
+  } else if (sort === 'name-asc') {
+    tracks.sort((a, b) => a.trackName.localeCompare(b.trackName))
+  } else if (sort === 'recent') {
+    tracks.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+  }
+
+  // Compute missing tracks (in master JSON but not uploaded)
+  const dbTrackIds = new Set(tracks.map(t => t.trackId))
+  const allMasterTracks = masterTracks as MasterTrack[]
+  let missing = allMasterTracks
+    .filter(t => !dbTrackIds.has(t.id))
+    .map(t => ({ trackId: t.id, name: t.name, games: t.games }))
+
+  if (game) {
+    missing = missing.filter(t => t.games.includes(game.toLowerCase()))
+  }
+  if (search) {
+    const q = search.toLowerCase()
+    missing = missing.filter(t => t.name.toLowerCase().includes(q) || t.trackId.toLowerCase().includes(q))
+  }
+
+  return NextResponse.json({ tracks, missing, total: tracks.length })
 }
 
 /** POST /api/admin/tracks — Upload CSV to create/replace a track map */

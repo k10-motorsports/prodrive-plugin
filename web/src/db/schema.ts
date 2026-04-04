@@ -69,6 +69,19 @@ export const trackMaps = pgTable('track_maps', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
+// ── Car Logos (community-contributed manufacturer brand logos) ──
+export const carLogos = pgTable('car_logos', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  brandKey: varchar('brand_key', { length: 64 }).notNull().unique(), // 'ferrari', 'bmw', etc.
+  brandName: varchar('brand_name', { length: 128 }).notNull(),       // 'Ferrari', 'BMW'
+  logoSvg: text('logo_svg'),                                         // raw SVG markup
+  logoPng: text('logo_png'),                                         // base64-encoded PNG
+  brandColorHex: varchar('brand_color_hex', { length: 7 }),          // '#DC0000'
+  contributorId: uuid('contributor_id').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
 // ── Driver Ratings (iRacing performance data) ──
 export const driverRatings = pgTable('driver_ratings', {
   id: uuid('id').defaultRandom().primaryKey(),
