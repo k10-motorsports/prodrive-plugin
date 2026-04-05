@@ -19,7 +19,17 @@ interface DesignToken {
   sortOrder: number
 }
 
+interface ThemeOverride {
+  id: string
+  themeId: string
+  tokenPath: string
+  value: string
+  createdAt: string
+  updatedAt: string
+}
+
 type Tab = 'colors' | 'typography' | 'spacing' | 'timing'
+type Theme = 'dark' | 'light'
 
 // Helper to detect if a value is a valid hex color
 function isHexColor(value: string): boolean {
@@ -142,12 +152,14 @@ function ColorEditor({
   isExpanded,
   onToggle,
   onUpdate,
+  darkBaseValue,
 }: {
   token: DesignToken
   effectiveValue: string
   isExpanded: boolean
   onToggle: () => void
   onUpdate: (value: string) => void
+  darkBaseValue?: string
 }) {
   const isHex = isHexColor(effectiveValue)
 
@@ -156,6 +168,9 @@ function ColorEditor({
       <div className="flex items-center gap-3 cursor-pointer" onClick={onToggle}>
         <ColorSwatch value={effectiveValue} />
         <span className="text-xs text-[var(--text-muted)]">{effectiveValue}</span>
+        {darkBaseValue && darkBaseValue !== effectiveValue && (
+          <span className="text-xs text-[var(--text-dim)]">(dark base: {darkBaseValue})</span>
+        )}
       </div>
       {isExpanded && (
         <div className="mt-3 p-3 bg-[var(--bg-panel)] rounded-md border border-[var(--border)]">
@@ -187,12 +202,14 @@ function SizeEditor({
   isExpanded,
   onToggle,
   onUpdate,
+  darkBaseValue,
 }: {
   token: DesignToken
   effectiveValue: string
   isExpanded: boolean
   onToggle: () => void
   onUpdate: (value: string) => void
+  darkBaseValue?: string
 }) {
   const numValue = parseSizeValue(effectiveValue)
   const maxValue = token.kind === 'radius' ? 24 : token.kind === 'font' ? 96 : 50
@@ -208,6 +225,9 @@ function SizeEditor({
       <div className="flex items-center gap-3 cursor-pointer" onClick={onToggle}>
         {previewComponent}
         <span className="text-xs text-[var(--text-muted)]">{effectiveValue}</span>
+        {darkBaseValue && darkBaseValue !== effectiveValue && (
+          <span className="text-xs text-[var(--text-dim)]">(dark base: {darkBaseValue})</span>
+        )}
       </div>
       {isExpanded && (
         <div className="mt-3 p-3 bg-[var(--bg-panel)] rounded-md border border-[var(--border)]">
@@ -242,18 +262,23 @@ function FontEditor({
   isExpanded,
   onToggle,
   onUpdate,
+  darkBaseValue,
 }: {
   token: DesignToken
   effectiveValue: string
   isExpanded: boolean
   onToggle: () => void
   onUpdate: (value: string) => void
+  darkBaseValue?: string
 }) {
   return (
     <>
       <div className="flex items-center gap-3 cursor-pointer" onClick={onToggle}>
         <FontPreview value={effectiveValue} />
         <span className="text-xs text-[var(--text-muted)] truncate">{effectiveValue}</span>
+        {darkBaseValue && darkBaseValue !== effectiveValue && (
+          <span className="text-xs text-[var(--text-dim)]">(dark base: {darkBaseValue})</span>
+        )}
       </div>
       {isExpanded && (
         <div className="mt-3 p-3 bg-[var(--bg-panel)] rounded-md border border-[var(--border)]">
@@ -276,12 +301,14 @@ function WeightEditor({
   isExpanded,
   onToggle,
   onUpdate,
+  darkBaseValue,
 }: {
   token: DesignToken
   effectiveValue: string
   isExpanded: boolean
   onToggle: () => void
   onUpdate: (value: string) => void
+  darkBaseValue?: string
 }) {
   const weights = ['100', '200', '300', '400', '500', '600', '700', '800', '900']
 
@@ -290,6 +317,9 @@ function WeightEditor({
       <div className="flex items-center gap-3 cursor-pointer" onClick={onToggle}>
         <WeightPreview value={effectiveValue} />
         <span className="text-xs text-[var(--text-muted)]">{effectiveValue}</span>
+        {darkBaseValue && darkBaseValue !== effectiveValue && (
+          <span className="text-xs text-[var(--text-dim)]">(dark base: {darkBaseValue})</span>
+        )}
       </div>
       {isExpanded && (
         <div className="mt-3 p-3 bg-[var(--bg-panel)] rounded-md border border-[var(--border)]">
@@ -316,17 +346,22 @@ function TimingEditor({
   isExpanded,
   onToggle,
   onUpdate,
+  darkBaseValue,
 }: {
   token: DesignToken
   effectiveValue: string
   isExpanded: boolean
   onToggle: () => void
   onUpdate: (value: string) => void
+  darkBaseValue?: string
 }) {
   return (
     <>
       <div className="flex items-center gap-3 cursor-pointer" onClick={onToggle}>
         <TimingPreview value={effectiveValue} />
+        {darkBaseValue && darkBaseValue !== effectiveValue && (
+          <span className="text-xs text-[var(--text-dim)]">(dark base: {darkBaseValue})</span>
+        )}
       </div>
       {isExpanded && (
         <div className="mt-3 p-3 bg-[var(--bg-panel)] rounded-md border border-[var(--border)]">
@@ -353,11 +388,43 @@ export default function TokenEditor() {
   const [activeTab, setActiveTab] = useState<Tab>('colors')
   const [drafts, setDrafts] = useState<Map<string, string>>(new Map())
   const [expandedPicker, setExpandedPicker] = useState<string | null>(null)
+  const [editingTheme, setEditingTheme] = useState<Theme>('dark')
+  const [lightOverrides, setLightOverrides] = useState<Map<string, string>>(new Map())
+
+  // Detect and watch for theme changes
+  useEffect(() => {
+    const updateTheme = () => {
+      const theme = document.documentElement.getAttribute('data-theme') as Theme | null
+      setEditingTheme(theme || 'dark')
+    }
+
+    updateTheme()
+
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'data-theme') {
+          updateTheme()
+        }
+      })
+    })
+
+    observer.observe(document.documentElement, { attributes: true })
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
 
   // Fetch tokens on mount
   useEffect(() => {
     fetchTokens()
   }, [])
+
+  // Clear drafts when theme changes
+  useEffect(() => {
+    setDrafts(new Map())
+    setExpandedPicker(null)
+  }, [editingTheme])
 
   // Inject live preview styles
   useEffect(() => {
@@ -382,12 +449,14 @@ export default function TokenEditor() {
       .filter(Boolean)
       .join('\n')
 
-    styleEl.textContent = `:root {\n${overrides}\n}`
+    // Inject as :root for dark theme or [data-theme="light"] for light theme
+    const selector = editingTheme === 'dark' ? ':root' : '[data-theme="light"]'
+    styleEl.textContent = `${selector} {\n${overrides}\n}`
 
     return () => {
       if (styleEl) styleEl.textContent = ''
     }
-  }, [drafts, tokens])
+  }, [drafts, tokens, editingTheme])
 
   const fetchTokens = async () => {
     try {
@@ -396,6 +465,17 @@ export default function TokenEditor() {
       if (!res.ok) throw new Error('Failed to fetch tokens')
       const data = await res.json()
       setTokens(data.tokens)
+
+      // Parse light theme overrides
+      const overridesMap = new Map<string, string>()
+      if (data.overrides && Array.isArray(data.overrides)) {
+        data.overrides
+          .filter((o: ThemeOverride) => o.themeId === 'light')
+          .forEach((o: ThemeOverride) => {
+            overridesMap.set(o.tokenPath, o.value)
+          })
+      }
+      setLightOverrides(overridesMap)
     } catch (e) {
       setError(String(e))
     } finally {
@@ -407,8 +487,15 @@ export default function TokenEditor() {
     setDrafts((prev) => {
       const next = new Map(prev)
       const token = tokens.find((t) => t.path === path)
-      // If value matches original, remove draft
-      if (token && token.value === value) {
+      if (!token) return next
+
+      // Determine the base value to compare against
+      const baseValue = editingTheme === 'light'
+        ? (lightOverrides.get(path) ?? token.value)
+        : token.value
+
+      // If value matches base, remove draft
+      if (baseValue === value) {
         next.delete(path)
       } else {
         next.set(path, value)
@@ -431,25 +518,54 @@ export default function TokenEditor() {
     setError(null)
 
     try {
-      // 1. Save token values
-      const tokenUpdates = Array.from(drafts.entries()).map(([path, value]) => ({
-        path,
-        value,
-      }))
+      if (editingTheme === 'dark') {
+        // Save to design_tokens table
+        const tokenUpdates = Array.from(drafts.entries()).map(([path, value]) => ({
+          path,
+          value,
+        }))
 
-      const saveRes = await fetch('/api/admin/tokens', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokens: tokenUpdates }),
-      })
-      if (!saveRes.ok) throw new Error('Failed to save tokens')
+        const saveRes = await fetch('/api/admin/tokens', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tokens: tokenUpdates }),
+        })
+        if (!saveRes.ok) throw new Error('Failed to save tokens')
 
-      // 2. Trigger build
+        // Update local state
+        setTokens((prev) =>
+          prev.map((t) => (drafts.has(t.path) ? { ...t, value: drafts.get(t.path)! } : t))
+        )
+      } else {
+        // Save to theme_overrides table
+        const overrideUpdates = Array.from(drafts.entries()).map(([tokenPath, value]) => ({
+          tokenPath,
+          value,
+        }))
+
+        const saveRes = await fetch('/api/admin/themes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ themeId: 'light', overrides: overrideUpdates }),
+        })
+        if (!saveRes.ok) throw new Error('Failed to save theme overrides')
+
+        // Update local light overrides
+        setLightOverrides((prev) => {
+          const next = new Map(prev)
+          Array.from(drafts.entries()).forEach(([path, value]) => {
+            next.set(path, value)
+          })
+          return next
+        })
+      }
+
+      // Trigger build
       await handleRebuild()
 
       setDrafts(new Map())
       setSuccess(
-        `Saved ${tokenUpdates.length} token${tokenUpdates.length > 1 ? 's' : ''} and built CSS successfully.`
+        `Saved ${drafts.size} override${drafts.size > 1 ? 's' : ''} to ${editingTheme} theme and built CSS successfully.`
       )
       setTimeout(() => setSuccess(null), 4000)
 
@@ -470,7 +586,7 @@ export default function TokenEditor() {
       const buildRes = await fetch('/api/admin/tokens/build', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ themeId: 'dark' }),
+        body: JSON.stringify({ themeId: editingTheme }),
       })
       if (!buildRes.ok) throw new Error('Build failed')
 
@@ -484,9 +600,22 @@ export default function TokenEditor() {
     }
   }
 
-  // Get effective value (draft or original)
+  // Get effective value (draft or override or original)
   const getEffectiveValue = (token: DesignToken) => {
-    return drafts.get(token.path) ?? token.value
+    if (drafts.has(token.path)) {
+      return drafts.get(token.path)!
+    }
+
+    if (editingTheme === 'light') {
+      return lightOverrides.get(token.path) ?? token.value
+    }
+
+    return token.value
+  }
+
+  // Get dark base value for reference when editing light theme
+  const getDarkBaseValue = (token: DesignToken) => {
+    return editingTheme === 'light' ? token.value : undefined
   }
 
   // Filter tokens by tab
@@ -519,177 +648,209 @@ export default function TokenEditor() {
   }
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold tracking-wide uppercase text-[var(--text)]">
-            Token Editor
-          </h1>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
-            Edit design tokens — changes preview live and deploy to both web and overlay.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {drafts.size > 0 && (
-            <>
-              <span className="text-sm text-[var(--amber)]">
-                {drafts.size} unsaved change{drafts.size > 1 ? 's' : ''}
-              </span>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="px-4 py-2 bg-[var(--green)] text-white text-sm font-bold uppercase tracking-wider rounded-md hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {saving ? 'Building...' : 'Save & Build'}
-              </button>
-            </>
-          )}
-          <button
-            onClick={handleRebuild}
-            disabled={saving}
-            className="px-4 py-2 border border-[var(--border)] text-[var(--text-secondary)] text-sm font-bold uppercase tracking-wider rounded-md hover:border-[var(--border-accent)] transition-colors disabled:opacity-50"
-          >
-            {saving ? 'Building...' : 'Rebuild CSS'}
-          </button>
+    <div className="flex h-screen gap-0">
+      {/* Left: Live Preview Panel (50% width) */}
+      <div
+        className="w-1/2 overflow-y-auto border-r border-[var(--border)]"
+        style={{ maxHeight: 'calc(100vh - 100px)' }}
+      >
+        <div className="p-6">
+          <PreviewPanel />
         </div>
       </div>
 
-      {/* Error/Success messages */}
-      {error && (
-        <div className="mb-4 p-3 bg-red-900 text-red-100 rounded-md border border-red-700">
-          <p className="text-sm">{error}</p>
-        </div>
-      )}
-      {success && (
-        <div className="mb-4 p-3 bg-green-900 text-green-100 rounded-md border border-green-700">
-          <p className="text-sm">{success}</p>
-        </div>
-      )}
-
-      {/* Tabs */}
-      <div className="mb-6 flex gap-2 border-b border-[var(--border)]">
-        {(['colors', 'typography', 'spacing', 'timing'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm font-semibold uppercase tracking-wider transition-colors ${
-              activeTab === tab
-                ? 'text-[var(--text)] border-b-2 border-[var(--k10-red)]'
-                : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-            }`}
-          >
-            {tab === 'colors' && 'Colors'}
-            {tab === 'typography' && 'Typography'}
-            {tab === 'spacing' && 'Spacing & Layout'}
-            {tab === 'timing' && 'Motion'}
-          </button>
-        ))}
-      </div>
-
-      {/* Tokens Table */}
-      {filteredTokens.length === 0 ? (
-        <div className="flex items-center justify-center py-12">
-          <p className="text-[var(--text-muted)]">No tokens in this category</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {filteredTokens.map((token) => (
-            <div
-              key={token.id}
-              className="p-4 bg-[var(--bg-surface)] border border-[var(--border)] rounded-md"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="text-sm font-mono text-[var(--text)] font-semibold">
-                      {token.cssProperty}
-                    </h3>
-                    <PlatformBadge platforms={token.platforms} />
-                  </div>
-                  {token.description && (
-                    <p className="text-xs text-[var(--text-muted)] mb-3">{token.description}</p>
-                  )}
-                  <div className="mb-3">
-                    {token.kind === 'color' && (
-                      <ColorEditor
-                        token={token}
-                        effectiveValue={getEffectiveValue(token)}
-                        isExpanded={expandedPicker === token.id}
-                        onToggle={() =>
-                          setExpandedPicker(expandedPicker === token.id ? null : token.id)
-                        }
-                        onUpdate={(value) => updateDraft(token.path, value)}
-                      />
-                    )}
-                    {(token.kind === 'size' || token.kind === 'radius') && (
-                      <SizeEditor
-                        token={token}
-                        effectiveValue={getEffectiveValue(token)}
-                        isExpanded={expandedPicker === token.id}
-                        onToggle={() =>
-                          setExpandedPicker(expandedPicker === token.id ? null : token.id)
-                        }
-                        onUpdate={(value) => updateDraft(token.path, value)}
-                      />
-                    )}
-                    {token.kind === 'font' && (
-                      <FontEditor
-                        token={token}
-                        effectiveValue={getEffectiveValue(token)}
-                        isExpanded={expandedPicker === token.id}
-                        onToggle={() =>
-                          setExpandedPicker(expandedPicker === token.id ? null : token.id)
-                        }
-                        onUpdate={(value) => updateDraft(token.path, value)}
-                      />
-                    )}
-                    {token.kind === 'weight' && (
-                      <WeightEditor
-                        token={token}
-                        effectiveValue={getEffectiveValue(token)}
-                        isExpanded={expandedPicker === token.id}
-                        onToggle={() =>
-                          setExpandedPicker(expandedPicker === token.id ? null : token.id)
-                        }
-                        onUpdate={(value) => updateDraft(token.path, value)}
-                      />
-                    )}
-                    {token.kind === 'timing' && (
-                      <TimingEditor
-                        token={token}
-                        effectiveValue={getEffectiveValue(token)}
-                        isExpanded={expandedPicker === token.id}
-                        onToggle={() =>
-                          setExpandedPicker(expandedPicker === token.id ? null : token.id)
-                        }
-                        onUpdate={(value) => updateDraft(token.path, value)}
-                      />
-                    )}
-                  </div>
-                  {token.wcag && (
-                    <p className="text-xs text-[var(--text-dim)]">WCAG: {token.wcag}</p>
-                  )}
-                </div>
-                {drafts.has(token.path) && (
-                  <button
-                    onClick={() => resetDraft(token.path)}
-                    className="px-3 py-1 text-xs text-[var(--amber)] hover:text-[var(--k10-red)] transition-colors font-semibold uppercase"
-                  >
-                    Reset
-                  </button>
-                )}
-              </div>
+      {/* Right: Token Editor (50% width) */}
+      <div
+        className="w-1/2 overflow-y-auto"
+        style={{ maxHeight: 'calc(100vh - 100px)' }}
+      >
+        <div className="p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-2xl font-bold tracking-wide uppercase text-[var(--text)]">
+                Token Editor
+              </h1>
+              <p className="text-sm text-[var(--text-muted)] mt-1">
+                Edit design tokens — changes preview live and deploy to both web and overlay.
+              </p>
             </div>
-          ))}
+            <div className="flex items-center gap-3">
+              {drafts.size > 0 && (
+                <>
+                  <span className="text-sm text-[var(--amber)]">
+                    {drafts.size} unsaved change{drafts.size > 1 ? 's' : ''}
+                  </span>
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="px-4 py-2 bg-[var(--green)] text-white text-sm font-bold uppercase tracking-wider rounded-md hover:opacity-90 transition-opacity disabled:opacity-50"
+                  >
+                    {saving ? 'Building...' : 'Save & Build'}
+                  </button>
+                </>
+              )}
+              <button
+                onClick={handleRebuild}
+                disabled={saving}
+                className="px-4 py-2 border border-[var(--border)] text-[var(--text-secondary)] text-sm font-bold uppercase tracking-wider rounded-md hover:border-[var(--border-accent)] transition-colors disabled:opacity-50"
+              >
+                {saving ? 'Building...' : 'Rebuild CSS'}
+              </button>
+            </div>
+          </div>
+
+          {/* Theme Indicator */}
+          <div className="mb-6 p-3 rounded-md border border-[var(--border)] bg-[var(--bg-panel)]">
+            <p className="text-sm font-semibold text-[var(--text)]">
+              Editing {editingTheme === 'dark' ? 'Dark' : 'Light'} Theme Tokens
+            </p>
+            {editingTheme === 'light' && (
+              <p className="text-xs text-[var(--text-muted)] mt-1">
+                Light values override the dark base. Small text shows the dark base value for reference.
+              </p>
+            )}
+          </div>
+
+          {/* Error/Success messages */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-900 text-red-100 rounded-md border border-red-700">
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+          {success && (
+            <div className="mb-4 p-3 bg-green-900 text-green-100 rounded-md border border-green-700">
+              <p className="text-sm">{success}</p>
+            </div>
+          )}
+
+          {/* Tabs */}
+          <div className="mb-6 flex gap-2 border-b border-[var(--border)]">
+            {(['colors', 'typography', 'spacing', 'timing'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 text-sm font-semibold uppercase tracking-wider transition-colors ${
+                  activeTab === tab
+                    ? 'text-[var(--text)] border-b-2 border-[var(--k10-red)]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                {tab === 'colors' && 'Colors'}
+                {tab === 'typography' && 'Typography'}
+                {tab === 'spacing' && 'Spacing & Layout'}
+                {tab === 'timing' && 'Motion'}
+              </button>
+            ))}
+          </div>
+
+          {/* Tokens Table */}
+          {filteredTokens.length === 0 ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-[var(--text-muted)]">No tokens in this category</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredTokens.map((token) => (
+                <div
+                  key={token.id}
+                  className="p-4 bg-[var(--bg-surface)] border border-[var(--border)] rounded-md"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-sm font-mono text-[var(--text)] font-semibold">
+                          {token.cssProperty}
+                        </h3>
+                        <PlatformBadge platforms={token.platforms} />
+                      </div>
+                      {token.description && (
+                        <p className="text-xs text-[var(--text-muted)] mb-3">{token.description}</p>
+                      )}
+                      <div className="mb-3">
+                        {token.kind === 'color' && (
+                          <ColorEditor
+                            token={token}
+                            effectiveValue={getEffectiveValue(token)}
+                            isExpanded={expandedPicker === token.id}
+                            onToggle={() =>
+                              setExpandedPicker(expandedPicker === token.id ? null : token.id)
+                            }
+                            onUpdate={(value) => updateDraft(token.path, value)}
+                            darkBaseValue={getDarkBaseValue(token)}
+                          />
+                        )}
+                        {(token.kind === 'size' || token.kind === 'radius') && (
+                          <SizeEditor
+                            token={token}
+                            effectiveValue={getEffectiveValue(token)}
+                            isExpanded={expandedPicker === token.id}
+                            onToggle={() =>
+                              setExpandedPicker(expandedPicker === token.id ? null : token.id)
+                            }
+                            onUpdate={(value) => updateDraft(token.path, value)}
+                            darkBaseValue={getDarkBaseValue(token)}
+                          />
+                        )}
+                        {token.kind === 'font' && (
+                          <FontEditor
+                            token={token}
+                            effectiveValue={getEffectiveValue(token)}
+                            isExpanded={expandedPicker === token.id}
+                            onToggle={() =>
+                              setExpandedPicker(expandedPicker === token.id ? null : token.id)
+                            }
+                            onUpdate={(value) => updateDraft(token.path, value)}
+                            darkBaseValue={getDarkBaseValue(token)}
+                          />
+                        )}
+                        {token.kind === 'weight' && (
+                          <WeightEditor
+                            token={token}
+                            effectiveValue={getEffectiveValue(token)}
+                            isExpanded={expandedPicker === token.id}
+                            onToggle={() =>
+                              setExpandedPicker(expandedPicker === token.id ? null : token.id)
+                            }
+                            onUpdate={(value) => updateDraft(token.path, value)}
+                            darkBaseValue={getDarkBaseValue(token)}
+                          />
+                        )}
+                        {token.kind === 'timing' && (
+                          <TimingEditor
+                            token={token}
+                            effectiveValue={getEffectiveValue(token)}
+                            isExpanded={expandedPicker === token.id}
+                            onToggle={() =>
+                              setExpandedPicker(expandedPicker === token.id ? null : token.id)
+                            }
+                            onUpdate={(value) => updateDraft(token.path, value)}
+                            darkBaseValue={getDarkBaseValue(token)}
+                          />
+                        )}
+                      </div>
+                      {token.wcag && (
+                        <p className="text-xs text-[var(--text-dim)]">WCAG: {token.wcag}</p>
+                      )}
+                    </div>
+                    {drafts.has(token.path) && (
+                      <button
+                        onClick={() => resetDraft(token.path)}
+                        className="px-3 py-1 text-xs text-[var(--amber)] hover:text-[var(--k10-red)] transition-colors font-semibold uppercase"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* WCAG Contrast (only on colors tab) */}
+          {activeTab === 'colors' && <ContrastChecker tokens={tokens} drafts={drafts} />}
         </div>
-      )}
-
-      {/* WCAG Contrast (only on colors tab) */}
-      {activeTab === 'colors' && <ContrastChecker tokens={tokens} drafts={drafts} />}
-
-      {/* Live Preview Panel */}
-      <PreviewPanel />
+      </div>
     </div>
   )
 }
