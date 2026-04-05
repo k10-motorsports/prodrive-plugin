@@ -12,7 +12,7 @@ import { neon } from '@neondatabase/serverless'
 import { eq, and } from 'drizzle-orm'
 import * as schema from '../../db/schema'
 
-const sql = neon(process.env.DATABASE_URL!)
+const sql = neon(process.env.k10_DATABASE_URL || process.env.DATABASE_URL!)
 const db = drizzle(sql, { schema })
 
 const THEME_ID = 'light'
