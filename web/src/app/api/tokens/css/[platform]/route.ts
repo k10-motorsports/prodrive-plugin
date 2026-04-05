@@ -13,8 +13,8 @@ export async function GET(
       return new NextResponse('Invalid platform. Use "web" or "overlay".', { status: 400 })
     }
 
-    const themeId = request.nextUrl.searchParams.get('theme') || 'dark'
-    const results = await buildTokens(themeId)
+    const setSlug = request.nextUrl.searchParams.get('set') || 'default'
+    const results = await buildTokens(setSlug)
     const result = results.find((r) => r.platform === platform)
 
     if (!result) {

@@ -1,24 +1,26 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 
 /**
- * ThemeSetEffects — loads the built CSS for the active theme set via a
- * dynamic <link> tag.  After a rebuild the TokenEditor dispatches
- * `theme-css-rebuilt` with the new blob URL and we swap the link immediately.
+ * ThemeSetEffects — loads built CSS for the active theme set via a <link>
+ * pointed at /api/tokens/css/web?set=<slug>.  That endpoint builds CSS
+ * directly from the DB on every request, so changes are always fresh.
  *
- * This replaces the old approach of injecting inline CSS overrides.
- * The single <link> carries every token for the set (dark + light).
+ * After a rebuild (theme-css-rebuilt event), we cache-bust the <link> href
+ * so the browser re-fetches immediately.
  */
 
 export default function ThemeSetEffects() {
   const [activeSet, setActiveSet] = useState('default')
-  const [cssUrl, setCssUrl] = useState<string | null>(null)
+  const [bustKey, setBustKey] = useState(Date.now())
 
-  // Watch set selector
+  // Read cookie + watch for set changes
   useEffect(() => {
     const onSetChange = (e: Event) => {
-      setActiveSet((e as CustomEvent).detail?.slug || 'default')
+      const slug = (e as CustomEvent).detail?.slug || 'default'
+      setActiveSet(slug)
+      setBustKey(Date.now())
     }
     window.addEventListener('theme-set-change', onSetChange)
     const match = document.cookie.match(/racecor-theme-set=([^;]+)/)
@@ -26,48 +28,17 @@ export default function ThemeSetEffects() {
     return () => window.removeEventListener('theme-set-change', onSetChange)
   }, [])
 
-  // Fetch the current built CSS URL for this set
-  const fetchCssUrl = useCallback(async (slug: string) => {
-    try {
-      const res = await fetch(`/api/admin/tokens/css-url?set=${slug}`)
-      if (!res.ok) { setCssUrl(null); return }
-      const data = await res.json()
-      setCssUrl(data.url || null)
-    } catch {
-      setCssUrl(null)
-    }
-  }, [])
-
-  // Fetch on set change
+  // Cache-bust after rebuild
   useEffect(() => {
-    fetchCssUrl(activeSet)
-  }, [activeSet, fetchCssUrl])
-
-  // Listen for rebuilds — TokenEditor sends the new URL directly
-  useEffect(() => {
-    const onRebuilt = (e: Event) => {
-      const detail = (e as CustomEvent).detail
-      // Only apply if the rebuilt set matches our active set
-      if (detail?.setSlug === activeSet && detail?.cssUrl) {
-        setCssUrl(detail.cssUrl)
-      } else if (detail?.setSlug === activeSet) {
-        // Refetch if no URL provided
-        fetchCssUrl(activeSet)
-      }
-    }
+    const onRebuilt = () => setBustKey(Date.now())
     window.addEventListener('theme-css-rebuilt', onRebuilt)
     return () => window.removeEventListener('theme-css-rebuilt', onRebuilt)
-  }, [activeSet, fetchCssUrl])
+  }, [])
 
-  // Inject/update <link> tag
+  // Manage the <link> tag
   useEffect(() => {
     const id = 'theme-set-css'
     let link = document.getElementById(id) as HTMLLinkElement | null
-
-    if (!cssUrl) {
-      if (link) link.remove()
-      return
-    }
 
     if (!link) {
       link = document.createElement('link')
@@ -76,9 +47,8 @@ export default function ThemeSetEffects() {
       document.head.appendChild(link)
     }
 
-    // Cache-bust to force reload after rebuild
-    link.href = cssUrl.includes('?') ? cssUrl + '&t=' + Date.now() : cssUrl + '?t=' + Date.now()
-  }, [cssUrl])
+    link.href = `/api/tokens/css/web?set=${activeSet}&t=${bustKey}`
+  }, [activeSet, bustKey])
 
   return null
 }
