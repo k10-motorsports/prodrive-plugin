@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer, doublePrecision, jsonb, uuid, varchar } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, boolean, integer, doublePrecision, jsonb, uuid, varchar, unique } from 'drizzle-orm/pg-core'
 
 // ── Users (Discord-authenticated members) ──
 export const users = pgTable('users', {
@@ -124,4 +124,44 @@ export const raceSessions = pgTable('race_sessions', {
   incidentCount: integer('incident_count'),
   metadata: jsonb('metadata'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+// ── Design Tokens (canonical source of truth for all design variables) ──
+export const designTokens = pgTable('design_tokens', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  path: varchar('path', { length: 128 }).notNull().unique(),
+  value: text('value').notNull(),
+  kind: varchar('kind', { length: 16 }).notNull(),
+  cssProperty: varchar('css_property', { length: 64 }).notNull(),
+  description: text('description'),
+  wcag: varchar('wcag', { length: 32 }),
+  platforms: varchar('platforms', { length: 16 }).notNull().default('both'),
+  category: varchar('category', { length: 32 }).notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
+// ── Theme Overrides (light theme, future custom themes) ──
+export const themeOverrides = pgTable('theme_overrides', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  themeId: varchar('theme_id', { length: 32 }).notNull(),
+  tokenPath: varchar('token_path', { length: 128 }).notNull()
+    .references(() => designTokens.path),
+  value: text('value').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  uniqueThemeToken: unique().on(table.themeId, table.tokenPath),
+}))
+
+// ── Token Builds (tracks which built CSS files are currently live) ──
+export const tokenBuilds = pgTable('token_builds', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  themeId: varchar('theme_id', { length: 32 }).notNull(),
+  platform: varchar('platform', { length: 16 }).notNull(),
+  blobUrl: text('blob_url').notNull(),
+  hash: varchar('hash', { length: 16 }).notNull(),
+  builtAt: timestamp('built_at').defaultNow().notNull(),
+  builtBy: uuid('built_by').references(() => users.id),
 })

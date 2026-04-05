@@ -15,6 +15,13 @@
       "when": 1775340977747,
       "tag": "0001_safe_guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775366276922,
+      "tag": "0006_design_tokens",
+      "breakpoints": true
     }
   ]
 }
