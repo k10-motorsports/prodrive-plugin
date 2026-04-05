@@ -9,26 +9,26 @@ export interface BuildResult {
 }
 
 /**
- * Build CSS token files for a given theme.
+ * Build CSS token files that include both dark (base) and light theme blocks.
+ * Each blob contains:
+ *   :root { /* dark/base tokens */ }
+ *   [data-theme="light"] { /* light overrides */ }
+ *
  * Returns CSS strings for web and overlay platforms.
  */
 export async function buildTokens(themeId: string = 'dark'): Promise<BuildResult[]> {
   // 1. Fetch all base tokens
   const baseTokens = await db.select().from(schema.designTokens)
 
-  // 2. Fetch theme overrides (skip for 'dark' since base tokens ARE dark)
-  let overrides: (typeof schema.themeOverrides.$inferSelect)[] = []
-  if (themeId !== 'dark') {
-    overrides = await db
-      .select()
-      .from(schema.themeOverrides)
-      .where(eq(schema.themeOverrides.themeId, themeId))
-  }
+  // 2. Fetch light theme overrides
+  const lightOverrides = await db
+    .select()
+    .from(schema.themeOverrides)
+    .where(eq(schema.themeOverrides.themeId, 'light'))
 
-  // 3. Build override map
-  const overrideMap = new Map(overrides.map((o) => [o.tokenPath, o.value]))
+  const lightOverrideMap = new Map(lightOverrides.map((o) => [o.tokenPath, o.value]))
 
-  // 4. Build for each platform
+  // 3. Build for each platform
   const results: BuildResult[] = []
 
   for (const platform of ['web', 'overlay'] as const) {
@@ -37,17 +37,38 @@ export async function buildTokens(themeId: string = 'dark'): Promise<BuildResult
       (t) => t.platforms === 'both' || t.platforms === platform
     )
 
-    // Apply overrides
-    const mergedTokens = platformTokens.map((t) => ({
-      ...t,
-      value: overrideMap.get(t.path) ?? t.value,
-    }))
+    // ── Dark theme (base) ──
+    const darkTokenObj = flatToNested(platformTokens)
+    const darkCss = buildCssFromTokens(darkTokenObj, platform, 'dark')
 
-    // Convert to nested token object for Style Dictionary
-    const tokenObj = flatToNested(mergedTokens)
+    // ── Light theme (only overridden tokens) ──
+    const lightTokens = platformTokens
+      .filter((t) => lightOverrideMap.has(t.path))
+      .map((t) => ({
+        ...t,
+        value: lightOverrideMap.get(t.path)!,
+      }))
 
-    // Build CSS
-    const css = buildCssFromTokens(tokenObj, platform, themeId)
+    let lightCss = ''
+    if (lightTokens.length > 0) {
+      const lightTokenObj = flatToNested(lightTokens)
+      lightCss = buildCssFromTokens(lightTokenObj, platform, 'light')
+    }
+
+    // ── Combine into single CSS blob ──
+    const parts = [
+      '/* K10 Design Tokens — Auto-generated */',
+      '/* Dark theme (base) */',
+      darkCss,
+    ]
+
+    if (lightCss) {
+      parts.push('')
+      parts.push('/* Light theme overrides */')
+      parts.push(lightCss)
+    }
+
+    const css = parts.join('\n')
 
     // Generate hash
     const hash = generateHash(css)
