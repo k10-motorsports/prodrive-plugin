@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { HexColorPicker } from 'react-colorful'
+import ContrastChecker from './ContrastChecker'
+import PreviewPanel from './PreviewPanel'
 
 // Types matching the API response
 interface DesignToken {
@@ -658,6 +660,12 @@ export default function TokenEditor() {
           ))}
         </div>
       )}
+
+      {/* WCAG Contrast (only on colors tab) */}
+      {activeTab === 'colors' && <ContrastChecker tokens={tokens} drafts={drafts} />}
+
+      {/* Live Preview Panel */}
+      <PreviewPanel />
     </div>
   )
 }
