@@ -53,7 +53,10 @@ export async function GET(request: NextRequest) {
     logos.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   }
 
-  // Compute missing: brands in master JSON but not in DB
+  // Filter out rows with no actual logo data (zombie rows from old clear behavior)
+  logos = logos.filter(l => l.logoSvg || l.logoPng)
+
+  // Compute missing: brands in master JSON but not in DB (with logo data)
   const dbKeys = new Set(logos.map(l => l.brandKey))
   let missing = brands
     .filter(b => !dbKeys.has(b.key))
@@ -189,9 +192,17 @@ export async function PATCH(request: NextRequest) {
     const updateData: Record<string, unknown> = { updatedAt: new Date() }
     if (brandName) updateData.brandName = brandName.trim()
     if (brandColorHex !== undefined) updateData.brandColorHex = brandColorHex || null
+    // Clear logo = delete the row so it reappears in the missing list
     if (clearLogo === true) {
-      updateData.logoSvg = null
-      updateData.logoPng = null
+      const deleted = await db
+        .delete(schema.carLogos)
+        .where(eq(schema.carLogos.brandKey, brandKey.toLowerCase().trim()))
+        .returning({ id: schema.carLogos.id, brandKey: schema.carLogos.brandKey })
+
+      if (deleted.length === 0) {
+        return NextResponse.json({ error: 'Logo not found' }, { status: 404 })
+      }
+      return NextResponse.json({ success: true, ...deleted[0] })
     }
 
     const updated = await db
