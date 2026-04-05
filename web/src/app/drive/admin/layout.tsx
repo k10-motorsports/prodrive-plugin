@@ -21,34 +21,32 @@ export default async function AdminLayout({
   const user = session.user as unknown as Record<string, unknown>
 
   return (
-    <>
+    <main className="min-h-screen bg-[var(--bg)]">
       <ThemeSetEffects />
-      <main className="min-h-screen bg-[var(--bg)]" style={{ position: 'relative', zIndex: 1 }}>
-        <header className="border-b border-[var(--border)] px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <a href="/drive/dashboard" className="flex items-center gap-3 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors text-sm">
-              <LogoMark className="h-7 w-auto opacity-80" />
-              <span>&larr; Dashboard</span>
-            </a>
-            <span className="text-[var(--border)]">/</span>
-            <span className="text-sm font-bold tracking-wider uppercase text-[var(--k10-red)]">Admin</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <ThemeSetSelector />
-            <ThemeToggle />
-            {session.user?.image && <img src={session.user.image} alt="" className="w-6 h-6 rounded-full" />}
-            <span className="text-xs text-[var(--text-muted)]">{user.discordDisplayName as string}</span>
-          </div>
-        </header>
-
-        <nav className="border-b border-[var(--border)] px-6 flex gap-1">
-          <AdminNav />
-        </nav>
-
-        <div className="max-w-[120rem] mx-auto px-6 py-8">
-          {children}
+      <header className="border-b border-[var(--border)] px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <a href="/drive/dashboard" className="flex items-center gap-3 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors text-sm">
+            <LogoMark className="h-7 w-auto opacity-80" />
+            <span>&larr; Dashboard</span>
+          </a>
+          <span className="text-[var(--border)]">/</span>
+          <span className="text-sm font-bold tracking-wider uppercase text-[var(--k10-red)]">Admin</span>
         </div>
-      </main>
-    </>
+        <div className="flex items-center gap-3">
+          <ThemeSetSelector />
+          <ThemeToggle />
+          {session.user?.image && <img src={session.user.image} alt="" className="w-6 h-6 rounded-full" />}
+          <span className="text-xs text-[var(--text-muted)]">{user.discordDisplayName as string}</span>
+        </div>
+      </header>
+
+      <nav className="border-b border-[var(--border)] px-6 flex gap-1">
+        <AdminNav />
+      </nav>
+
+      <div className="max-w-[120rem] mx-auto px-6 py-8">
+        {children}
+      </div>
+    </main>
   )
 }

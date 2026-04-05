@@ -634,6 +634,9 @@ export default function TokenEditor() {
 
       // Refetch tokens to get updated values
       await fetchTokens()
+
+      // Notify ThemeSetEffects to refetch overrides from DB
+      window.dispatchEvent(new CustomEvent('theme-overrides-updated'))
     } catch (e) {
       setError(String(e))
     } finally {

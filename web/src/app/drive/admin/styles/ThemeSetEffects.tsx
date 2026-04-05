@@ -1,119 +1,33 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 /**
- * ThemeSetEffects — applies livery background, frosted header, and CSS var
- * overrides whenever a non-default theme set is active.  No preview toggle;
- * selecting a set is selecting a theme.
+ * ThemeSetEffects — injects CSS variable overrides for the active theme set.
+ * Reads overrides from the DB via API (not hardcoded palettes), so edits
+ * in the token editor are reflected immediately after save.
  *
- * Design rules (see .claude/skills/livery-theme/SKILL.md):
- *   - Dark --bg: always #000000; --bg-panel: team-hue tinted ~7% lightness
- *   - Light --bg: always #ffffff; --bg-panel: team-hue warm tint
- *   - Brand color from DB; borders use brand at low alpha; text warm-shifted
+ * Listens for:
+ *   - `theme-set-change` (from ThemeSetSelector) — switches active set
+ *   - `theme-overrides-updated` (from TokenEditor) — refetches after save
  */
 
-// ── Palette type ──
-type Palette = Record<string, string>
-
-// ── Helper: generate dark + light palette from brand color + hue ──
-function makePalette(brand: string, brandDark: string, brandDeep: string, hue: number): { dark: Palette; light: Palette } {
-  const r = parseInt(brand.slice(1, 3), 16)
-  const g = parseInt(brand.slice(3, 5), 16)
-  const b = parseInt(brand.slice(5, 7), 16)
-
-  const lr = Math.round(r * 0.85)
-  const lg = Math.round(g * 0.85)
-  const lb = Math.round(b * 0.85)
-  const brandOnLight = `#${lr.toString(16).padStart(2,'0')}${lg.toString(16).padStart(2,'0')}${lb.toString(16).padStart(2,'0')}`
-
-  return {
-    dark: {
-      '--bg':            '#000000',
-      '--bg-surface':    `hsla(${hue}, 14%, 6%, 0.92)`,
-      '--bg-panel':      `hsla(${hue}, 18%, 7%, 0.95)`,
-      '--bg-elevated':   `hsla(${hue}, 12%, 9%, 0.90)`,
-      '--border':        `rgba(${r}, ${g}, ${b}, 0.16)`,
-      '--border-subtle': `rgba(${r}, ${g}, ${b}, 0.07)`,
-      '--border-accent': `rgba(${r}, ${g}, ${b}, 0.40)`,
-      '--k10-red':       brand,
-      '--k10-red-mid':   brandDark,
-      '--k10-red-dark':  brandDeep,
-      '--red':           brand,
-      '--text':          `hsl(${hue}, 20%, 93%)`,
-      '--text-primary':  `hsla(${hue}, 30%, 96%, 1.0)`,
-      '--text-secondary': `hsla(${hue}, 15%, 88%, 0.72)`,
-      '--text-dim':       `hsla(${hue}, 12%, 82%, 0.55)`,
-      '--text-muted':     `hsla(${hue}, 10%, 78%, 0.42)`,
-    },
-    light: {
-      '--bg':            '#ffffff',
-      '--bg-surface':    'rgba(255, 255, 255, 0.95)',
-      '--bg-panel':      `hsla(${hue}, 30%, 96%, 0.95)`,
-      '--bg-elevated':   'rgba(255, 255, 255, 1.0)',
-      '--border':        'rgba(0, 0, 0, 0.10)',
-      '--border-subtle': 'rgba(0, 0, 0, 0.05)',
-      '--border-accent': `rgba(${r}, ${g}, ${b}, 0.38)`,
-      '--k10-red':       brandOnLight,
-      '--k10-red-mid':   brandDark,
-      '--k10-red-dark':  brandDeep,
-      '--red':           brandOnLight,
-      '--text':          '#111111',
-      '--text-primary':  'hsla(0, 0%, 5%, 1.0)',
-      '--text-secondary': 'rgba(0, 0, 0, 0.65)',
-      '--text-dim':       'rgba(0, 0, 0, 0.48)',
-      '--text-muted':     'rgba(0, 0, 0, 0.36)',
-    },
-  }
+interface Override {
+  themeId: string
+  tokenPath: string
+  value: string
 }
 
-// ── Team Palettes ──
-const MCLAREN = makePalette('#FF7A00', '#cc6200', '#7a3a00', 25)
-const FERRARI = makePalette('#DC0000', '#a80000', '#600000', 0)
-const RED_BULL = makePalette('#1E41FF', '#1530cc', '#0a1a80', 230)
-const MERCEDES = makePalette('#00B89F', '#008f7a', '#005548', 170)
-const ASTON_MARTIN = makePalette('#007A4D', '#005c3a', '#003822', 155)
-const ALPINE = makePalette('#0093CC', '#00729e', '#004460', 200)
-const WILLIAMS = makePalette('#005AFF', '#0048cc', '#002b80', 220)
-const RB = makePalette('#6692FF', '#4d74cc', '#2e4680', 222)
-const HAAS = makePalette('#B6BABD', '#8e9194', '#5a5c5e', 210)
-const KICK_SAUBER = makePalette('#52E252', '#3eb83e', '#256e25', 130)
-const CADILLAC = makePalette('#C4A635', '#9e8528', '#5e4f18', 45)
-const AUDI = makePalette('#BB0A30', '#900824', '#580516', 350)
-
-const PALETTES: Record<string, { dark: Palette; light: Palette }> = {
-  mclaren: MCLAREN,
-  ferrari: FERRARI,
-  'red-bull': RED_BULL,
-  mercedes: MERCEDES,
-  'aston-martin': ASTON_MARTIN,
-  alpine: ALPINE,
-  williams: WILLIAMS,
-  rb: RB,
-  haas: HAAS,
-  'kick-sauber': KICK_SAUBER,
-  cadillac: CADILLAC,
-  audi: AUDI,
-}
-
-const LIVERY_IMAGES: Record<string, string> = {
-  mclaren: '/liveries/mclaren.webp',
-  ferrari: '/liveries/ferrari.webp',
-  'red-bull': '/liveries/red-bull.webp',
-  mercedes: '/liveries/mercedes.webp',
-  'aston-martin': '/liveries/aston-martin.webp',
-  alpine: '/liveries/alpine.webp',
-  williams: '/liveries/williams.webp',
-  rb: '/liveries/racing-bulls.webp',
-  haas: '/liveries/haas.webp',
-  'kick-sauber': '/liveries/audi.webp',
-  cadillac: '/liveries/cadillac.webp',
-  audi: '/liveries/audi.webp',
+interface DesignToken {
+  path: string
+  cssProperty: string
 }
 
 export default function ThemeSetEffects() {
   const [currentTheme, setCurrentTheme] = useState<'dark' | 'light'>('dark')
   const [activeSet, setActiveSet] = useState('default')
+  const [overrides, setOverrides] = useState<Override[]>([])
+  const [tokenMap, setTokenMap] = useState<Map<string, string>>(new Map()) // path → cssProperty
 
   // Watch dark/light toggle
   useEffect(() => {
@@ -138,12 +52,50 @@ export default function ThemeSetEffects() {
     return () => window.removeEventListener('theme-set-change', onSetChange)
   }, [])
 
-  // Inject/remove theme styles — always active for non-default sets
+  // Fetch overrides from DB
+  const fetchOverrides = useCallback(async (slug: string) => {
+    if (slug === 'default') {
+      setOverrides([])
+      setTokenMap(new Map())
+      return
+    }
+    try {
+      const res = await fetch(`/api/admin/tokens?set=${slug}`)
+      if (!res.ok) return
+      const data = await res.json()
+
+      // Build path → cssProperty map from tokens
+      const map = new Map<string, string>()
+      if (data.tokens) {
+        data.tokens.forEach((t: DesignToken) => map.set(t.path, t.cssProperty))
+      }
+      setTokenMap(map)
+      setOverrides(data.overrides || [])
+    } catch {
+      // Silently fail — the page still works without overrides
+    }
+  }, [])
+
+  // Fetch when set changes
+  useEffect(() => {
+    fetchOverrides(activeSet)
+  }, [activeSet, fetchOverrides])
+
+  // Refetch when TokenEditor saves
+  useEffect(() => {
+    const onUpdated = () => {
+      fetchOverrides(activeSet)
+    }
+    window.addEventListener('theme-overrides-updated', onUpdated)
+    return () => window.removeEventListener('theme-overrides-updated', onUpdated)
+  }, [activeSet, fetchOverrides])
+
+  // Inject CSS overrides
   useEffect(() => {
     const id = 'theme-set-effects'
     let el = document.getElementById(id) as HTMLStyleElement | null
 
-    if (activeSet === 'default') {
+    if (activeSet === 'default' || overrides.length === 0) {
       if (el) el.remove()
       return
     }
@@ -154,99 +106,39 @@ export default function ThemeSetEffects() {
       document.head.appendChild(el)
     }
 
-    const p = PALETTES[activeSet]
-    if (!p) {
+    // Filter overrides for the current theme (dark or light)
+    // For dark: use dark overrides
+    // For light: merge dark overrides (as base) + light overrides on top
+    const darkOverrides = new Map<string, string>()
+    const lightOverrides = new Map<string, string>()
+    overrides.forEach((o) => {
+      if (o.themeId === 'dark') darkOverrides.set(o.tokenPath, o.value)
+      if (o.themeId === 'light') lightOverrides.set(o.tokenPath, o.value)
+    })
+
+    const activeOverrides = currentTheme === 'light' ? lightOverrides : darkOverrides
+    const selector = currentTheme === 'light' ? '[data-theme="light"]' : ':root'
+
+    const vars = Array.from(activeOverrides.entries())
+      .map(([path, value]) => {
+        const cssProperty = tokenMap.get(path)
+        if (!cssProperty) return ''
+        return `  ${cssProperty}: ${value} !important;`
+      })
+      .filter(Boolean)
+      .join('\n')
+
+    if (!vars) {
       if (el) el.remove()
       return
     }
 
-    const palette = currentTheme === 'light' ? p.light : p.dark
-    const selector = currentTheme === 'light' ? '[data-theme="light"]' : ':root'
-    const brandColor = palette['--k10-red']
-
-    const vars = Object.entries(palette)
-      .map(([k, v]) => `  ${k}: ${v} !important;`)
-      .join('\n')
-
-    // Parse brand for frosted header border
-    const brandRgb = brandColor.startsWith('#')
-      ? `${parseInt(brandColor.slice(1,3),16)}, ${parseInt(brandColor.slice(3,5),16)}, ${parseInt(brandColor.slice(5,7),16)}`
-      : '255, 255, 255'
-
-    // Make <main> transparent so the livery bg div shows through.
-    // Body gets the base color as fallback.
-    const layoutOverrides = `
-  body {
-    background: var(--bg) !important;
-  }
-  main {
-    background: transparent !important;
-  }`
-
-    const frostedHeader = `
-  header {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 50 !important;
-    backdrop-filter: blur(24px) saturate(1.6) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(1.6) !important;
-    background: ${currentTheme === 'light'
-      ? 'rgba(255, 255, 255, 0.82)'
-      : 'rgba(0, 0, 0, 0.75)'} !important;
-    border-bottom-color: ${currentTheme === 'light'
-      ? 'rgba(0, 0, 0, 0.08)'
-      : `rgba(${brandRgb}, 0.14)`} !important;
-  }
-  nav {
-    position: sticky !important;
-    top: 57px !important;
-    z-index: 49 !important;
-    backdrop-filter: blur(16px) saturate(1.4) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(1.4) !important;
-    background: ${currentTheme === 'light'
-      ? 'rgba(255, 255, 255, 0.88)'
-      : 'rgba(0, 0, 0, 0.82)'} !important;
-  }`
-
-    el.textContent = `
-${selector} {
-${vars}
-}
-${layoutOverrides}
-${frostedHeader}
-`
+    el.textContent = `${selector} {\n${vars}\n}`
 
     return () => {
       if (el) el.remove()
     }
-  }, [currentTheme, activeSet])
+  }, [currentTheme, activeSet, overrides, tokenMap])
 
-  // Render livery background as a real DOM element — pseudo-elements
-  // can't punch through <main>'s solid background.
-  const isTeamSet = activeSet !== 'default' && PALETTES[activeSet]
-  const liveryUrl = isTeamSet ? LIVERY_IMAGES[activeSet] : null
-
-  if (!liveryUrl) return null
-
-  const isLight = currentTheme === 'light'
-
-  return (
-    <div
-      aria-hidden
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 0,
-        pointerEvents: 'none',
-        backgroundImage: `url('${liveryUrl}')`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        filter: isLight
-          ? 'blur(80px) saturate(1.6) brightness(1.1)'
-          : 'blur(80px) saturate(1.4) brightness(0.35)',
-        opacity: isLight ? 0.15 : 0.4,
-      }}
-    />
-  )
+  return null
 }
