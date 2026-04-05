@@ -1,6 +1,12 @@
 @import "tailwindcss";
 
-/* K10 Motorsports — Design tokens
+/* K10 Motorsports — Fallback design tokens
+   These values are overridden by the remotely-built token CSS
+   (loaded via <link> from Vercel Blob in the root layout).
+   Keep these as fallbacks in case the blob is unavailable.
+
+   Edit tokens via the admin UI at /drive/admin/styles — not here.
+
    Palette derived from brand graphics: three-tone red chevron logomark
    on dark backgrounds with racing green/amber accents.
 

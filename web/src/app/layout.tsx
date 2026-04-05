@@ -2,6 +2,9 @@ import type { Metadata } from 'next'
 import { Barlow_Condensed, Cinzel_Decorative, JetBrains_Mono } from 'next/font/google'
 import '@/styles/globals.css'
 import { SITE_NAME, SITE_DESCRIPTION, SITE_URL } from '@/lib/constants'
+import { getTokenCssUrl } from '@/lib/tokens/get-token-css-url'
+import { getThemeFromCookie } from '@/lib/theme'
+import { ThemeScript } from '@/components/ThemeScript'
 
 const barlow = Barlow_Condensed({
   subsets: ['latin'],
@@ -48,9 +51,24 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const [tokenCssUrl, theme] = await Promise.all([
+    getTokenCssUrl(),
+    getThemeFromCookie(),
+  ])
+
   return (
-    <html lang="en" className={`${barlow.variable} ${cinzel.variable} ${jetbrains.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      data-theme={theme}
+      className={`${barlow.variable} ${cinzel.variable} ${jetbrains.variable} h-full antialiased`}
+    >
+      <head>
+        <ThemeScript />
+        {tokenCssUrl && (
+          <link rel="stylesheet" href={tokenCssUrl} />
+        )}
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   )
