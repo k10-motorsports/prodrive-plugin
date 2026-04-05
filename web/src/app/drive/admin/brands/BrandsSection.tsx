@@ -64,9 +64,10 @@ function LogoCard({ logo, onDelete, onUpdate }: { logo: LogoEntry; onDelete: (k:
         style={{ background: logo.brandColorHex ? `${logo.brandColorHex}8C` : 'var(--bg-panel)' }}
       >
         {logo.logoSvg ? (
-          <div
-            className="h-full w-full flex items-center justify-center [&_svg]:max-h-full [&_svg]:max-w-full [&_svg]:h-20 [&_svg]:w-auto"
-            dangerouslySetInnerHTML={{ __html: logo.logoSvg }}
+          <img
+            src={`data:image/svg+xml,${encodeURIComponent(logo.logoSvg)}`}
+            alt={logo.brandName}
+            className="max-h-full max-w-full h-20 w-auto"
           />
         ) : (
           <span className="text-white text-xs font-bold uppercase tracking-wider opacity-60">
