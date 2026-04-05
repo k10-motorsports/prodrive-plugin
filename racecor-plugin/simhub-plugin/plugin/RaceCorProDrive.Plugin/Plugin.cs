@@ -15,7 +15,7 @@ namespace RaceCorProDrive.Plugin
 {
     [PluginDescription("Broadcast-grade sim racing HUD with real-time telemetry, AI commentary, race strategy, WebGL effects, and HomeKit smart lighting.")]
     [PluginAuthor("K10 Motorsports")]
-    [PluginName("RaceCor.io Pro Drive")]
+    [PluginName("RaceCor Pro Drive")]
     public class Plugin : IPlugin, IDataPlugin, IWPFSettingsV2
     {
         public Settings Settings { get; private set; }
@@ -36,7 +36,6 @@ namespace RaceCorProDrive.Plugin
         private readonly TrackMapProvider _trackMap = new TrackMapProvider();
         private readonly Engine.IRacingSdkBridge _sdkBridge = new Engine.IRacingSdkBridge();
         private readonly Engine.Strategy.StrategyCoordinator _strategy = new Engine.Strategy.StrategyCoordinator();
-        private FeedbackEngine _feedback;
         private PedalProfileManager _pedalProfiles;
 
         // iRacing Data API client — reads local cookies / credentials to fetch career data
@@ -107,13 +106,6 @@ namespace RaceCorProDrive.Plugin
 
             // Load settings
             Settings = this.ReadCommonSettings<Settings>("GeneralSettings", () => new Settings());
-
-            // Initialise feedback engine
-            string feedbackPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "SimHub", "PluginsData", "RaceCorProDrive", "feedback.json");
-            _feedback = new FeedbackEngine(feedbackPath);
-            _engine.GetCooldownMultiplier = id => _feedback.GetMultiplier(id);
 
             ApplySettings();
 
