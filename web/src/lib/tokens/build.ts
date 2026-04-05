@@ -1,5 +1,5 @@
 import { db, schema } from '@/db'
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { buildCssFromTokens } from './sd-config'
 
 export interface BuildResult {
@@ -9,26 +9,44 @@ export interface BuildResult {
 }
 
 /**
- * Build CSS token files that include both dark (base) and light theme blocks.
- * Each blob contains:
- *   :root { dark/base tokens }
- *   [data-theme="light"] { light overrides }
+ * Build CSS token files for a specific theme set.
  *
- * Returns CSS strings for web and overlay platforms.
+ * Each set produces a blob containing:
+ *   :root { dark tokens = base + set dark overrides }
+ *   [data-theme="light"] { light overrides for this set }
+ *
+ * For the 'default' set with no dark overrides, dark = base design tokens.
+ * For other sets, dark = base tokens merged with set's dark overrides.
  */
-export async function buildTokens(themeId: string = 'dark'): Promise<BuildResult[]> {
+export async function buildTokens(setSlug: string = 'default'): Promise<BuildResult[]> {
   // 1. Fetch all base tokens
   const baseTokens = await db.select().from(schema.designTokens)
 
-  // 2. Fetch light theme overrides
+  // 2. Fetch dark overrides for this set (if any)
+  const darkOverrides = await db
+    .select()
+    .from(schema.themeOverrides)
+    .where(
+      and(
+        eq(schema.themeOverrides.setSlug, setSlug),
+        eq(schema.themeOverrides.themeId, 'dark')
+      )
+    )
+  const darkOverrideMap = new Map(darkOverrides.map((o) => [o.tokenPath, o.value]))
+
+  // 3. Fetch light overrides for this set
   const lightOverrides = await db
     .select()
     .from(schema.themeOverrides)
-    .where(eq(schema.themeOverrides.themeId, 'light'))
-
+    .where(
+      and(
+        eq(schema.themeOverrides.setSlug, setSlug),
+        eq(schema.themeOverrides.themeId, 'light')
+      )
+    )
   const lightOverrideMap = new Map(lightOverrides.map((o) => [o.tokenPath, o.value]))
 
-  // 3. Build for each platform
+  // 4. Build for each platform
   const results: BuildResult[] = []
 
   for (const platform of ['web', 'overlay'] as const) {
@@ -37,11 +55,16 @@ export async function buildTokens(themeId: string = 'dark'): Promise<BuildResult
       (t) => t.platforms === 'both' || t.platforms === platform
     )
 
-    // ── Dark theme (base) ──
-    const darkTokenObj = flatToNested(platformTokens)
+    // ── Dark theme = base tokens + dark overrides for this set ──
+    const resolvedDarkTokens = platformTokens.map((t) => ({
+      ...t,
+      value: darkOverrideMap.get(t.path) ?? t.value,
+    }))
+    const darkTokenObj = flatToNested(resolvedDarkTokens)
     const darkCss = buildCssFromTokens(darkTokenObj, platform, 'dark')
 
-    // ── Light theme (only overridden tokens) ──
+    // ── Light theme = only overridden tokens ──
+    // Light overrides are applied on top of the resolved dark values
     const lightTokens = platformTokens
       .filter((t) => lightOverrideMap.has(t.path))
       .map((t) => ({
@@ -57,7 +80,7 @@ export async function buildTokens(themeId: string = 'dark'): Promise<BuildResult
 
     // ── Combine into single CSS blob ──
     const parts = [
-      '/* K10 Design Tokens — Auto-generated */',
+      `/* K10 Design Tokens — Auto-generated (set: ${setSlug}) */`,
       '/* Dark theme (base) */',
       darkCss,
     ]
@@ -69,8 +92,6 @@ export async function buildTokens(themeId: string = 'dark'): Promise<BuildResult
     }
 
     const css = parts.join('\n')
-
-    // Generate hash
     const hash = generateHash(css)
 
     results.push({ platform, css, hash })

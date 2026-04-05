@@ -3,12 +3,14 @@ import { db, schema } from '@/db'
 import { eq, asc } from 'drizzle-orm'
 import { requireAdmin } from '@/lib/admin'
 
-// GET /api/admin/tokens — List all tokens + theme overrides
-export async function GET() {
+// GET /api/admin/tokens?set=default — List all tokens + theme overrides for a set
+export async function GET(request: NextRequest) {
   const session = await requireAdmin()
   if (!session) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   try {
+    const setSlug = request.nextUrl.searchParams.get('set') || 'default'
+
     const tokens = await db
       .select()
       .from(schema.designTokens)
@@ -17,15 +19,23 @@ export async function GET() {
     const overrides = await db
       .select()
       .from(schema.themeOverrides)
+      .where(eq(schema.themeOverrides.setSlug, setSlug))
 
-    return NextResponse.json({ tokens, overrides })
+    // Also return available theme sets
+    const themeSets = await db
+      .select()
+      .from(schema.themeSets)
+      .orderBy(asc(schema.themeSets.sortOrder))
+
+    return NextResponse.json({ tokens, overrides, themeSets })
   } catch (error) {
     console.error('Failed to fetch tokens:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-// POST /api/admin/tokens — Batch upsert tokens
+// POST /api/admin/tokens — Batch upsert base token values
+// These are the global base values (not per-set).
 export async function POST(request: NextRequest) {
   const session = await requireAdmin()
   if (!session) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

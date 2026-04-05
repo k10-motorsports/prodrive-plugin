@@ -8,13 +8,14 @@ import type { BuildResult } from './build'
  */
 export async function uploadTokenBuild(
   results: BuildResult[],
-  themeId: string,
+  setSlug: string = 'default',
+  themeId: string = 'dark',
   builtBy?: string // user ID
 ) {
   const uploads = []
 
   for (const result of results) {
-    const pathname = `tokens/${themeId}/${result.platform}-${result.hash}.css`
+    const pathname = `tokens/${setSlug}/${result.platform}-${result.hash}.css`
 
     // Upload to Vercel Blob
     const blob = await put(pathname, result.css, {
@@ -23,13 +24,13 @@ export async function uploadTokenBuild(
       addRandomSuffix: false,
     })
 
-    // Upsert into tokenBuilds — keep only latest per theme+platform
-    // First, try to find existing build for this theme+platform
+    // Upsert into tokenBuilds — keep only latest per set+theme+platform
     const existing = await db
       .select()
       .from(schema.tokenBuilds)
       .where(
         and(
+          eq(schema.tokenBuilds.setSlug, setSlug),
           eq(schema.tokenBuilds.themeId, themeId),
           eq(schema.tokenBuilds.platform, result.platform)
         )
@@ -57,6 +58,7 @@ export async function uploadTokenBuild(
     } else {
       // Insert new record
       await db.insert(schema.tokenBuilds).values({
+        setSlug,
         themeId,
         platform: result.platform,
         blobUrl: blob.url,

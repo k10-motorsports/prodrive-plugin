@@ -21,11 +21,20 @@ interface DesignToken {
 
 interface ThemeOverride {
   id: string
+  setSlug?: string
   themeId: string
   tokenPath: string
   value: string
   createdAt: string
   updatedAt: string
+}
+
+interface ThemeSet {
+  slug: string
+  name: string
+  description: string | null
+  liveryImage: string | null
+  sortOrder: number
 }
 
 type Tab = 'colors' | 'typography' | 'spacing' | 'timing'
@@ -412,6 +421,9 @@ export default function TokenEditor() {
   const [expandedPicker, setExpandedPicker] = useState<string | null>(null)
   const [editingTheme, setEditingTheme] = useState<Theme>('dark')
   const [lightOverrides, setLightOverrides] = useState<Map<string, string>>(new Map())
+  const [darkOverrides, setDarkOverrides] = useState<Map<string, string>>(new Map())
+  const [themeSets, setThemeSets] = useState<ThemeSet[]>([])
+  const [activeSetSlug, setActiveSetSlug] = useState<string>('default')
 
   // Detect and watch for theme changes
   useEffect(() => {
@@ -437,16 +449,16 @@ export default function TokenEditor() {
     }
   }, [])
 
-  // Fetch tokens on mount
+  // Fetch tokens on mount and when set changes
   useEffect(() => {
     fetchTokens()
-  }, [])
+  }, [activeSetSlug])
 
-  // Clear drafts when theme changes
+  // Clear drafts when theme or set changes
   useEffect(() => {
     setDrafts(new Map())
     setExpandedPicker(null)
-  }, [editingTheme])
+  }, [editingTheme, activeSetSlug])
 
   // Inject live preview styles
   useEffect(() => {
@@ -483,21 +495,27 @@ export default function TokenEditor() {
   const fetchTokens = async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/admin/tokens')
+      const res = await fetch(`/api/admin/tokens?set=${activeSetSlug}`)
       if (!res.ok) throw new Error('Failed to fetch tokens')
       const data = await res.json()
       setTokens(data.tokens)
 
-      // Parse light theme overrides
-      const overridesMap = new Map<string, string>()
+      // Parse overrides by theme
+      const lightMap = new Map<string, string>()
+      const darkMap = new Map<string, string>()
       if (data.overrides && Array.isArray(data.overrides)) {
-        data.overrides
-          .filter((o: ThemeOverride) => o.themeId === 'light')
-          .forEach((o: ThemeOverride) => {
-            overridesMap.set(o.tokenPath, o.value)
-          })
+        data.overrides.forEach((o: ThemeOverride) => {
+          if (o.themeId === 'light') lightMap.set(o.tokenPath, o.value)
+          if (o.themeId === 'dark') darkMap.set(o.tokenPath, o.value)
+        })
       }
-      setLightOverrides(overridesMap)
+      setLightOverrides(lightMap)
+      setDarkOverrides(darkMap)
+
+      // Update available theme sets
+      if (data.themeSets && Array.isArray(data.themeSets)) {
+        setThemeSets(data.themeSets)
+      }
     } catch (e) {
       setError(String(e))
     } finally {
@@ -512,9 +530,12 @@ export default function TokenEditor() {
       if (!token) return next
 
       // Determine the base value to compare against
-      const baseValue = editingTheme === 'light'
-        ? (lightOverrides.get(path) ?? token.value)
-        : token.value
+      let baseValue: string
+      if (editingTheme === 'light') {
+        baseValue = lightOverrides.get(path) ?? getResolvedDarkValue(token)
+      } else {
+        baseValue = getResolvedDarkValue(token)
+      }
 
       // If value matches base, remove draft
       if (baseValue === value) {
@@ -540,8 +561,8 @@ export default function TokenEditor() {
     setError(null)
 
     try {
-      if (editingTheme === 'dark') {
-        // Save to design_tokens table
+      if (editingTheme === 'dark' && activeSetSlug === 'default') {
+        // Default set dark changes → update base design_tokens table directly
         const tokenUpdates = Array.from(drafts.entries()).map(([path, value]) => ({
           path,
           value,
@@ -559,7 +580,7 @@ export default function TokenEditor() {
           prev.map((t) => (drafts.has(t.path) ? { ...t, value: drafts.get(t.path)! } : t))
         )
       } else {
-        // Save to theme_overrides table
+        // Non-default set dark, or any set light → save as theme overrides
         const overrideUpdates = Array.from(drafts.entries()).map(([tokenPath, value]) => ({
           tokenPath,
           value,
@@ -568,12 +589,17 @@ export default function TokenEditor() {
         const saveRes = await fetch('/api/admin/themes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ themeId: 'light', overrides: overrideUpdates }),
+          body: JSON.stringify({
+            setSlug: activeSetSlug,
+            themeId: editingTheme,
+            overrides: overrideUpdates,
+          }),
         })
         if (!saveRes.ok) throw new Error('Failed to save theme overrides')
 
-        // Update local light overrides
-        setLightOverrides((prev) => {
+        // Update local overrides
+        const setter = editingTheme === 'light' ? setLightOverrides : setDarkOverrides
+        setter((prev) => {
           const next = new Map(prev)
           Array.from(drafts.entries()).forEach(([path, value]) => {
             next.set(path, value)
@@ -582,12 +608,13 @@ export default function TokenEditor() {
         })
       }
 
-      // Trigger build
+      // Trigger build for this set
       await handleRebuild()
 
       setDrafts(new Map())
+      const setLabel = themeSets.find((s) => s.slug === activeSetSlug)?.name || activeSetSlug
       setSuccess(
-        `Saved ${drafts.size} override${drafts.size > 1 ? 's' : ''} to ${editingTheme} theme and built CSS successfully.`
+        `Saved ${drafts.size} override${drafts.size > 1 ? 's' : ''} to ${setLabel} / ${editingTheme} and built CSS.`
       )
       setTimeout(() => setSuccess(null), 4000)
 
@@ -608,12 +635,12 @@ export default function TokenEditor() {
       const buildRes = await fetch('/api/admin/tokens/build', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ themeId: editingTheme }),
+        body: JSON.stringify({ setSlug: activeSetSlug }),
       })
       if (!buildRes.ok) throw new Error('Build failed')
 
       const buildData = await buildRes.json()
-      setSuccess(`CSS rebuilt successfully. ${buildData.builds?.length || 0} platform(s) updated.`)
+      setSuccess(`CSS rebuilt for "${buildData.setSlug}". ${buildData.builds?.length || 0} platform(s) updated.`)
       setTimeout(() => setSuccess(null), 4000)
     } catch (e) {
       setError(String(e))
@@ -622,6 +649,11 @@ export default function TokenEditor() {
     }
   }
 
+  // Resolved dark value for this set = base token + set dark overrides
+  const getResolvedDarkValue = useCallback((token: DesignToken) => {
+    return darkOverrides.get(token.path) ?? token.value
+  }, [darkOverrides])
+
   // Get effective value (draft or override or original)
   const getEffectiveValue = (token: DesignToken) => {
     if (drafts.has(token.path)) {
@@ -629,15 +661,19 @@ export default function TokenEditor() {
     }
 
     if (editingTheme === 'light') {
-      return lightOverrides.get(token.path) ?? token.value
+      return lightOverrides.get(token.path) ?? getResolvedDarkValue(token)
     }
 
-    return token.value
+    // Dark theme: use set's dark override, or base token
+    return getResolvedDarkValue(token)
   }
 
   // Get dark base value for reference when editing light theme
   const getDarkBaseValue = (token: DesignToken) => {
-    return editingTheme === 'light' ? token.value : undefined
+    if (editingTheme === 'light') return getResolvedDarkValue(token)
+    // When editing dark for a non-default set, show the global base for reference
+    if (activeSetSlug !== 'default') return token.value
+    return undefined
   }
 
   // Filter tokens by tab
@@ -706,16 +742,40 @@ export default function TokenEditor() {
         </div>
       </div>
 
-      {/* Theme Indicator — full width */}
-      <div className="mb-6 p-3 rounded-md border border-[var(--border)] bg-[var(--bg-panel)]">
-        <p className="text-sm font-semibold text-[var(--text)]">
-          Editing {editingTheme === 'dark' ? 'Dark' : 'Light'} Theme Tokens
-        </p>
-        {editingTheme === 'light' && (
-          <p className="text-xs text-[var(--text-muted)] mt-1">
-            Light values override the dark base. Small text shows the dark base value for reference.
+      {/* Theme Set + Theme Indicator — full width */}
+      <div className="mb-6 p-3 rounded-md border border-[var(--border)] bg-[var(--bg-panel)] flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            Set:
+          </label>
+          <select
+            value={activeSetSlug}
+            onChange={(e) => setActiveSetSlug(e.target.value)}
+            className="px-3 py-1.5 text-sm bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded-md"
+          >
+            {themeSets.map((s) => (
+              <option key={s.slug} value={s.slug}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="h-6 w-px bg-[var(--border)]" />
+        <div>
+          <p className="text-sm font-semibold text-[var(--text)]">
+            Editing {editingTheme === 'dark' ? 'Dark' : 'Light'} Theme
+            {activeSetSlug !== 'default' && editingTheme === 'dark' && (
+              <span className="text-xs text-[var(--text-muted)] ml-2 font-normal">
+                (dark overrides on top of base tokens)
+              </span>
+            )}
           </p>
-        )}
+          {editingTheme === 'light' && (
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">
+              Light values override the resolved dark. Small text shows the dark value for reference.
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Error/Success messages */}

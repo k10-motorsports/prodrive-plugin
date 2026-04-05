@@ -142,9 +142,22 @@ export const designTokens = pgTable('design_tokens', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
-// ── Theme Overrides (light theme, future custom themes) ──
+// ── Theme Sets (named collections of dark+light overrides, e.g. F1 liveries) ──
+export const themeSets = pgTable('theme_sets', {
+  slug: varchar('slug', { length: 32 }).primaryKey(),
+  name: varchar('name', { length: 64 }).notNull(),
+  description: text('description'),
+  liveryImage: text('livery_image'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
+// ── Theme Overrides (per-set dark/light overrides on top of base tokens) ──
 export const themeOverrides = pgTable('theme_overrides', {
   id: uuid('id').defaultRandom().primaryKey(),
+  setSlug: varchar('set_slug', { length: 32 }).notNull().default('default')
+    .references(() => themeSets.slug, { onDelete: 'cascade' }),
   themeId: varchar('theme_id', { length: 32 }).notNull(),
   tokenPath: varchar('token_path', { length: 128 }).notNull()
     .references(() => designTokens.path),
@@ -152,12 +165,14 @@ export const themeOverrides = pgTable('theme_overrides', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
-  uniqueThemeToken: unique().on(table.themeId, table.tokenPath),
+  uniqueSetThemeToken: unique().on(table.setSlug, table.themeId, table.tokenPath),
 }))
 
 // ── Token Builds (tracks which built CSS files are currently live) ──
 export const tokenBuilds = pgTable('token_builds', {
   id: uuid('id').defaultRandom().primaryKey(),
+  setSlug: varchar('set_slug', { length: 32 }).notNull().default('default')
+    .references(() => themeSets.slug, { onDelete: 'cascade' }),
   themeId: varchar('theme_id', { length: 32 }).notNull(),
   platform: varchar('platform', { length: 16 }).notNull(),
   blobUrl: text('blob_url').notNull(),

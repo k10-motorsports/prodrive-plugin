@@ -1,14 +1,23 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db, schema } from '@/db'
-import { eq, desc } from 'drizzle-orm'
+import { eq, and, desc } from 'drizzle-orm'
 
-// GET /api/tokens/current — Returns latest blob URLs for active theme
-export async function GET() {
+// GET /api/tokens/current?set=default — Returns latest blob URLs for a theme set
+// The ?set param is optional; defaults to 'default' for backward compatibility.
+// Overlay doesn't need a rebuild — it just adds ?set=slug when the user picks a set.
+export async function GET(request: NextRequest) {
   try {
+    const setSlug = request.nextUrl.searchParams.get('set') || 'default'
+
     const builds = await db
       .select()
       .from(schema.tokenBuilds)
-      .where(eq(schema.tokenBuilds.themeId, 'dark')) // default theme
+      .where(
+        and(
+          eq(schema.tokenBuilds.setSlug, setSlug),
+          eq(schema.tokenBuilds.themeId, 'dark')
+        )
+      )
       .orderBy(desc(schema.tokenBuilds.builtAt))
 
     const result: Record<string, { url: string; hash: string }> = {}
