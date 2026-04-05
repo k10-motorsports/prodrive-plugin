@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 
 /**
- * Live theme set preview — injects CSS overrides + livery background + frosted header.
- * Per-team palettes derived from official brand colors (car_logos DB) and livery analysis.
+ * ThemeSetEffects — applies livery background, frosted header, and CSS var
+ * overrides whenever a non-default theme set is active.  No preview toggle;
+ * selecting a set is selecting a theme.
  *
  * Design rules (see .claude/skills/livery-theme/SKILL.md):
  *   - Dark --bg: always #000000; --bg-panel: team-hue tinted ~7% lightness
@@ -17,12 +18,10 @@ type Palette = Record<string, string>
 
 // ── Helper: generate dark + light palette from brand color + hue ──
 function makePalette(brand: string, brandDark: string, brandDeep: string, hue: number): { dark: Palette; light: Palette } {
-  // Parse brand hex to RGB for rgba() usage
   const r = parseInt(brand.slice(1, 3), 16)
   const g = parseInt(brand.slice(3, 5), 16)
   const b = parseInt(brand.slice(5, 7), 16)
 
-  // Darken brand for light mode (reduce brightness ~15%)
   const lr = Math.round(r * 0.85)
   const lg = Math.round(g * 0.85)
   const lb = Math.round(b * 0.85)
@@ -69,46 +68,19 @@ function makePalette(brand: string, brandDark: string, brandDeep: string, hue: n
 }
 
 // ── Team Palettes ──
-// Brand colors from car_logos DB or official F1 sources.
-// Hue extracted from livery image analysis.
-
-// McLaren — #FF7A00 papaya, hue 25
 const MCLAREN = makePalette('#FF7A00', '#cc6200', '#7a3a00', 25)
-
-// Ferrari — #DC0000 rosso corsa, hue 0
 const FERRARI = makePalette('#DC0000', '#a80000', '#600000', 0)
-
-// Red Bull — #1E41FF dark blue, hue 230
 const RED_BULL = makePalette('#1E41FF', '#1530cc', '#0a1a80', 230)
-
-// Mercedes — #00B89F teal, hue 170
 const MERCEDES = makePalette('#00B89F', '#008f7a', '#005548', 170)
-
-// Aston Martin — #007A4D british racing green, hue 155
 const ASTON_MARTIN = makePalette('#007A4D', '#005c3a', '#003822', 155)
-
-// Alpine — #0093CC french blue, hue 200
 const ALPINE = makePalette('#0093CC', '#00729e', '#004460', 200)
-
-// Williams — #005AFF blue, hue 220
 const WILLIAMS = makePalette('#005AFF', '#0048cc', '#002b80', 220)
-
-// RB (VCARB) — #6692FF soft blue, hue 222
 const RB = makePalette('#6692FF', '#4d74cc', '#2e4680', 222)
-
-// Haas — #B6BABD silver, hue 210
 const HAAS = makePalette('#B6BABD', '#8e9194', '#5a5c5e', 210)
-
-// Kick Sauber — #52E252 green, hue 130
 const KICK_SAUBER = makePalette('#52E252', '#3eb83e', '#256e25', 130)
-
-// Cadillac — #808080 neutral grey + gold accent from livery, hue 45
 const CADILLAC = makePalette('#C4A635', '#9e8528', '#5e4f18', 45)
-
-// Audi — #BB0A30 red, hue 350 (black/silver/red livery)
 const AUDI = makePalette('#BB0A30', '#900824', '#580516', 350)
 
-// ── Registry ──
 const PALETTES: Record<string, { dark: Palette; light: Palette }> = {
   mclaren: MCLAREN,
   ferrari: FERRARI,
@@ -139,8 +111,7 @@ const LIVERY_IMAGES: Record<string, string> = {
   audi: '/liveries/audi.webp',
 }
 
-export default function ThemePreview() {
-  const [active, setActive] = useState(false)
+export default function ThemeSetEffects() {
   const [currentTheme, setCurrentTheme] = useState<'dark' | 'light'>('dark')
   const [activeSet, setActiveSet] = useState('default')
 
@@ -167,12 +138,12 @@ export default function ThemePreview() {
     return () => window.removeEventListener('theme-set-change', onSetChange)
   }, [])
 
-  // Inject/remove preview styles
+  // Inject/remove theme styles — always active for non-default sets
   useEffect(() => {
-    const id = 'theme-set-preview'
+    const id = 'theme-set-effects'
     let el = document.getElementById(id) as HTMLStyleElement | null
 
-    if (!active || activeSet === 'default') {
+    if (activeSet === 'default') {
       if (el) el.remove()
       return
     }
@@ -204,14 +175,17 @@ export default function ThemePreview() {
     content: '';
     position: fixed;
     inset: 0;
+    z-index: -1;
     background: url('${liveryUrl}') center/cover no-repeat fixed;
     filter: blur(80px) saturate(1.6) brightness(1.1);
+    opacity: 0.15;
     pointer-events: none;
   }`
         : `body::before {
     content: '';
     position: fixed;
     inset: 0;
+    z-index: -1;
     background: url('${liveryUrl}') center/cover no-repeat fixed;
     filter: blur(80px) saturate(1.4) brightness(0.35);
     opacity: 0.40;
@@ -260,30 +234,8 @@ ${frostedHeader}
     return () => {
       if (el) el.remove()
     }
-  }, [active, currentTheme, activeSet])
+  }, [currentTheme, activeSet])
 
-  // Only show the button when a non-default set is selected
-  if (activeSet === 'default') return null
-
-  // Use the active set's brand color for button styling
-  const brandHex = PALETTES[activeSet]?.dark['--k10-red'] || 'var(--k10-red)'
-  const brandR = brandHex.startsWith('#') ? parseInt(brandHex.slice(1,3),16) : 229
-  const brandG = brandHex.startsWith('#') ? parseInt(brandHex.slice(3,5),16) : 57
-  const brandB = brandHex.startsWith('#') ? parseInt(brandHex.slice(5,7),16) : 53
-
-  return (
-    <button
-      onClick={() => setActive(!active)}
-      className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-md border transition-all"
-      style={{
-        borderColor: active ? brandHex : 'var(--border)',
-        color: active ? brandHex : 'var(--text-secondary)',
-        background: active ? `rgba(${brandR}, ${brandG}, ${brandB}, 0.10)` : 'var(--bg-panel)',
-        boxShadow: active ? `0 0 12px rgba(${brandR}, ${brandG}, ${brandB}, 0.15)` : 'none',
-      }}
-      title={active ? 'Disable theme preview' : 'Preview active theme set'}
-    >
-      {active ? '■ Preview' : '▶ Preview'}
-    </button>
-  )
+  // This component is invisible — it only injects styles
+  return null
 }
