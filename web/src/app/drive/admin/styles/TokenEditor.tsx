@@ -772,7 +772,12 @@ export default function TokenEditor() {
           <p className="text-xs text-[var(--text-muted)]">
             Light values override the resolved dark. Small text shows the dark value for reference.
           </p>
-        )}
+          {editingTheme === 'light' && (
+            <p className="text-xs text-[var(--text-muted)] mt-0.5">
+              Light values override the resolved dark. Small text shows the dark value for reference.
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Error/Success messages */}
