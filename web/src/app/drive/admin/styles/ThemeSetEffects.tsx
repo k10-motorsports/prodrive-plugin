@@ -3,43 +3,17 @@
 import { useState, useEffect, useCallback } from 'react'
 
 /**
- * ThemeSetEffects — injects CSS variable overrides for the active theme set.
- * Reads overrides from the DB via API (not hardcoded palettes), so edits
- * in the token editor are reflected immediately after save.
+ * ThemeSetEffects — loads the built CSS for the active theme set via a
+ * dynamic <link> tag.  After a rebuild the TokenEditor dispatches
+ * `theme-css-rebuilt` with the new blob URL and we swap the link immediately.
  *
- * Listens for:
- *   - `theme-set-change` (from ThemeSetSelector) — switches active set
- *   - `theme-overrides-updated` (from TokenEditor) — refetches after save
+ * This replaces the old approach of injecting inline CSS overrides.
+ * The single <link> carries every token for the set (dark + light).
  */
 
-interface Override {
-  themeId: string
-  tokenPath: string
-  value: string
-}
-
-interface DesignToken {
-  path: string
-  cssProperty: string
-}
-
 export default function ThemeSetEffects() {
-  const [currentTheme, setCurrentTheme] = useState<'dark' | 'light'>('dark')
   const [activeSet, setActiveSet] = useState('default')
-  const [overrides, setOverrides] = useState<Override[]>([])
-  const [tokenMap, setTokenMap] = useState<Map<string, string>>(new Map()) // path → cssProperty
-
-  // Watch dark/light toggle
-  useEffect(() => {
-    const check = () => {
-      const t = document.documentElement.getAttribute('data-theme')
-      setCurrentTheme(t === 'light' ? 'light' : 'dark')
-    }
-    check()
-    const obs = new MutationObserver(check)
-    obs.observe(document.documentElement, { attributes: true })
-    return () => obs.disconnect()
-  }, [])
+  const [cssUrl, setCssUrl] = useState<string | null>(null)
 
   // Watch set selector
   useEffect(() => {
@@ -52,93 +26,59 @@ export default function ThemeSetEffects() {
     return () => window.removeEventListener('theme-set-change', onSetChange)
   }, [])
 
-  // Fetch overrides from DB
-  const fetchOverrides = useCallback(async (slug: string) => {
-    if (slug === 'default') {
-      setOverrides([])
-      setTokenMap(new Map())
-      return
-    }
+  // Fetch the current built CSS URL for this set
+  const fetchCssUrl = useCallback(async (slug: string) => {
     try {
-      const res = await fetch(`/api/admin/tokens?set=${slug}`)
-      if (!res.ok) return
+      const res = await fetch(`/api/admin/tokens/css-url?set=${slug}`)
+      if (!res.ok) { setCssUrl(null); return }
       const data = await res.json()
-
-      // Build path → cssProperty map from tokens
-      const map = new Map<string, string>()
-      if (data.tokens) {
-        data.tokens.forEach((t: DesignToken) => map.set(t.path, t.cssProperty))
-      }
-      setTokenMap(map)
-      setOverrides(data.overrides || [])
+      setCssUrl(data.url || null)
     } catch {
-      // Silently fail — the page still works without overrides
+      setCssUrl(null)
     }
   }, [])
 
-  // Fetch when set changes
+  // Fetch on set change
   useEffect(() => {
-    fetchOverrides(activeSet)
-  }, [activeSet, fetchOverrides])
+    fetchCssUrl(activeSet)
+  }, [activeSet, fetchCssUrl])
 
-  // Refetch when TokenEditor saves
+  // Listen for rebuilds — TokenEditor sends the new URL directly
   useEffect(() => {
-    const onUpdated = () => {
-      fetchOverrides(activeSet)
+    const onRebuilt = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      // Only apply if the rebuilt set matches our active set
+      if (detail?.setSlug === activeSet && detail?.cssUrl) {
+        setCssUrl(detail.cssUrl)
+      } else if (detail?.setSlug === activeSet) {
+        // Refetch if no URL provided
+        fetchCssUrl(activeSet)
+      }
     }
-    window.addEventListener('theme-overrides-updated', onUpdated)
-    return () => window.removeEventListener('theme-overrides-updated', onUpdated)
-  }, [activeSet, fetchOverrides])
+    window.addEventListener('theme-css-rebuilt', onRebuilt)
+    return () => window.removeEventListener('theme-css-rebuilt', onRebuilt)
+  }, [activeSet, fetchCssUrl])
 
-  // Inject CSS overrides
+  // Inject/update <link> tag
   useEffect(() => {
-    const id = 'theme-set-effects'
-    let el = document.getElementById(id) as HTMLStyleElement | null
+    const id = 'theme-set-css'
+    let link = document.getElementById(id) as HTMLLinkElement | null
 
-    if (activeSet === 'default' || overrides.length === 0) {
-      if (el) el.remove()
+    if (!cssUrl) {
+      if (link) link.remove()
       return
     }
 
-    if (!el) {
-      el = document.createElement('style')
-      el.id = id
-      document.head.appendChild(el)
+    if (!link) {
+      link = document.createElement('link')
+      link.id = id
+      link.rel = 'stylesheet'
+      document.head.appendChild(link)
     }
 
-    // Filter overrides for the current theme (dark or light)
-    // For dark: use dark overrides
-    // For light: merge dark overrides (as base) + light overrides on top
-    const darkOverrides = new Map<string, string>()
-    const lightOverrides = new Map<string, string>()
-    overrides.forEach((o) => {
-      if (o.themeId === 'dark') darkOverrides.set(o.tokenPath, o.value)
-      if (o.themeId === 'light') lightOverrides.set(o.tokenPath, o.value)
-    })
-
-    const activeOverrides = currentTheme === 'light' ? lightOverrides : darkOverrides
-    const selector = currentTheme === 'light' ? '[data-theme="light"]' : ':root'
-
-    const vars = Array.from(activeOverrides.entries())
-      .map(([path, value]) => {
-        const cssProperty = tokenMap.get(path)
-        if (!cssProperty) return ''
-        return `  ${cssProperty}: ${value} !important;`
-      })
-      .filter(Boolean)
-      .join('\n')
-
-    if (!vars) {
-      if (el) el.remove()
-      return
-    }
-
-    el.textContent = `${selector} {\n${vars}\n}`
-
-    return () => {
-      if (el) el.remove()
-    }
-  }, [currentTheme, activeSet, overrides, tokenMap])
+    // Cache-bust to force reload after rebuild
+    link.href = cssUrl.includes('?') ? cssUrl + '&t=' + Date.now() : cssUrl + '?t=' + Date.now()
+  }, [cssUrl])
 
   return null
 }

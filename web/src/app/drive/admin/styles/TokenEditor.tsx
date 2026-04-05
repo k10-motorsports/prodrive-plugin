@@ -634,9 +634,6 @@ export default function TokenEditor() {
 
       // Refetch tokens to get updated values
       await fetchTokens()
-
-      // Notify ThemeSetEffects to refetch overrides from DB
-      window.dispatchEvent(new CustomEvent('theme-overrides-updated'))
     } catch (e) {
       setError(String(e))
     } finally {
@@ -657,6 +654,13 @@ export default function TokenEditor() {
       if (!buildRes.ok) throw new Error('Build failed')
 
       const buildData = await buildRes.json()
+
+      // Find the web platform build URL and tell ThemeSetEffects to load it
+      const webBuild = buildData.builds?.find((b: { platform: string; url: string }) => b.platform === 'web')
+      window.dispatchEvent(new CustomEvent('theme-css-rebuilt', {
+        detail: { setSlug: activeSetSlug, cssUrl: webBuild?.url || null },
+      }))
+
       setSuccess(`CSS rebuilt for "${buildData.setSlug}". ${buildData.builds?.length || 0} platform(s) updated.`)
       setTimeout(() => setSuccess(null), 4000)
     } catch (e) {
