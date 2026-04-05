@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { SearchFilterBar } from '@/app/drive/admin/components'
+import { SearchFilterBar } from '@web/app/drive/admin/components'
 
 const meta: Meta<typeof SearchFilterBar> = {
   title: 'Admin/SearchFilterBar',

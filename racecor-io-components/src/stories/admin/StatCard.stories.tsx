@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { StatCard } from '@/app/drive/admin/components'
+import { StatCard } from '@web/app/drive/admin/components'
 
 const meta: Meta<typeof StatCard> = {
   title: 'Admin/StatCard',

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { GameBadge } from '@/app/drive/admin/components'
+import { GameBadge } from '@web/app/drive/admin/components'
 
 const meta: Meta<typeof GameBadge> = {
   title: 'Admin/GameBadge',

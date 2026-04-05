@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import IRatingSparkline from '@/app/drive/dashboard/IRatingSparkline'
+import IRatingSparkline from '@web/app/drive/dashboard/IRatingSparkline'
 
 const meta: Meta<typeof IRatingSparkline> = {
   title: 'Dashboard/IRatingSparkline',
