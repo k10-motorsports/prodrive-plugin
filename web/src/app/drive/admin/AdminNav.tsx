@@ -21,7 +21,7 @@ export default function AdminNav() {
   ]
 
   const toolItems: NavItem[] = [
-    { href: '/drive/admin/styles', label: 'Styles' },
+    { href: '/drive/admin/styles', label: 'Tokens' },
     { href: '/drive/admin/components', label: 'Components' },
     { href: 'http://localhost:6006', label: 'Storybook', external: true },
   ]

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { requireAdmin } from '@/lib/admin'
 import AdminNav from './AdminNav'
 import ThemeToggle from '@/components/ThemeToggle'
+import LogoMark from '@/components/LogoMark'
 
 export const metadata = {
   title: 'Admin — RaceCor.io Pro Drive',
@@ -21,8 +22,9 @@ export default async function AdminLayout({
     <main className="min-h-screen bg-[var(--bg)]">
       <header className="border-b border-[var(--border)] px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <a href="/drive/dashboard" className="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors text-sm">
-            &larr; Dashboard
+          <a href="/drive/dashboard" className="flex items-center gap-3 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors text-sm">
+            <LogoMark className="h-7 w-auto opacity-80" />
+            <span>&larr; Dashboard</span>
           </a>
           <span className="text-[var(--border)]">/</span>
           <span className="text-sm font-bold tracking-wider uppercase text-[var(--k10-red)]">Admin</span>
@@ -38,7 +40,7 @@ export default async function AdminLayout({
         <AdminNav />
       </nav>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-[120rem] mx-auto px-6 py-8">
         {children}
       </div>
     </main>

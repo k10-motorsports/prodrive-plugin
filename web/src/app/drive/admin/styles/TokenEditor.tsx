@@ -36,6 +36,26 @@ function isHexColor(value: string): boolean {
   return /^#([a-fA-F0-9]{6}|[a-fA-F0-9]{8})$/.test(value)
 }
 
+// Convert any CSS color string to a 6-digit hex for the color picker.
+// Uses a hidden canvas to let the browser parse the color natively.
+let _colorCtx: CanvasRenderingContext2D | null = null
+function cssColorToHex(value: string): string | null {
+  if (typeof document === 'undefined') return null
+  if (!_colorCtx) {
+    const canvas = document.createElement('canvas')
+    canvas.width = 1
+    canvas.height = 1
+    _colorCtx = canvas.getContext('2d')
+  }
+  if (!_colorCtx) return null
+  _colorCtx.clearRect(0, 0, 1, 1)
+  _colorCtx.fillStyle = '#000000' // reset
+  _colorCtx.fillStyle = value     // let browser parse
+  _colorCtx.fillRect(0, 0, 1, 1)
+  const [r, g, b] = _colorCtx.getImageData(0, 0, 1, 1).data
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+}
+
 // Helper to extract numeric value from size strings like "16px"
 function parseSizeValue(value: string): number {
   const match = value.match(/^(\d+(?:\.\d+)?)/)
@@ -161,7 +181,9 @@ function ColorEditor({
   onUpdate: (value: string) => void
   darkBaseValue?: string
 }) {
+  // Convert any CSS color to hex so the picker always works
   const isHex = isHexColor(effectiveValue)
+  const pickerHex = isHex ? effectiveValue : cssColorToHex(effectiveValue)
 
   return (
     <>
@@ -174,9 +196,9 @@ function ColorEditor({
       </div>
       {isExpanded && (
         <div className="mt-3 p-3 bg-[var(--bg-panel)] rounded-md border border-[var(--border)]">
-          {isHex && (
+          {pickerHex && (
             <div className="mb-3">
-              <HexColorPicker color={effectiveValue} onChange={onUpdate} />
+              <HexColorPicker color={pickerHex} onChange={onUpdate} />
             </div>
           )}
           <div>
@@ -648,82 +670,73 @@ export default function TokenEditor() {
   }
 
   return (
-    <div className="flex h-screen gap-0">
-      {/* Left: Live Preview Panel (50% width) */}
-      <div
-        className="w-1/2 overflow-y-auto border-r border-[var(--border)]"
-        style={{ maxHeight: 'calc(100vh - 100px)' }}
-      >
-        <div className="p-6">
-          <PreviewPanel />
+    <div>
+      {/* Header — spans full width above both columns */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-wide uppercase text-[var(--text)]">
+            Token Editor
+          </h1>
+          <p className="text-sm text-[var(--text-muted)] mt-1">
+            Edit design tokens — changes preview live and deploy to both web and overlay.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {drafts.size > 0 && (
+            <>
+              <span className="text-sm text-[var(--amber)]">
+                {drafts.size} unsaved change{drafts.size > 1 ? 's' : ''}
+              </span>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="px-4 py-2 bg-[var(--green)] text-white text-sm font-bold uppercase tracking-wider rounded-md hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {saving ? 'Building...' : 'Save & Build'}
+              </button>
+            </>
+          )}
+          <button
+            onClick={handleRebuild}
+            disabled={saving}
+            className="px-4 py-2 border border-[var(--border)] text-[var(--text-secondary)] text-sm font-bold uppercase tracking-wider rounded-md hover:border-[var(--border-accent)] transition-colors disabled:opacity-50"
+          >
+            {saving ? 'Building...' : 'Rebuild CSS'}
+          </button>
         </div>
       </div>
 
-      {/* Right: Token Editor (50% width) */}
-      <div
-        className="w-1/2 overflow-y-auto"
-        style={{ maxHeight: 'calc(100vh - 100px)' }}
-      >
-        <div className="p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-2xl font-bold tracking-wide uppercase text-[var(--text)]">
-                Token Editor
-              </h1>
-              <p className="text-sm text-[var(--text-muted)] mt-1">
-                Edit design tokens — changes preview live and deploy to both web and overlay.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {drafts.size > 0 && (
-                <>
-                  <span className="text-sm text-[var(--amber)]">
-                    {drafts.size} unsaved change{drafts.size > 1 ? 's' : ''}
-                  </span>
-                  <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="px-4 py-2 bg-[var(--green)] text-white text-sm font-bold uppercase tracking-wider rounded-md hover:opacity-90 transition-opacity disabled:opacity-50"
-                  >
-                    {saving ? 'Building...' : 'Save & Build'}
-                  </button>
-                </>
-              )}
-              <button
-                onClick={handleRebuild}
-                disabled={saving}
-                className="px-4 py-2 border border-[var(--border)] text-[var(--text-secondary)] text-sm font-bold uppercase tracking-wider rounded-md hover:border-[var(--border-accent)] transition-colors disabled:opacity-50"
-              >
-                {saving ? 'Building...' : 'Rebuild CSS'}
-              </button>
-            </div>
-          </div>
+      {/* Theme Indicator — full width */}
+      <div className="mb-6 p-3 rounded-md border border-[var(--border)] bg-[var(--bg-panel)]">
+        <p className="text-sm font-semibold text-[var(--text)]">
+          Editing {editingTheme === 'dark' ? 'Dark' : 'Light'} Theme Tokens
+        </p>
+        {editingTheme === 'light' && (
+          <p className="text-xs text-[var(--text-muted)] mt-1">
+            Light values override the dark base. Small text shows the dark base value for reference.
+          </p>
+        )}
+      </div>
 
-          {/* Theme Indicator */}
-          <div className="mb-6 p-3 rounded-md border border-[var(--border)] bg-[var(--bg-panel)]">
-            <p className="text-sm font-semibold text-[var(--text)]">
-              Editing {editingTheme === 'dark' ? 'Dark' : 'Light'} Theme Tokens
-            </p>
-            {editingTheme === 'light' && (
-              <p className="text-xs text-[var(--text-muted)] mt-1">
-                Light values override the dark base. Small text shows the dark base value for reference.
-              </p>
-            )}
-          </div>
+      {/* Error/Success messages */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-900 text-red-100 rounded-md border border-red-700">
+          <p className="text-sm">{error}</p>
+        </div>
+      )}
+      {success && (
+        <div className="mb-4 p-3 bg-green-900 text-green-100 rounded-md border border-green-700">
+          <p className="text-sm">{success}</p>
+        </div>
+      )}
 
-          {/* Error/Success messages */}
-          {error && (
-            <div className="mb-4 p-3 bg-red-900 text-red-100 rounded-md border border-red-700">
-              <p className="text-sm">{error}</p>
-            </div>
-          )}
-          {success && (
-            <div className="mb-4 p-3 bg-green-900 text-green-100 rounded-md border border-green-700">
-              <p className="text-sm">{success}</p>
-            </div>
-          )}
-
+      {/* Two-column layout: Editor (3fr) | Preview (6fr) */}
+      <div className="flex gap-6 items-start">
+        {/* Left: Token Editor (1/3 width) */}
+        <div
+          className="w-4/12 min-w-0 overflow-y-auto"
+          style={{ maxHeight: 'calc(100vh - 260px)' }}
+        >
           {/* Tabs */}
           <div className="mb-6 flex gap-2 border-b border-[var(--border)]">
             {(['colors', 'typography', 'spacing', 'timing'] as const).map((tab) => (
@@ -849,6 +862,14 @@ export default function TokenEditor() {
 
           {/* WCAG Contrast (only on colors tab) */}
           {activeTab === 'colors' && <ContrastChecker tokens={tokens} drafts={drafts} />}
+        </div>
+
+        {/* Right: Live Preview (2/3 width) */}
+        <div
+          className="w-8/12 min-w-0 sticky top-6 overflow-y-auto rounded-lg border-2 border-dashed border-[var(--border-accent)] bg-[var(--bg-surface)] p-6"
+          style={{ maxHeight: 'calc(100vh - 260px)' }}
+        >
+          <PreviewPanel />
         </div>
       </div>
     </div>

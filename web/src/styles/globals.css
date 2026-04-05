@@ -119,6 +119,12 @@ body {
 [data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.12); }
 [data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.2); }
 
+/* Theme-aware logo switching */
+.logo-dark { display: block; }
+.logo-light { display: none; }
+[data-theme="light"] .logo-dark { display: none; }
+[data-theme="light"] .logo-light { display: block; }
+
 /* Links — default to inherit; only apply purple where no explicit color is set.
    Using @layer base so Tailwind utilities (text-white, etc.) always win. */
 @layer base {

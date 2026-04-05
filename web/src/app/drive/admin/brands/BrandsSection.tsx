@@ -123,7 +123,7 @@ function LogoCard({ logo, onDelete, onUpdate }: { logo: LogoEntry; onDelete: (k:
   )
 }
 
-function MissingLogoCard({ brand, onUploaded }: { brand: MissingBrand; onUploaded: () => void }) {
+function MissingLogoRow({ brand, onUploaded }: { brand: MissingBrand; onUploaded: () => void }) {
   const [uploading, setUploading] = useState(false)
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null)
   const fileInputId = `logo-upload-${brand.brandKey}`
@@ -178,45 +178,44 @@ function MissingLogoCard({ brand, onUploaded }: { brand: MissingBrand; onUploade
   }
 
   return (
-    <div className="border border-dashed border-[var(--border)] rounded-lg p-3 bg-[var(--bg-surface)] hover:border-[var(--border-accent)] transition-colors">
-      {/* Header */}
-      <div className="flex justify-between items-start mb-2">
-        <div className="min-w-0">
-          <h3 className="text-2xl font-bold text-[var(--text)] truncate">{brand.brandName}</h3>
-          <p className="text-[14px] text-[var(--text-muted)] font-mono">{brand.brandKey}</p>
-        </div>
-        <div className="flex gap-1 shrink-0 ml-2">
+    <tr className="border-t border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)] transition-colors">
+      <td className="px-3 py-2">
+        <div
+          className="w-6 h-6 rounded-sm border border-[var(--border)]"
+          style={{ background: brand.defaultColor }}
+          title={brand.defaultColor}
+        />
+      </td>
+      <td className="px-3 py-2">
+        <span className="text-[var(--text)] font-medium text-xs block">{brand.brandName}</span>
+        <span className="text-[var(--text-dim)] font-mono text-[10px]">{brand.brandKey}</span>
+      </td>
+      <td className="px-3 py-2">
+        <div className="flex gap-1">
           {brand.games.map(g => <GameBadge key={g} game={g} />)}
         </div>
-      </div>
-
-      {/* Empty preview with brand color bg */}
-      <div
-        className="rounded border border-[var(--border-subtle)] p-4 mb-2 flex items-center justify-center h-32"
-        style={{ background: `${brand.defaultColor}8C` }}
-      >
-        <span className="text-white/40 text-xs font-bold uppercase tracking-wider">No logo</span>
-      </div>
-
-      {/* Upload button */}
-      <input
-        id={fileInputId}
-        type="file"
-        accept=".svg,.png,image/svg+xml,image/png"
-        onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
-        className="hidden"
-      />
-      <button
-        onClick={() => document.getElementById(fileInputId)?.click()}
-        disabled={uploading}
-        className="w-full px-3 py-1.5 text-xs font-medium uppercase tracking-wide bg-[var(--k10-red)] text-white rounded hover:brightness-110 transition-all disabled:opacity-50 cursor-pointer"
-      >
-        {uploading ? 'Uploading...' : 'Upload Logo'}
-      </button>
-      {result && (
-        <p className={`text-[14px] mt-1 ${result.ok ? 'text-[var(--green)]' : 'text-red-400'}`}>{result.message}</p>
-      )}
-    </div>
+      </td>
+      <td className="px-3 py-2">
+        <input
+          id={fileInputId}
+          type="file"
+          accept=".svg,.png,image/svg+xml,image/png"
+          onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
+          className="hidden"
+        />
+        {result ? (
+          <span className={`text-[10px] ${result.ok ? 'text-[var(--green)]' : 'text-red-400'}`}>{result.message}</span>
+        ) : (
+          <button
+            onClick={() => document.getElementById(fileInputId)?.click()}
+            disabled={uploading}
+            className="px-2 py-1 text-[10px] font-medium uppercase tracking-wide bg-[var(--k10-red)] text-white rounded hover:brightness-110 transition-all disabled:opacity-50 cursor-pointer whitespace-nowrap"
+          >
+            {uploading ? '...' : 'Upload'}
+          </button>
+        )}
+      </td>
+    </tr>
   )
 }
 
@@ -252,38 +251,74 @@ export default function BrandsSection() {
 
   return (
     <div>
-      <SearchFilterBar search={search} onSearch={setSearch} game={game} onGame={setGame} sort={sort} onSort={setSort} />
-
-      <h2 className="text-lg font-bold tracking-wide uppercase text-[var(--text-secondary)] mb-4">
-        Uploaded Logos ({logos.length})
-      </h2>
-
-      {loading && <p className="text-[var(--text-muted)] text-sm">Loading...</p>}
-      {error && <p className="text-red-400 text-sm">{error}</p>}
-
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-        {logos.map(logo => (
-          <LogoCard key={logo.id} logo={logo} onDelete={() => {}} onUpdate={fetchLogos} />
-        ))}
+      {/* Header — full width above both columns */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-wide uppercase text-[var(--text)]">
+            Car Brands
+          </h1>
+          <p className="text-sm text-[var(--text-muted)] mt-1">
+            Manage brand logos and colors for the leaderboard overlay.
+          </p>
+        </div>
+        <span className="text-sm text-[var(--text-dim)]">
+          {logos.length} logo{logos.length !== 1 ? 's' : ''}{missing.length > 0 && ` · ${missing.length} missing`}
+        </span>
       </div>
 
-      {!loading && logos.length === 0 && (
-        <p className="text-[var(--text-muted)] text-sm text-center py-6">No logos uploaded yet.</p>
-      )}
+      {loading && <p className="text-[var(--text-muted)] text-sm mb-4">Loading...</p>}
+      {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
 
-      {/* Missing logos as cards */}
-      {missing.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-lg font-bold tracking-wide uppercase text-[var(--text-secondary)] mb-4">
-            Missing Logos ({missing.length})
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {missing.map(b => (
-              <MissingLogoCard key={b.brandKey} brand={b} onUploaded={fetchLogos} />
+      {/* Two-column layout: Missing/upload (narrow left) | Uploaded logos (wide right) */}
+      <div className="flex gap-6 items-start">
+        {/* Left: Missing logos with upload buttons (1/3 width) */}
+        <div className="w-4/12 min-w-0 sticky top-6">
+          {missing.length > 0 ? (
+            <>
+              <h2 className="text-sm font-bold tracking-wide uppercase text-[var(--text-secondary)] mb-3">
+                Missing Logos ({missing.length})
+              </h2>
+              <div className="border border-[var(--border)] rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[var(--bg-surface)] text-[var(--text-muted)] text-xs uppercase tracking-wider">
+                      <th className="text-left px-3 py-2 w-8"></th>
+                      <th className="text-left px-3 py-2">Brand</th>
+                      <th className="text-left px-3 py-2">Games</th>
+                      <th className="text-left px-3 py-2 w-16"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {missing.map(b => (
+                      <MissingLogoRow key={b.brandKey} brand={b} onUploaded={fetchLogos} />
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            <div className="border border-[var(--border)] rounded-lg p-5 bg-[var(--bg-surface)] text-center">
+              <p className="text-sm text-[var(--green)] font-semibold uppercase tracking-wider">All logos uploaded</p>
+              <p className="text-xs text-[var(--text-muted)] mt-1">Every known brand has artwork.</p>
+            </div>
+          )}
+        </div>
+
+        {/* Right: Uploaded logos grid (2/3 width) */}
+        <div className="w-8/12 min-w-0">
+          <SearchFilterBar search={search} onSearch={setSearch} game={game} onGame={setGame} sort={sort} onSort={setSort} />
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {logos.map(logo => (
+              <LogoCard key={logo.id} logo={logo} onDelete={() => {}} onUpdate={fetchLogos} />
             ))}
           </div>
+
+          {!loading && logos.length === 0 && (
+            <p className="text-[var(--text-muted)] text-sm text-center py-8">No logos uploaded yet.</p>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }

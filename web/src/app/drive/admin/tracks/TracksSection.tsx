@@ -289,61 +289,82 @@ export default function TracksSection() {
 
   return (
     <div>
-      <UploadForm onUploaded={fetchTracks} />
-
-      <div className="mt-8">
-        <SearchFilterBar search={search} onSearch={setSearch} game={game} onGame={setGame} sort={sort} onSort={setSort} />
-      </div>
-
-      <h2 className="text-lg font-bold tracking-wide uppercase text-[var(--text-secondary)] mb-4">
-        Track Maps ({tracks.length})
-      </h2>
-
-      {loading && <p className="text-[var(--text-muted)] text-sm">Loading...</p>}
-      {error && <p className="text-red-400 text-sm">{error}</p>}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {tracks.map(track => (
-          <TrackCard key={track.id} track={track} onDelete={deleteTrack} deleting={deleting} onUpdate={fetchTracks} />
-        ))}
-      </div>
-
-      {!loading && tracks.length === 0 && (
-        <p className="text-[var(--text-muted)] text-sm text-center py-8">No track maps match your filters.</p>
-      )}
-
-      {/* Missing tracks */}
-      {missing.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-lg font-bold tracking-wide uppercase text-[var(--text-secondary)] mb-4">
-            Missing Track Maps ({missing.length})
-          </h2>
-          <div className="border border-[var(--border)] rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-[var(--bg-surface)] text-[var(--text-muted)] text-xs uppercase tracking-wider">
-                  <th className="text-left px-4 py-3">Track</th>
-                  <th className="text-left px-4 py-3">ID</th>
-                  <th className="text-left px-4 py-3">Games</th>
-                </tr>
-              </thead>
-              <tbody>
-                {missing.map(t => (
-                  <tr key={t.trackId} className="border-t border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)] transition-colors">
-                    <td className="px-4 py-3 text-[var(--text)] font-medium">{t.name}</td>
-                    <td className="px-4 py-3 text-[var(--text-dim)] font-mono text-xs">{t.trackId}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-1">
-                        {t.games.map(g => <GameBadge key={g} game={g} />)}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {/* Header — full width above both columns */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-wide uppercase text-[var(--text)]">
+            Track Maps
+          </h1>
+          <p className="text-sm text-[var(--text-muted)] mt-1">
+            Upload CSV track data and manage SVG track maps for the overlay.
+          </p>
         </div>
-      )}
+        <span className="text-sm text-[var(--text-dim)]">
+          {tracks.length} track{tracks.length !== 1 ? 's' : ''}{missing.length > 0 && ` · ${missing.length} missing`}
+        </span>
+      </div>
+
+      {loading && <p className="text-[var(--text-muted)] text-sm mb-4">Loading...</p>}
+      {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
+
+      {/* Two-column layout: Upload (narrow left) | Track list (wide right) */}
+      <div className="flex gap-6 items-start">
+        {/* Left: Upload interface (1/3 width) */}
+        <div
+          className="w-4/12 min-w-0 sticky top-6"
+        >
+          <UploadForm onUploaded={fetchTracks} />
+
+          {/* Missing tracks */}
+          {missing.length > 0 && (
+            <div className="mt-6">
+              <h2 className="text-sm font-bold tracking-wide uppercase text-[var(--text-secondary)] mb-3">
+                Missing Track Maps ({missing.length})
+              </h2>
+              <div className="border border-[var(--border)] rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[var(--bg-surface)] text-[var(--text-muted)] text-xs uppercase tracking-wider">
+                      <th className="text-left px-3 py-2">Track</th>
+                      <th className="text-left px-3 py-2">Games</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {missing.map(t => (
+                      <tr key={t.trackId} className="border-t border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)] transition-colors">
+                        <td className="px-3 py-2">
+                          <span className="text-[var(--text)] font-medium text-xs block">{t.name}</span>
+                          <span className="text-[var(--text-dim)] font-mono text-[10px]">{t.trackId}</span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex gap-1">
+                            {t.games.map(g => <GameBadge key={g} game={g} />)}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right: Track list (2/3 width) */}
+        <div className="w-8/12 min-w-0">
+          <SearchFilterBar search={search} onSearch={setSearch} game={game} onGame={setGame} sort={sort} onSort={setSort} />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {tracks.map(track => (
+              <TrackCard key={track.id} track={track} onDelete={deleteTrack} deleting={deleting} onUpdate={fetchTracks} />
+            ))}
+          </div>
+
+          {!loading && tracks.length === 0 && (
+            <p className="text-[var(--text-muted)] text-sm text-center py-8">No track maps match your filters.</p>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

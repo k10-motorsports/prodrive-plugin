@@ -1,4 +1,5 @@
 import { RACECOR_NAME, DRIVE_URL, K10_NAME, K10_URL } from '@/lib/constants'
+import LogoMark from '@/components/LogoMark'
 import { TelemetryStatus } from '@/components/telemetry/TelemetryStatus'
 import { DashboardEmbed } from '@/components/telemetry/DashboardEmbed'
 import { FeatureShowcase } from '@/components/telemetry/FeatureShowcase'
@@ -12,11 +13,7 @@ export default async function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-b from-[var(--k10-red-dark)]/20 via-[var(--k10-red)]/5 to-transparent pointer-events-none" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-[var(--k10-red)]/[0.04] blur-3xl pointer-events-none" />
 
-        <img
-          src="/branding/racecor-logomark-white.svg"
-          alt=""
-          className="h-20 w-auto mb-8 relative z-10"
-        />
+        <LogoMark className="h-20 w-auto mb-8 relative z-10" />
         <h1 className="font-[var(--ff-display)] text-[48px] font-bold tracking-tight leading-none mb-4 relative z-10" style={{ fontFamily: 'var(--ff-display)' }}>
           {RACECOR_NAME}
         </h1>
@@ -86,7 +83,7 @@ export default async function HomePage() {
       <footer className="mt-auto px-6 py-8 border-t border-[var(--border-subtle)]">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/branding/racecor-logomark-white.svg" alt="" className="h-5 w-auto opacity-40" />
+            <LogoMark className="h-5 w-auto opacity-40" />
             <span className="text-xs text-[var(--text-muted)]">{RACECOR_NAME} — Built by Kevin Conboy</span>
           </div>
           <div className="flex items-center gap-4">
