@@ -118,6 +118,64 @@ function TrackCard({ track, onDelete, deleting, onUpdate }: {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [savingSectors, setSavingSectors] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [logoResult, setLogoResult] = useState<string | null>(null)
+  const logoInputId = `track-logo-${track.trackId}`
+
+  const handleLogoFile = async (file: File) => {
+    let logoSvg = ''
+    let logoPng = ''
+
+    if (file.type === 'image/svg+xml' || file.name.endsWith('.svg')) {
+      logoSvg = await file.text()
+    } else if (file.type === 'image/png' || file.name.endsWith('.png')) {
+      if (file.size > 2 * 1024 * 1024) { setLogoResult('PNG must be under 2MB'); return }
+      const dataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader()
+        reader.onload = (ev) => resolve(ev.target?.result as string || '')
+        reader.readAsDataURL(file)
+      })
+      logoPng = dataUrl.split(',')[1] || ''
+    } else {
+      setLogoResult('SVG or PNG only'); return
+    }
+
+    setUploadingLogo(true)
+    setLogoResult(null)
+    try {
+      const body: Record<string, string> = { trackId: track.trackId }
+      if (logoSvg) body.logoSvg = logoSvg
+      if (logoPng) body.logoPng = logoPng
+      const res = await fetch('/api/admin/tracks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!res.ok) throw new Error('Upload failed')
+      onUpdate()
+    } catch {
+      setLogoResult('Upload failed')
+    } finally {
+      setUploadingLogo(false)
+    }
+  }
+
+  const clearLogo = async () => {
+    setUploadingLogo(true)
+    try {
+      const res = await fetch('/api/admin/tracks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trackId: track.trackId, clearLogo: true }),
+      })
+      if (!res.ok) throw new Error('Clear failed')
+      onUpdate()
+    } catch {
+      setLogoResult('Clear failed')
+    } finally {
+      setUploadingLogo(false)
+    }
+  }
 
   const isDirty = displayName !== (track.displayName || '')
 
@@ -232,6 +290,58 @@ function TrackCard({ track, onDelete, deleting, onUpdate }: {
             strokeLinejoin="round"
           />
         </svg>
+      </div>
+
+      {/* Track/Venue Logo */}
+      <div className="mb-3">
+        <label className="text-[14px] uppercase tracking-wider text-[var(--text-muted)] mb-1 block">Venue Logo</label>
+        {track.logoSvg ? (
+          <div className="flex items-center gap-2">
+            <div className="h-10 w-16 flex items-center justify-center bg-[var(--bg-panel)] rounded border border-[var(--border-subtle)] p-1">
+              <img
+                src={`data:image/svg+xml,${encodeURIComponent(track.logoSvg)}`}
+                alt="Logo"
+                className="max-h-full max-w-full"
+              />
+            </div>
+            <button
+              onClick={clearLogo}
+              disabled={uploadingLogo}
+              className="text-[14px] text-red-400 hover:text-red-300 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {uploadingLogo ? '...' : 'Clear'}
+            </button>
+          </div>
+        ) : track.hasLogoPng ? (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[var(--text-dim)]">PNG uploaded</span>
+            <button
+              onClick={clearLogo}
+              disabled={uploadingLogo}
+              className="text-[14px] text-red-400 hover:text-red-300 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {uploadingLogo ? '...' : 'Clear'}
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <input
+              id={logoInputId}
+              type="file"
+              accept=".svg,.png,image/svg+xml,image/png"
+              onChange={e => e.target.files?.[0] && handleLogoFile(e.target.files[0])}
+              className="hidden"
+            />
+            <button
+              onClick={() => document.getElementById(logoInputId)?.click()}
+              disabled={uploadingLogo}
+              className="px-2 py-1 text-[10px] font-medium uppercase tracking-wide bg-[var(--k10-red)] text-white rounded hover:brightness-110 transition-all disabled:opacity-50 cursor-pointer"
+            >
+              {uploadingLogo ? '...' : 'Upload'}
+            </button>
+            {logoResult && <span className="text-[10px] text-red-400">{logoResult}</span>}
+          </div>
+        )}
       </div>
 
       <div className="flex justify-between text-xs text-[var(--text-muted)]">

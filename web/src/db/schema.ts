@@ -66,6 +66,8 @@ export const trackMaps = pgTable('track_maps', {
   trackLengthKm: doublePrecision('track_length_km'),
   sectorCount: integer('sector_count').default(3).notNull(),
   svgPreview: text('svg_preview'),
+  logoSvg: text('logo_svg'),       // Track/venue logo SVG markup
+  logoPng: text('logo_png'),       // Track/venue logo PNG (base64)
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })

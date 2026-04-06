@@ -14,8 +14,8 @@ export default function AdminNav() {
 
   const navItems: NavItem[] = [
     { href: '/drive/admin', label: 'Overview' },
-    { href: '/drive/admin/tracks', label: 'Track Maps' },
-    { href: '/drive/admin/brands', label: 'Car Brands' },
+    { href: '/drive/admin/tracks', label: 'Tracks' },
+    { href: '/drive/admin/brands', label: 'Constructors' },
     { href: '/drive/admin/users', label: 'Users' },
     { href: '/drive/admin/logs', label: 'Logs' },
   ]
@@ -36,8 +36,8 @@ export default function AdminNav() {
   const linkClass = (item: NavItem) =>
     `px-4 py-2 text-sm font-medium tracking-wide uppercase transition-colors border-b-2 -mb-[1px] ${
       !item.external && isActive(item.href)
-        ? 'text-[var(--k10-red)] border-[var(--k10-red)]'
-        : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text-dim)]'
+        ? 'text-[var(--accent,var(--k10-red))] border-[var(--accent,var(--k10-red))]'
+        : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text)]'
     }`
 
   return (

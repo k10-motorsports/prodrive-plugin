@@ -57,6 +57,7 @@ export default async function DashboardPage() {
 
   // Fetch track maps for SVG outlines
   let trackMapLookup: Record<string, string> = {}
+  let trackLogoLookup: Record<string, string> = {}
   let carImageLookup: Record<string, string | null> = {}
   let trackImageLookup: Record<string, string | null> = {}
 
@@ -66,10 +67,12 @@ export default async function DashboardPage() {
       const maps = await db.select({
         trackName: schema.trackMaps.trackName,
         svgPath: schema.trackMaps.svgPath,
+        logoSvg: schema.trackMaps.logoSvg,
       }).from(schema.trackMaps)
       // Build lookup by trackName (case-insensitive fuzzy match)
       maps.forEach(m => {
         trackMapLookup[m.trackName.toLowerCase()] = m.svgPath
+        if (m.logoSvg) trackLogoLookup[m.trackName.toLowerCase()] = m.logoSvg
       })
     }
 
@@ -165,6 +168,7 @@ export default async function DashboardPage() {
                       trackSvgPath={trackMapLookup[(s.trackName || '').toLowerCase()] || null}
                       carImageUrl={carImageLookup[s.carModel] || null}
                       trackImageUrl={trackImageLookup[s.trackName] || null}
+                      trackLogoSvg={trackLogoLookup[(s.trackName || '').toLowerCase()] || null}
                       iRatingHistory={iRatingHistory}
                     />
                   ))}

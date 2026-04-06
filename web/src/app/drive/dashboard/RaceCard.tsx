@@ -19,12 +19,14 @@ export default function RaceCard({
   trackSvgPath,
   carImageUrl,
   trackImageUrl,
+  trackLogoSvg,
   iRatingHistory,
 }: {
   session: RaceSession
   trackSvgPath: string | null
   carImageUrl: string | null
   trackImageUrl: string | null
+  trackLogoSvg: string | null
   iRatingHistory: number[]
 }) {
   const meta = (session.metadata || {}) as Record<string, any>
@@ -118,7 +120,14 @@ export default function RaceCard({
 
         {/* Session info */}
         <div className="flex-grow min-w-0">
-          <div className="font-semibold text-sm text-[var(--text-secondary)] truncate">
+          <div className="font-semibold text-sm text-[var(--text-secondary)] truncate flex items-center gap-1.5">
+            {trackLogoSvg && (
+              <img
+                src={`data:image/svg+xml,${encodeURIComponent(trackLogoSvg)}`}
+                alt=""
+                className="w-4 h-4 flex-shrink-0"
+              />
+            )}
             {session.trackName || 'Unknown Track'}
           </div>
           <div className="text-xs text-[var(--text-dim)] truncate">

@@ -33,6 +33,8 @@ export async function GET(request: NextRequest) {
       gameName: schema.trackMaps.gameName,
       trackLengthKm: schema.trackMaps.trackLengthKm,
       sectorCount: schema.trackMaps.sectorCount,
+      logoSvg: schema.trackMaps.logoSvg,
+      logoPng: schema.trackMaps.logoPng,
       createdAt: schema.trackMaps.createdAt,
       updatedAt: schema.trackMaps.updatedAt,
     })
@@ -78,7 +80,13 @@ export async function GET(request: NextRequest) {
     missing = missing.filter(t => t.name.toLowerCase().includes(q) || t.trackId.toLowerCase().includes(q))
   }
 
-  return NextResponse.json({ tracks, missing, total: tracks.length })
+  // Strip full PNG data from list response, send boolean instead
+  const tracksForList = tracks.map(({ logoPng, ...t }) => ({
+    ...t,
+    hasLogoPng: !!logoPng,
+  }))
+
+  return NextResponse.json({ tracks: tracksForList, missing, total: tracks.length })
 }
 
 /** POST /api/admin/tracks — Upload CSV to create/replace a track map */
@@ -169,7 +177,7 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { trackId, displayName, sectorCount } = body
+    const { trackId, displayName, sectorCount, logoSvg, logoPng, clearLogo } = body
 
     if (!trackId) {
       return NextResponse.json({ error: 'trackId required' }, { status: 400 })
@@ -179,11 +187,27 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'sectorCount must be 3 or 7' }, { status: 400 })
     }
 
+    if (logoSvg && (typeof logoSvg !== 'string' || !logoSvg.includes('<svg'))) {
+      return NextResponse.json({ error: 'logoSvg must be valid SVG markup' }, { status: 400 })
+    }
+    if (logoSvg && logoSvg.length > 500_000) {
+      return NextResponse.json({ error: 'SVG exceeds 500KB limit' }, { status: 400 })
+    }
+    if (logoPng && typeof logoPng === 'string' && logoPng.length > 2_800_000) {
+      return NextResponse.json({ error: 'PNG exceeds 2MB limit' }, { status: 400 })
+    }
+
     const normalizedId = trackId.toLowerCase().trim()
 
     const updateData: Record<string, unknown> = { updatedAt: new Date() }
     if (displayName !== undefined) updateData.displayName = displayName?.trim() || null
     if (sectorCount !== undefined) updateData.sectorCount = sectorCount
+    if (logoSvg !== undefined) updateData.logoSvg = logoSvg
+    if (logoPng !== undefined) updateData.logoPng = logoPng
+    if (clearLogo === true) {
+      updateData.logoSvg = null
+      updateData.logoPng = null
+    }
 
     const updated = await db
       .update(schema.trackMaps)

@@ -14,6 +14,8 @@ export interface Track {
   gameName: string | null
   trackLengthKm: number | null
   sectorCount: number
+  logoSvg: string | null
+  hasLogoPng: boolean
   createdAt: string
   updatedAt: string
 }
