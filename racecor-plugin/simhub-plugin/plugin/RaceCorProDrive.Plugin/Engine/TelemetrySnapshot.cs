@@ -99,6 +99,11 @@ namespace RaceCorProDrive.Plugin.Engine
         public int    IncidentLimitPenalty { get; set; }
         /// <summary>Incident count at which the driver is disqualified. 0 = unknown.</summary>
         public int    IncidentLimitDQ     { get; set; }
+        /// <summary>Whether the current lap has been invalidated by an incident.</summary>
+        public bool IsLapInvalid { get; set; }
+
+        /// <summary>Incident count at the start of the current lap.</summary>
+        public int LapStartIncidents { get; set; }
         /// <summary>Player's license class string from iRacing (e.g. "A 3.41").</summary>
         public string LicenseString       { get; set; } = "";
         public int    DrsStatus           { get; set; }
@@ -138,6 +143,8 @@ namespace RaceCorProDrive.Plugin.Engine
         public double[] SectorDeltas     { get; set; }
         /// <summary>State for all sectors: 0=none, 1=pb, 3=slower (N elements, 0-indexed).</summary>
         public int[]    SectorStates     { get; set; }
+        /// <summary>Best split times for all sectors (N elements, 0-indexed).</summary>
+        public double[] SectorBests      { get; set; }
         /// <summary>Sector boundary start percentages (N-1 elements, for sectors 2..N).</summary>
         public double[] SectorBoundaries { get; set; }
 
@@ -404,6 +411,39 @@ namespace RaceCorProDrive.Plugin.Engine
 
         /// <summary>True when in pit lane and exceeding the speed limit.</summary>
         public bool IsPitSpeeding => IsInPitLane && PitSpeedLimitKmh > 0 && SpeedKmh > PitSpeedLimitKmh;
+
+        /// <summary>Canonical session mode — single source of truth for all consumers.</summary>
+        public enum SessionModeEnum
+        {
+            Unknown = 0,
+            Practice = 1,
+            Qualifying = 2,
+            Warmup = 3,
+            Race = 4
+        }
+
+        /// <summary>
+        /// Computed session mode from SessionTypeName string.
+        /// Single source of truth — overlay and web dashboard should use this
+        /// instead of parsing SessionTypeName independently.
+        /// </summary>
+        public SessionModeEnum SessionMode
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(SessionTypeName)) return SessionModeEnum.Unknown;
+                var s = SessionTypeName.ToLowerInvariant();
+                if (s.Contains("practice") || s.Contains("test")) return SessionModeEnum.Practice;
+                if (s.Contains("qualify") || s.Contains("qual")) return SessionModeEnum.Qualifying;
+                if (s.Contains("warmup") || s.Contains("warm up")) return SessionModeEnum.Warmup;
+                if (s.Length > 0) return SessionModeEnum.Race;
+                return SessionModeEnum.Unknown;
+            }
+        }
+
+        /// <summary>Whether this is a lap-limited race (not timed).</summary>
+        public bool IsLapRace => SessionMode == SessionModeEnum.Race
+            && SessionLapsTotal > 0 && SessionLapsTotal <= 9999;
 
         /// <summary>True for practice, qualifying, test, or warmup sessions.</summary>
         public bool IsNonRaceSession

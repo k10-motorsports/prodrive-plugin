@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
       trackName: schema.trackMaps.trackName,
       displayName: schema.trackMaps.displayName,
       sectorCount: schema.trackMaps.sectorCount,
+      sectorBoundaries: schema.trackMaps.sectorBoundaries,
     })
     .from(schema.trackMaps)
     .where(eq(schema.trackMaps.trackName, trackName.trim()))
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest) {
         trackName: schema.trackMaps.trackName,
         displayName: schema.trackMaps.displayName,
         sectorCount: schema.trackMaps.sectorCount,
+        sectorBoundaries: schema.trackMaps.sectorBoundaries,
       })
       .from(schema.trackMaps)
       .where(eq(schema.trackMaps.trackId, slug))
@@ -46,12 +48,16 @@ export async function GET(request: NextRequest) {
   }
 
   if (results.length === 0) {
-    return NextResponse.json({ trackName, displayName: trackName, trackId: null, sectorCount: 3 })
+    return NextResponse.json({ trackName, displayName: trackName, trackId: null, sectorCount: 3, sectorBoundaries: null })
   }
 
   const track = results[0]
+  const parsedBoundaries = track.sectorBoundaries ? JSON.parse(track.sectorBoundaries) : null
   return NextResponse.json({
-    ...track,
+    trackId: track.trackId,
+    trackName: track.trackName,
     displayName: track.displayName || track.trackName,
+    sectorCount: track.sectorCount,
+    sectorBoundaries: parsedBoundaries,
   })
 }

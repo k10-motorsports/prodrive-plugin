@@ -65,6 +65,7 @@ export const trackMaps = pgTable('track_maps', {
   gameName: varchar('game_name', { length: 64 }).default('iracing'),
   trackLengthKm: doublePrecision('track_length_km'),
   sectorCount: integer('sector_count').default(3).notNull(),
+  sectorBoundaries: text('sector_boundaries'),  // JSON array of boundary percentages e.g. "[0.14,0.28,0.43,0.57,0.71,0.86]"
   svgPreview: text('svg_preview'),
   logoSvg: text('logo_svg'),       // Track/venue logo SVG markup
   logoPng: text('logo_png'),       // Track/venue logo PNG (base64)

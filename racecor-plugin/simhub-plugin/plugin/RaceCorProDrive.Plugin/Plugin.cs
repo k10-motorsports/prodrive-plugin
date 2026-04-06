@@ -1068,6 +1068,7 @@ namespace RaceCorProDrive.Plugin
                         continue;
                     }
 
+
                     // ── Build complete state snapshot ────────────────────────
                     var s = _current; // snapshot reference (safe — replaced atomically in DataUpdate)
                     var dt = _engine.DemoTelemetry;
@@ -1206,6 +1207,15 @@ namespace RaceCorProDrive.Plugin
                     Jp(sb, "RaceCorProDrive.Plugin.DS.SessionLapsRemaining", s.SessionLapsRemaining);
                     Jp(sb, "DataCorePlugin.GameData.TotalLaps", s.SessionLapsTotal);
                     Jp(sb, "DataCorePlugin.GameData.CarModel", Escape(s.CarModel ?? ""));
+
+                    // ── Session summary for web dashboard ──
+                    Jp(sb, "RaceCorProDrive.Plugin.Session.Mode", (int)s.SessionMode);
+                    Jp(sb, "RaceCorProDrive.Plugin.Session.ModeName", Escape(s.SessionMode.ToString()));
+                    Jp(sb, "RaceCorProDrive.Plugin.Session.IsLapRace", s.IsLapRace ? 1 : 0);
+                    Jp(sb, "RaceCorProDrive.Plugin.Session.TrackName", Escape(s.TrackName ?? ""));
+                    Jp(sb, "RaceCorProDrive.Plugin.Session.LapsTotal", s.SessionLapsTotal);
+                    Jp(sb, "RaceCorProDrive.Plugin.Session.LapsRemaining", s.SessionLapsRemaining);
+                    Jp(sb, "RaceCorProDrive.Plugin.Session.TimeRemaining", s.SessionTimeRemain, ic);
                     Jp(sb, "IRacingExtraProperties.iRacing_DriverInfo_IRating", s.IRating);
                     Jp(sb, "IRacingExtraProperties.iRacing_DriverInfo_SafetyRating", s.SafetyRating, ic);
                     Jp(sb, "RaceCorProDrive.Plugin.DS.EstimatedIRatingDelta", s.EstimatedIRatingDelta);
@@ -1255,6 +1265,17 @@ namespace RaceCorProDrive.Plugin
                     Jp(sb, "RaceCorProDrive.Plugin.DS.SectorStateS3", s.SectorStateS3);
                     Jp(sb, "RaceCorProDrive.Plugin.DS.SectorS2StartPct", s.SectorS2StartPct, ic);
                     Jp(sb, "RaceCorProDrive.Plugin.DS.SectorS3StartPct", s.SectorS3StartPct, ic);
+                    // Extended individual sector properties (S4+) for dashboards expecting SectorSplitS{n}
+                    if (s.SectorSplits != null && s.SectorSplits.Length > 3)
+                    {
+                        for (int si = 3; si < s.SectorSplits.Length; si++)
+                        {
+                            int sn = si + 1; // 1-based sector number
+                            Jp(sb, "RaceCorProDrive.Plugin.DS.SectorSplitS" + sn, s.SectorSplits[si], ic);
+                            Jp(sb, "RaceCorProDrive.Plugin.DS.SectorDeltaS" + sn, s.SectorDeltas[si], ic);
+                            Jp(sb, "RaceCorProDrive.Plugin.DS.SectorStateS" + sn, s.SectorStates[si]);
+                        }
+                    }
                     // N-sector arrays (always sent — dashboard handles any sector count)
                     if (s.SectorSplits != null)
                     {
@@ -1269,6 +1290,13 @@ namespace RaceCorProDrive.Plugin
                         sb.Append("\"RaceCorProDrive.Plugin.DS.SectorStates\":\"");
                         for (int si = 0; si < s.SectorStates.Length; si++)
                         { if (si > 0) sb.Append(','); sb.Append(s.SectorStates[si]); }
+                        sb.Append("\",");
+                        sb.Append("\"RaceCorProDrive.Plugin.DS.SectorBests\":\"");
+                        if (s.SectorBests != null)
+                        {
+                            for (int si = 0; si < s.SectorBests.Length; si++)
+                            { if (si > 0) sb.Append(','); sb.Append(s.SectorBests[si].ToString("F3", ic)); }
+                        }
                         sb.Append("\",");
                         sb.Append("\"RaceCorProDrive.Plugin.DS.SectorBoundaryPcts\":\"");
                         if (s.SectorBoundaries != null)
@@ -1295,6 +1323,10 @@ namespace RaceCorProDrive.Plugin
                     Jp(sb, "RaceCorProDrive.Plugin.DS.PitSpeedLimitMph", s.PitSpeedLimitMph, ic);
                     Jp(sb, "RaceCorProDrive.Plugin.DS.IsPitSpeeding", s.IsPitSpeeding ? 1 : 0);
                     Jp(sb, "RaceCorProDrive.Plugin.DS.IsNonRaceSession", s.IsNonRaceSession ? 1 : 0);
+                    Jp(sb, "RaceCorProDrive.Plugin.DS.SessionMode", (int)s.SessionMode);
+                    Jp(sb, "RaceCorProDrive.Plugin.DS.SessionModeName", Escape(s.SessionMode.ToString()));
+                    Jp(sb, "RaceCorProDrive.Plugin.DS.IsLapRace", s.IsLapRace ? 1 : 0);
+                    Jp(sb, "RaceCorProDrive.Plugin.DS.IsLapInvalid", s.IsLapInvalid ? 1 : 0);
                     Jp(sb, "RaceCorProDrive.Plugin.DS.IsTimedRace", s.IsTimedRace ? 1 : 0);
                     Jp(sb, "RaceCorProDrive.Plugin.DS.IsEndOfRace", s.IsEndOfRace ? 1 : 0);
                     Jp(sb, "RaceCorProDrive.Plugin.DS.PositionDelta", s.PositionDelta);
@@ -1371,6 +1403,8 @@ namespace RaceCorProDrive.Plugin
                     Jp(sb, "RaceCorProDrive.Plugin.Demo.TC", dt.TC, ic);
                     Jp(sb, "RaceCorProDrive.Plugin.Demo.ABS", dt.ABS, ic);
                     Jp(sb, "RaceCorProDrive.Plugin.Demo.SessionTypeName", Escape(dt.SessionTypeName ?? ""));
+                    Jp(sb, "RaceCorProDrive.Plugin.Demo.SessionMode", (int)dt.SessionMode);
+                    Jp(sb, "RaceCorProDrive.Plugin.Demo.SessionModeName", Escape(dt.SessionMode.ToString()));
                     Jp(sb, "RaceCorProDrive.Plugin.Demo.Position", dt.Position);
                     Jp(sb, "RaceCorProDrive.Plugin.Demo.CurrentLap", dt.CurrentLap);
                     Jp(sb, "RaceCorProDrive.Plugin.Demo.BestLapTime", dt.BestLapTime, ic);

@@ -348,16 +348,11 @@ namespace RaceCorProDrive.Plugin.Engine
             }
 
             // ── Sector boundaries ──
-            // Always use equal thirds (0.333, 0.667) to match CrewChief's
-            // sector definitions. CrewChief divides every track into 3 equal
-            // sectors by lap distance — if we used iRacing's native
-            // SplitTimeInfo boundaries instead, our sector times would
-            // disagree with what CrewChief calls out over voice.
-            SectorBoundaries = new[] { 1.0 / 3.0, 2.0 / 3.0 };
-            SectorCount = 3;
+            // Don't hardcode sector boundaries here — let TelemetrySnapshot.Capture
+            // resolve the cloud-configured sector count for this track.
+            // Only set legacy 3-sector defaults as fallback display values.
             SectorS2StartPct = 1.0 / 3.0;
             SectorS3StartPct = 2.0 / 3.0;
-            HasSectorBoundaries = true;
         }
 
         // ═══════════════════════════════════════════════════════════════
