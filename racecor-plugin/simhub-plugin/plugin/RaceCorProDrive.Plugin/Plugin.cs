@@ -36,6 +36,7 @@ namespace RaceCorProDrive.Plugin
         private readonly TrackMapProvider _trackMap = new TrackMapProvider();
         private readonly Engine.IRacingSdkBridge _sdkBridge = new Engine.IRacingSdkBridge();
         private readonly Engine.Strategy.StrategyCoordinator _strategy = new Engine.Strategy.StrategyCoordinator();
+        private IncidentCoachEngine _incidentCoach;
         private PedalProfileManager _pedalProfiles;
 
         // iRacing Data API client — reads local cookies / credentials to fetch career data
@@ -150,6 +151,14 @@ namespace RaceCorProDrive.Plugin
             // so the assembly's directory IS the SimHub directory.
             string simhubDir = Path.GetDirectoryName(typeof(Plugin).Assembly.Location) ?? "";
             _trackMap.SetSimHubDirectory(simhubDir);
+
+            // Initialise Incident Coach engine
+            _incidentCoach = new IncidentCoachEngine();
+            _incidentCoach.Enabled = Settings.IncidentCoachEnabled;
+            _incidentCoach.VoiceEnabled = Settings.IncidentCoachVoiceEnabled;
+            _incidentCoach.CooldownThreshold = Settings.IncidentCoachCooldownThreshold;
+            _incidentCoach.AlertSensitivity = Settings.IncidentCoachAlertSensitivity;
+            _incidentCoach.Init();
 
             // ── Register dashboard properties ─────────────────────────────────
 
@@ -299,9 +308,16 @@ namespace RaceCorProDrive.Plugin
                 return minDist;
             });
 
+            // ── Incident Coach properties ─────────────────────────────────────
+            this.AttachDelegate("DS.IncidentCoach.Active", () => _incidentCoach?.Enabled == true ? 1 : 0);
+            this.AttachDelegate("DS.IncidentCoach.LastIncidentLap", () => _incidentCoach?.LastIncidentLap ?? 0);
+            this.AttachDelegate("DS.IncidentCoach.ThreatDrivers", () => _incidentCoach?.ThreatDriversJson ?? "[]");
+            this.AttachDelegate("DS.IncidentCoach.ActiveAlert", () => _incidentCoach?.ActiveAlertJson ?? "{}");
+            this.AttachDelegate("DS.IncidentCoach.RageScore", () => (int)(_incidentCoach?.RageScore ?? 0));
+            this.AttachDelegate("DS.IncidentCoach.CooldownActive", () => _incidentCoach?.IsCooldownActive == true ? 1 : 0);
+            this.AttachDelegate("DS.IncidentCoach.SessionBehavior", () => _incidentCoach?.SessionBehaviorJson ?? "{}");
+
             // ── Actions ───────────────────────────────────────────────────────
-
-
 
             // Pitbox wheel button actions — bind in SimHub Control Mapper
             this.AddAction("RaceCorProDrive.CyclePitboxTab", (a, b) => { _pitboxTabCycle++; });
@@ -311,6 +327,9 @@ namespace RaceCorProDrive.Plugin
             this.AddAction("RaceCorProDrive.PitboxIncrement", (a, b) => { _pitboxIncrement++; });
             this.AddAction("RaceCorProDrive.PitboxDecrement", (a, b) => { _pitboxDecrement++; });
             this.AddAction("RaceCorProDrive.PitboxToggle", (a, b) => { _pitboxToggle++; });
+
+            // Incident Coach cool-down action
+            this.AddAction("RaceCorProDrive.TriggerCooldown", (a, b) => _incidentCoach?.TriggerManualCooldown());
 
             // Expose pitbox counters so dashboard can detect changes
             this.AttachDelegate("DS.PitboxTabCycle", () => _pitboxTabCycle);
@@ -483,6 +502,9 @@ namespace RaceCorProDrive.Plugin
             // Strategy coordinator — runs per-frame, manages stint lifecycle
             _strategy.Update(_current, _previous);
 
+            // Incident Coach — tracks incidents, threat levels, rage scores
+            _incidentCoach?.Update(_current, _previous);
+
             // Fire event when a new prompt appears
             if (_engine.IsVisible && !wasVisible)
                 this.TriggerEvent("NewCommentaryPrompt");
@@ -492,6 +514,7 @@ namespace RaceCorProDrive.Plugin
         {
             _sdkBridge.Stop();
             _screenColorSampler.Dispose();
+            _incidentCoach?.End();
             StopHttpServer();
             this.SaveCommonSettings("GeneralSettings", Settings);
             SimHub.Logging.Current.Info("[RaceCorProDrive] Plugin stopped, settings saved");
