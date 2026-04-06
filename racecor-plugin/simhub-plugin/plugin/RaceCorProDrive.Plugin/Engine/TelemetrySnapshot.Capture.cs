@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using GameReaderCommon;
 using SimHub.Plugins;
 
@@ -63,6 +65,10 @@ namespace RaceCorProDrive.Plugin.Engine
         // Opponents list takes 2-3s to populate. Cache last known names.
         private static string _lastAheadName = "";
         private static string _lastBehindName = "";
+
+        // ── Lap validity tracking ────────────────────────────────────────────────
+        private static int _prevLapForValidity = 0;
+        private static int _lapStartIncidentCount = 0;
 
         public static TelemetrySnapshot Capture(PluginManager pm, ref GameData data)
         {
@@ -204,18 +210,33 @@ namespace RaceCorProDrive.Plugin.Engine
             if (s.SessionLapsTotal == 0)
                 s.SessionLapsTotal = (int)GetPluginProp<double>(pm, "DataCorePlugin.GameData.TotalLaps");
 
-            // ── Sector splits (equal thirds — matches CrewChief) ──
-            // Reset sector tracker when the track changes
+            // ── Sector splits (cloud-configured count, equal fractions) ──
+            // Reset sector tracker when the track changes and fetch cloud sector count
             string trackIdForSectors = GetPluginProp<string>(pm, "DataCorePlugin.GameData.TrackName") ?? "";
             if (!string.IsNullOrEmpty(trackIdForSectors) && trackIdForSectors != _lastSectorTrackId)
             {
                 _lastSectorTrackId = trackIdForSectors;
                 _sectorTracker.Reset();
+                // Fetch cloud-configured sector count for this track
+                var (cloudSectors, customBoundaries) = FetchCloudSectorConfig(trackIdForSectors);
+                if (cloudSectors >= 2)
+                {
+                    if (customBoundaries != null && customBoundaries.Length == cloudSectors - 1)
+                    {
+                        // Use custom boundary percentages from database
+                        _sectorTracker.SetBoundaries(customBoundaries, cloudSectors);
+                    }
+                    else
+                    {
+                        // Fall back to equal-fraction boundaries
+                        var boundaries = new double[cloudSectors - 1];
+                        for (int bi = 0; bi < cloudSectors - 1; bi++)
+                            boundaries[bi] = (double)(bi + 1) / cloudSectors;
+                        _sectorTracker.SetBoundaries(boundaries, cloudSectors);
+                    }
+                }
             }
-
-            // Always use equal thirds (0.333, 0.667) for sector boundaries.
-            // This matches CrewChief's sector definitions so that our HUD
-            // sector times agree with CrewChief's voice callouts.
+            // Fallback: if no cloud config resolved, use equal thirds
             if (!_sectorTracker.HasNativeBoundaries)
             {
                 _sectorTracker.SetBoundaries(1.0 / 3.0, 2.0 / 3.0);
@@ -240,12 +261,14 @@ namespace RaceCorProDrive.Plugin.Engine
             s.SectorSplits     = new double[sc];
             s.SectorDeltas     = new double[sc];
             s.SectorStates     = new int[sc];
+            s.SectorBests      = new double[sc];
             s.SectorBoundaries = _sectorTracker.Boundaries;
             for (int si = 0; si < sc; si++)
             {
                 s.SectorSplits[si] = _sectorTracker.GetSplit(si);
                 s.SectorDeltas[si] = _sectorTracker.GetDelta(si);
                 s.SectorStates[si] = _sectorTracker.GetState(si);
+                s.SectorBests[si]  = _sectorTracker.GetBest(si);
             }
 
             // ── Player name (needed before opponents loop for IsPlayer matching) ──
@@ -427,6 +450,16 @@ namespace RaceCorProDrive.Plugin.Engine
 
             // Incident count
             s.IncidentCount = GetGameIncidentCount(pm, detectedGame);
+
+            // ── Lap validity (single source of truth — overlay should not recompute) ──
+            int currentLap = s.CompletedLaps;
+            if (currentLap > 0 && currentLap != _prevLapForValidity)
+            {
+                _lapStartIncidentCount = s.IncidentCount;
+                _prevLapForValidity = currentLap;
+            }
+            s.LapStartIncidents = _lapStartIncidentCount;
+            s.IsLapInvalid = s.IncidentCount > _lapStartIncidentCount;
 
             // Fix #12: DRS status — cross-game
             if (detectedGame == GameId.ACC || detectedGame == GameId.AC || detectedGame == GameId.ACEvo || detectedGame == GameId.ACRally)
@@ -1058,6 +1091,73 @@ namespace RaceCorProDrive.Plugin.Engine
             }
             catch { }
             return default(T);
+        }
+
+        // ── Cloud sector config cache ──
+        private static readonly Dictionary<string, (int count, double[] boundaries)> _cloudSectorCache
+            = new Dictionary<string, (int, double[])>();
+        private static readonly object _cloudSectorLock = new object();
+
+        /// <summary>
+        /// Fetch sector config (count + optional custom boundaries) from the K10 cloud API.
+        /// Caches results to avoid repeated HTTP calls.
+        /// Returns (sectorCount, boundaries) where boundaries may be null for equal-fraction splits.
+        /// </summary>
+        private static (int count, double[] boundaries) FetchCloudSectorConfig(string trackName)
+        {
+            if (string.IsNullOrEmpty(trackName)) return (0, null);
+
+            lock (_cloudSectorLock)
+            {
+                if (_cloudSectorCache.TryGetValue(trackName, out var cached))
+                    return cached;
+            }
+
+            try
+            {
+                string url = "https://prodrive.racecor.io/api/tracks?trackName=" +
+                    Uri.EscapeDataString(trackName.Trim());
+                var request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(url);
+                request.Method = "GET";
+                request.Timeout = 3000;
+                request.UserAgent = "RaceCorProDrive-Plugin";
+
+                using (var response = (System.Net.HttpWebResponse)request.GetResponse())
+                using (var reader = new System.IO.StreamReader(response.GetResponseStream()))
+                {
+                    string json = reader.ReadToEnd();
+
+                    // Parse sectorCount
+                    var countMatch = Regex.Match(json, @"""sectorCount""\s*:\s*(\d+)");
+                    int count = countMatch.Success ? int.Parse(countMatch.Groups[1].Value) : 0;
+
+                    // Parse sectorBoundaries (JSON array of doubles, e.g. [0.14, 0.28, ...])
+                    double[] boundaries = null;
+                    var boundMatch = Regex.Match(json, @"""sectorBoundaries""\s*:\s*\[([^\]]+)\]");
+                    if (boundMatch.Success)
+                    {
+                        var parts = boundMatch.Groups[1].Value.Split(',');
+                        var parsed = new List<double>();
+                        foreach (var part in parts)
+                        {
+                            if (double.TryParse(part.Trim(),
+                                System.Globalization.NumberStyles.Float,
+                                System.Globalization.CultureInfo.InvariantCulture, out double val))
+                                parsed.Add(val);
+                        }
+                        if (parsed.Count > 0) boundaries = parsed.ToArray();
+                    }
+
+                    var result = (count, boundaries);
+                    lock (_cloudSectorLock) { _cloudSectorCache[trackName] = result; }
+                    return result;
+                }
+            }
+            catch
+            {
+                lock (_cloudSectorLock) { _cloudSectorCache[trackName] = (0, null); }
+                return (0, null);
+            }
         }
     }
 }
