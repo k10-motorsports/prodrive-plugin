@@ -85,7 +85,7 @@ function TrackMultiples({ tracks }: { tracks: TrackPreview[] }) {
             <path
               d={t.svgPath}
               fill="none"
-              stroke="var(--k10-red)"
+              stroke="var(--border-accent)"
               strokeWidth="3"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -220,7 +220,7 @@ function TrackPhotoHero({ hero, svgPath }: { hero: HeroData; svgPath?: string })
           <path
             d={svgPath}
             fill="none"
-            stroke="var(--k10-red)"
+            stroke="var(--border-accent)"
             strokeWidth="1.8"
             strokeLinecap="round"
             strokeLinejoin="round"

@@ -126,7 +126,7 @@ const components: ComponentEntry[] = [
     preview: () => (
       <div className="border border-[var(--border)] rounded-lg bg-[var(--bg-surface)] p-4 flex gap-4 items-center">
         <svg viewBox="0 0 100 100" className="w-16 h-16 shrink-0">
-          <path d={MOCK_SVG_PATH} fill="none" stroke="var(--k10-red)" strokeWidth="2.5" strokeLinecap="round" />
+          <path d={MOCK_SVG_PATH} fill="none" stroke="var(--border-accent)" strokeWidth="2.5" strokeLinecap="round" />
         </svg>
         <div className="flex-1 min-w-0">
           <h3 className="text-lg font-bold text-[var(--text)] mb-1">Spa-Francorchamps</h3>
@@ -239,7 +239,7 @@ const components: ComponentEntry[] = [
       <div className="border border-[var(--border)] rounded-lg bg-[var(--bg-surface)] overflow-hidden">
         <div className="h-20 bg-gradient-to-br from-[var(--bg-panel)] to-[var(--bg-elevated)] relative flex items-center justify-center">
           <svg viewBox="0 0 100 100" className="w-14 h-14 opacity-30">
-            <path d={MOCK_SVG_PATH} fill="none" stroke="var(--k10-red)" strokeWidth="2" />
+            <path d={MOCK_SVG_PATH} fill="none" stroke="var(--border-accent)" strokeWidth="2" />
           </svg>
         </div>
         <div className="p-3">

@@ -26,6 +26,7 @@ export async function POST(request: NextRequest) {
       carModel, trackName, sessionType, gameId, gameName,
       finishPosition, incidentCount, completedLaps, totalLaps,
       bestLapTime, estimatedIRatingDelta,
+      fieldSize,
       startedAt, finishedAt,
       isPracticeSession, practiceData
     } = body
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest) {
         totalLaps,
         bestLapTime,
         estimatedIRatingDelta,
+        fieldSize: fieldSize || null,
         startedAt,
         finishedAt,
         // Practice/qualifying session data (null for race sessions)

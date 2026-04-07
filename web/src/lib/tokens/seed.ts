@@ -165,6 +165,16 @@ const tokens: DesignToken[] = [
     sortOrder: 22,
   },
   {
+    path: 'color.border.track-stroke',
+    value: 'rgba(255, 255, 255, 0.18)',
+    kind: 'color',
+    cssProperty: '--track-stroke',
+    platforms: 'web',
+    description: 'Track map SVG stroke color. Neutral in K10 default; overridden to brand color per team set.',
+    category: 'border',
+    sortOrder: 23,
+  },
+  {
     path: 'color.border.active',
     value: 'hsla(0, 0%, 100%, 0.25)',
     kind: 'color',

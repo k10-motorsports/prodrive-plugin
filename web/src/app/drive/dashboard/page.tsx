@@ -1,11 +1,43 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import { SITE_URL, SITE_NAME, CATEGORY_LABELS, LICENSE_LABELS, LICENSE_COLORS } from '@/lib/constants'
+import { SITE_URL, SITE_NAME } from '@/lib/constants'
 import { db, schema } from '@/db'
 import { and, eq, gt, desc } from 'drizzle-orm'
 import { Download, BarChart3, Trophy, Shield, Car } from 'lucide-react'
 import RaceCard from './RaceCard'
 import { getCarImage, getTrackImage } from '@/lib/commentary-images'
+
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+type RaceSession = {
+  id: string
+  carModel: string
+  manufacturer: string | null
+  trackName: string | null
+  finishPosition: number | null
+  incidentCount: number | null
+  sessionType: string | null
+  category: string
+  metadata: Record<string, any> | null
+  createdAt: Date
+}
+
+type BrandInfo = {
+  logoSvg: string | null
+  logoPng: string | null
+  brandColorHex: string | null
+  manufacturerName: string    // canonical brand name from carLogos table
+}
+
+type DisplayCard = {
+  session: RaceSession
+  practiceSession?: RaceSession
+}
+
+const isPractice = (s: RaceSession) =>
+  (s.sessionType || s.category || '').toLowerCase().includes('practice')
+
+// ── Page ───────────────────────────────────────────────────────────────────────
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -15,76 +47,104 @@ export default async function DashboardPage() {
   const discordId = user_ext.discordId as string
   const displayName = (user_ext.discordDisplayName as string) || session.user.name || 'Racer'
 
-  // Fetch user and check for active plugin tokens
+  // ── User + connection status ─────────────────────────────────────────────────
   let raceCount = 0
-  let dbUser = null
+  let dbUser: { id: string } | null = null
   let isPluginConnected = false
-  let recentSessions: any[] = []
+  let recentSessions: RaceSession[] = []
 
-  let userToken = ''
   if (discordId) {
-    const users = await db.select().from(schema.users).where(eq(schema.users.discordId, discordId)).limit(1)
+    const users = await db.select().from(schema.users)
+      .where(eq(schema.users.discordId, discordId)).limit(1)
+
     if (users.length > 0) {
       dbUser = users[0]
 
-      // Check if user has any active plugin tokens
       const activeTokens = await db.select().from(schema.pluginTokens)
         .where(and(
           eq(schema.pluginTokens.userId, dbUser.id),
           eq(schema.pluginTokens.revoked, false),
-          gt(schema.pluginTokens.expiresAt, new Date())
-        ))
-        .limit(1)
+          gt(schema.pluginTokens.expiresAt, new Date()),
+        )).limit(1)
       isPluginConnected = activeTokens.length > 0
 
-      // Fetch all race sessions for count
-      const sessions = await db.select().from(schema.raceSessions).where(eq(schema.raceSessions.userId, dbUser.id))
-      raceCount = sessions.length
+      const allSessions = await db.select().from(schema.raceSessions)
+        .where(eq(schema.raceSessions.userId, dbUser.id))
+      raceCount = allSessions.length
 
-      // For connected users, fetch recent sessions
       if (isPluginConnected) {
-        recentSessions = await db.select().from(schema.raceSessions)
+        recentSessions = (await db.select().from(schema.raceSessions)
           .where(eq(schema.raceSessions.userId, dbUser.id))
           .orderBy(desc(schema.raceSessions.createdAt))
-          .limit(20)
+          .limit(30)) as RaceSession[]   // fetch extra so grouping has room
       }
     }
   }
 
-  // Fetch track maps for SVG outlines
+  // ── Track maps + display names ───────────────────────────────────────────────
   let trackMapLookup: Record<string, string> = {}
   let trackLogoLookup: Record<string, string> = {}
+  let trackDisplayNameLookup: Record<string, string> = {}
   let carImageLookup: Record<string, string | null> = {}
   let trackImageLookup: Record<string, string | null> = {}
+  let brandLogoLookup: Record<string, BrandInfo> = {}
 
   if (isPluginConnected && recentSessions.length > 0) {
-    const trackNames = [...new Set(recentSessions.map(s => s.trackName).filter(Boolean))]
-    if (trackNames.length > 0) {
-      const maps = await db.select({
-        trackName: schema.trackMaps.trackName,
-        svgPath: schema.trackMaps.svgPath,
-        logoSvg: schema.trackMaps.logoSvg,
-      }).from(schema.trackMaps)
-      // Build lookup by trackName (case-insensitive fuzzy match)
-      maps.forEach(m => {
-        trackMapLookup[m.trackName.toLowerCase()] = m.svgPath
-        if (m.logoSvg) trackLogoLookup[m.trackName.toLowerCase()] = m.logoSvg
-      })
-    }
+    // Track maps (svgPath + displayName + logo)
+    const maps = await db.select({
+      trackName:   schema.trackMaps.trackName,
+      svgPath:     schema.trackMaps.svgPath,
+      logoSvg:     schema.trackMaps.logoSvg,
+      displayName: schema.trackMaps.displayName,
+    }).from(schema.trackMaps)
 
-    // Build car and track image lookups from commentary data
+    maps.forEach(m => {
+      const key = m.trackName.toLowerCase()
+      trackMapLookup[key] = m.svgPath
+      if (m.logoSvg)     trackLogoLookup[key]        = m.logoSvg
+      if (m.displayName) trackDisplayNameLookup[key] = m.displayName
+    })
+
+    // Car images (commentary data)
     const carModels = [...new Set(recentSessions.map(s => s.carModel).filter(Boolean))]
-    carModels.forEach(carModel => {
-      if (carModel) carImageLookup[carModel] = getCarImage(carModel)
-    })
+    carModels.forEach(c => { if (c) carImageLookup[c] = getCarImage(c) })
 
-    const uniqueTrackNames = [...new Set(recentSessions.map(s => s.trackName).filter(Boolean))]
-    uniqueTrackNames.forEach(trackName => {
-      if (trackName) trackImageLookup[trackName] = getTrackImage(trackName)
-    })
+    const trackNames = [...new Set(recentSessions.map(s => s.trackName).filter(Boolean))]
+    trackNames.forEach(t => { if (t) trackImageLookup[t] = getTrackImage(t) })
+
+    // Brand logos — match by carModel substring since manufacturer field is not yet populated.
+    // For each unique carModel, try each brand's key/name as a substring match.
+    const uniqueCarModels = [...new Set(recentSessions.map(s => s.carModel).filter(Boolean))]
+    if (uniqueCarModels.length > 0) {
+      const brands = await db.select({
+        brandKey:      schema.carLogos.brandKey,
+        brandName:     schema.carLogos.brandName,
+        logoSvg:       schema.carLogos.logoSvg,
+        logoPng:       schema.carLogos.logoPng,
+        brandColorHex: schema.carLogos.brandColorHex,
+      }).from(schema.carLogos)
+
+      for (const carModel of uniqueCarModels) {
+        if (!carModel) continue
+        const ml = carModel.toLowerCase()
+        for (const brand of brands) {
+          const bk = brand.brandKey.toLowerCase()
+          const bn = brand.brandName.toLowerCase()
+          if (ml.includes(bk) || ml.includes(bn)) {
+            brandLogoLookup[carModel] = {
+              logoSvg:          brand.logoSvg,
+              logoPng:          brand.logoPng,
+              brandColorHex:    brand.brandColorHex,
+              manufacturerName: brand.brandName,
+            }
+            break   // use first match; brandKey entries are ordered by specificity
+          }
+        }
+      }
+    }
   }
 
-  // Build iRating history for sparkline
+  // ── iRating sparkline ────────────────────────────────────────────────────────
   let iRatingHistory: number[] = []
   if (isPluginConnected && dbUser) {
     const history = await db.select({ iRating: schema.ratingHistory.iRating })
@@ -92,48 +152,104 @@ export default async function DashboardPage() {
       .where(eq(schema.ratingHistory.userId, dbUser.id))
       .orderBy(desc(schema.ratingHistory.createdAt))
       .limit(20)
-    iRatingHistory = history.map(h => h.iRating).reverse()  // Oldest first for sparkline
+    iRatingHistory = history.map(h => h.iRating).reverse()
   }
+
+  // ── Group practice sessions into the race that immediately followed them ─────
+  // Two-pass approach:
+  //   Pass 1 — scan ASC, pre-mark which practices are claimed by a race.
+  //   Pass 2 — build groups, skipping consumed practices.
+  // This prevents practices from being emitted as standalone before the backward
+  // scan of the subsequent race has a chance to claim them.
+
+  const sortedAsc = [...recentSessions].sort(
+    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  )
+
+  const consumedIds = new Set<string>()
+  const practiceForRace = new Map<string, RaceSession>()  // raceId → its paired practice
+
+  // Pass 1: pair each race with the immediately preceding practice on the same track
+  for (let i = 0; i < sortedAsc.length; i++) {
+    const s = sortedAsc[i]
+    if (isPractice(s)) continue
+
+    // Find the nearest preceding unclaimed practice on the same track within 8 h
+    for (let j = i - 1; j >= 0; j--) {
+      const prev = sortedAsc[j]
+      if (consumedIds.has(prev.id)) continue
+      const gapMs = new Date(s.createdAt).getTime() - new Date(prev.createdAt).getTime()
+      if (
+        isPractice(prev) &&
+        prev.trackName === s.trackName &&
+        gapMs < 8 * 60 * 60 * 1000
+      ) {
+        practiceForRace.set(s.id, prev)
+        consumedIds.add(prev.id)
+      }
+      break  // only consider the single immediately-preceding unconsumed session
+    }
+  }
+
+  // Pass 2: build display groups — consumed practices are silently dropped
+  const groups: DisplayCard[] = []
+  for (const s of sortedAsc) {
+    if (consumedIds.has(s.id)) continue
+    groups.push(
+      isPractice(s)
+        ? { session: s }                                                    // standalone practice
+        : { session: s, practiceSession: practiceForRace.get(s.id) },      // race ± practice
+    )
+  }
+
+  // Most recent first
+  const displayCards = groups.reverse().slice(0, 20)
 
   const hasEnoughData = raceCount >= 5
 
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+  const trackKey = (name: string | null) => (name || '').toLowerCase()
+
   return (
     <main className="min-h-screen relative">
-      <div className="max-w-4xl mx-auto px-6 py-12">
+      <div className="max-w-5xl mx-auto px-6 py-12">
         {isPluginConnected ? (
           <>
-            {/* Connected State Layout */}
-
-            {/* Welcome (no download CTA) */}
+            {/* Welcome */}
             <section className="mb-12">
-              <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: 'var(--ff-display)' }}>Welcome, {displayName}</h1>
+              <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: 'var(--ff-display)' }}>
+                Welcome, {displayName}
+              </h1>
               <p className="text-[var(--text-dim)]">
                 Your overlay is connected and sending data to Pro Drive.
               </p>
             </section>
 
-            {/* Race History with Rich Cards */}
+            {/* Race History */}
             <section className="mb-12">
               <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <Car size={18} className="text-[var(--k10-red)]" />
                 Race History
               </h2>
-              {recentSessions.length > 0 ? (
-                <div className="space-y-2">
-                  {recentSessions.map((s) => (
+              {displayCards.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {displayCards.map(({ session: s, practiceSession }) => (
                     <RaceCard
                       key={s.id}
                       session={s}
-                      trackSvgPath={trackMapLookup[(s.trackName || '').toLowerCase()] || null}
+                      practiceSession={practiceSession}
+                      trackSvgPath={trackMapLookup[trackKey(s.trackName)] || null}
                       carImageUrl={carImageLookup[s.carModel] || null}
-                      trackImageUrl={trackImageLookup[s.trackName] || null}
-                      trackLogoSvg={trackLogoLookup[(s.trackName || '').toLowerCase()] || null}
+                      trackImageUrl={trackImageLookup[s.trackName ?? ''] || null}
+                      trackLogoSvg={trackLogoLookup[trackKey(s.trackName)] || null}
+                      trackDisplayName={trackDisplayNameLookup[trackKey(s.trackName)] || null}
+                      brandInfo={brandLogoLookup[s.carModel] ?? null}
                       iRatingHistory={iRatingHistory}
                     />
                   ))}
                 </div>
               ) : (
-                <div className="p-8 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-center">
+                <div className="p-8 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)] text-center">
                   <Car size={32} className="mx-auto mb-3 text-[var(--text-muted)]" />
                   <p className="text-sm text-[var(--text-dim)] mb-1">No races recorded yet</p>
                   <p className="text-xs text-[var(--text-muted)]">
@@ -143,7 +259,7 @@ export default async function DashboardPage() {
               )}
             </section>
 
-            {/* Performance Dashboard */}
+            {/* Performance */}
             <section className="mb-12">
               <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <BarChart3 size={18} className="text-[var(--k10-red)]" />
@@ -151,30 +267,27 @@ export default async function DashboardPage() {
               </h2>
               {hasEnoughData ? (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
+                  <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)]">
                     <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">Races</div>
                     <div className="text-2xl font-black">{raceCount}</div>
                   </div>
-                  <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
+                  <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)]">
                     <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">Charts</div>
                     <div className="text-sm text-[var(--text-dim)]">Coming soon</div>
                   </div>
-                  <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
+                  <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)]">
                     <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">Trends</div>
                     <div className="text-sm text-[var(--text-dim)]">Coming soon</div>
                   </div>
                 </div>
               ) : (
-                <div className="p-8 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-center">
+                <div className="p-8 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)] text-center">
                   <Trophy size={32} className="mx-auto mb-3 text-[var(--text-muted)]" />
                   <p className="text-sm text-[var(--text-dim)] mb-1">
-                    {raceCount === 0
-                      ? 'No race data yet'
-                      : `${raceCount} of 5 races recorded`}
+                    {raceCount === 0 ? 'No race data yet' : `${raceCount} of 5 races recorded`}
                   </p>
                   <p className="text-xs text-[var(--text-muted)]">
-                    Charts and performance trends will appear once you&apos;ve completed at least 5 races with the overlay connected.
-                    Keep racing!
+                    Charts and performance trends will appear once you&apos;ve completed at least 5 races.
                   </p>
                 </div>
               )}
@@ -197,7 +310,7 @@ export default async function DashboardPage() {
                   { label: 'Reflections', icon: '🔮' },
                   { label: 'Module Config', icon: '⚙️' },
                 ].map(f => (
-                  <div key={f.label} className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-center">
+                  <div key={f.label} className="p-3 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border)] text-center">
                     <div className="text-lg mb-1">{f.icon}</div>
                     <div className="text-xs font-semibold text-[var(--text-secondary)]">{f.label}</div>
                   </div>
@@ -208,7 +321,7 @@ export default async function DashboardPage() {
               </p>
             </section>
 
-            {/* Subtle Download Link */}
+            {/* Download link */}
             <section className="text-center">
               <a
                 href="/api/download/latest"
@@ -219,7 +332,6 @@ export default async function DashboardPage() {
               </a>
             </section>
 
-            {/* Footer */}
             <footer className="mt-16 pt-6 border-t border-[var(--border)] text-center">
               <a href={SITE_URL} className="text-xs text-[var(--text-muted)] hover:text-[var(--text-dim)] transition-colors">
                 &larr; Back to {SITE_NAME}
@@ -228,13 +340,14 @@ export default async function DashboardPage() {
           </>
         ) : (
           <>
-            {/* Not Connected State Layout (Original) */}
-
-            {/* Welcome + Download */}
+            {/* Not Connected */}
             <section className="mb-12">
-              <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: 'var(--ff-display)' }}>Welcome, {displayName}</h1>
+              <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: 'var(--ff-display)' }}>
+                Welcome, {displayName}
+              </h1>
               <p className="text-[var(--text-dim)] mb-6">
-                Download the RaceCor overlay, connect it to your Pro Drive account, and start racing. Your performance data will appear here automatically.
+                Download the RaceCor overlay, connect it to your Pro Drive account, and start racing.
+                Your performance data will appear here automatically.
               </p>
               <a
                 href="/api/download/latest"
@@ -248,30 +361,25 @@ export default async function DashboardPage() {
               </p>
             </section>
 
-            {/* Setup Instructions */}
-            <section className="mb-12 p-6 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
+            <section className="mb-12 p-6 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)]">
               <h2 className="text-lg font-bold mb-4">Get Connected</h2>
               <ol className="space-y-3 text-sm text-[var(--text-dim)]">
-                <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--k10-red)] text-white text-xs font-bold flex items-center justify-center">1</span>
-                  <span>Install the RaceCor overlay using the download above</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--k10-red)] text-white text-xs font-bold flex items-center justify-center">2</span>
-                  <span>Launch the overlay and open Settings (Ctrl+Shift+S)</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--k10-red)] text-white text-xs font-bold flex items-center justify-center">3</span>
-                  <span>Go to the <strong>Connections</strong> tab and click <strong>Connect to Pro Drive</strong></span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--k10-red)] text-white text-xs font-bold flex items-center justify-center">4</span>
-                  <span>You&apos;ll be redirected here to authorize, then the overlay unlocks all Pro features</span>
-                </li>
+                {[
+                  'Install the RaceCor overlay using the download above',
+                  'Launch the overlay and open Settings (Ctrl+Shift+S)',
+                  <>Go to the <strong>Connections</strong> tab and click <strong>Connect to Pro Drive</strong></>,
+                  "You'll be redirected here to authorize, then the overlay unlocks all Pro features",
+                ].map((step, i) => (
+                  <li key={i} className="flex gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--k10-red)] text-white text-xs font-bold flex items-center justify-center">
+                      {i + 1}
+                    </span>
+                    <span>{step}</span>
+                  </li>
+                ))}
               </ol>
             </section>
 
-            {/* Performance Dashboard (placeholder or data) */}
             <section className="mb-12">
               <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <BarChart3 size={18} className="text-[var(--k10-red)]" />
@@ -279,36 +387,32 @@ export default async function DashboardPage() {
               </h2>
               {hasEnoughData ? (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
+                  <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)]">
                     <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">Races</div>
                     <div className="text-2xl font-black">{raceCount}</div>
                   </div>
-                  <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
+                  <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)]">
                     <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">Charts</div>
                     <div className="text-sm text-[var(--text-dim)]">Coming soon</div>
                   </div>
-                  <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
+                  <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)]">
                     <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">Trends</div>
                     <div className="text-sm text-[var(--text-dim)]">Coming soon</div>
                   </div>
                 </div>
               ) : (
-                <div className="p-8 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-center">
+                <div className="p-8 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)] text-center">
                   <Trophy size={32} className="mx-auto mb-3 text-[var(--text-muted)]" />
                   <p className="text-sm text-[var(--text-dim)] mb-1">
-                    {raceCount === 0
-                      ? 'No race data yet'
-                      : `${raceCount} of 5 races recorded`}
+                    {raceCount === 0 ? 'No race data yet' : `${raceCount} of 5 races recorded`}
                   </p>
                   <p className="text-xs text-[var(--text-muted)]">
-                    Charts and performance trends will appear once you&apos;ve completed at least 5 races with the overlay connected.
-                    Keep racing!
+                    Complete at least 5 races to unlock charts and trends.
                   </p>
                 </div>
               )}
             </section>
 
-            {/* Pro Features */}
             <section>
               <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <Shield size={18} className="text-[var(--k10-red)]" />
@@ -325,7 +429,7 @@ export default async function DashboardPage() {
                   { label: 'Reflections', icon: '🔮' },
                   { label: 'Module Config', icon: '⚙️' },
                 ].map(f => (
-                  <div key={f.label} className="p-3 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-center">
+                  <div key={f.label} className="p-3 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border)] text-center">
                     <div className="text-lg mb-1">{f.icon}</div>
                     <div className="text-xs font-semibold text-[var(--text-secondary)]">{f.label}</div>
                   </div>
@@ -336,7 +440,6 @@ export default async function DashboardPage() {
               </p>
             </section>
 
-            {/* Footer */}
             <footer className="mt-16 pt-6 border-t border-[var(--border)] text-center">
               <a href={SITE_URL} className="text-xs text-[var(--text-muted)] hover:text-[var(--text-dim)] transition-colors">
                 &larr; Back to {SITE_NAME}

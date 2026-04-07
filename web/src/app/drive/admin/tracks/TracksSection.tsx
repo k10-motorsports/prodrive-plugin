@@ -332,7 +332,7 @@ function TrackCard({ track, onDelete, deleting, onUpdate }: {
           <path
             d={track.svgPath}
             fill="none"
-            stroke="var(--k10-red)"
+            stroke="var(--border-accent)"
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"

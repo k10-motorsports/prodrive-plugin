@@ -50,7 +50,10 @@ export default function ThemeSetSelector() {
     setActiveSlug(slug)
     setOpen(false)
     document.cookie = `${SET_COOKIE}=${slug};path=/;max-age=31536000;SameSite=Lax`
+    document.documentElement.dataset.set = slug   // instant CSS token switch
     window.dispatchEvent(new CustomEvent('theme-set-change', { detail: { slug } }))
+    // Reload so the server loads the correct team blob CSS
+    window.location.reload()
   }
 
   if (sets.length === 0) return null

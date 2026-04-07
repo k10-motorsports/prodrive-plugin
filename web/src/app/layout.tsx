@@ -3,7 +3,7 @@ import { Barlow_Condensed, Cinzel_Decorative, JetBrains_Mono } from 'next/font/g
 import '@/styles/globals.css'
 import { SITE_NAME, SITE_DESCRIPTION, SITE_URL } from '@/lib/constants'
 import { getTokenCssUrl } from '@/lib/tokens/get-token-css-url'
-import { getThemeFromCookie } from '@/lib/theme'
+import { getThemeFromCookie, getThemeSetFromCookie } from '@/lib/theme'
 import { ThemeScript } from '@/components/ThemeScript'
 
 const barlow = Barlow_Condensed({
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const [tokenCssUrl, theme] = await Promise.all([
-    getTokenCssUrl(),
+    getThemeSetFromCookie().then(setSlug => getTokenCssUrl(setSlug)),
     getThemeFromCookie(),
   ])
 
@@ -61,6 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html
       lang="en"
       data-theme={theme}
+      data-set={await getThemeSetFromCookie()}
       className={`${barlow.variable} ${cinzel.variable} ${jetbrains.variable} h-full antialiased`}
     >
       <head>

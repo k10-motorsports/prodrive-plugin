@@ -5,6 +5,7 @@ import IRatingSparkline from './IRatingSparkline'
 interface RaceSession {
   id: string
   carModel: string
+  manufacturer: string | null
   trackName: string | null
   finishPosition: number | null
   incidentCount: number | null
@@ -14,19 +15,32 @@ interface RaceSession {
   createdAt: Date
 }
 
+interface BrandInfo {
+  logoSvg: string | null
+  logoPng: string | null
+  brandColorHex: string | null
+  manufacturerName: string
+}
+
 export default function RaceCard({
   session,
+  practiceSession,
   trackSvgPath,
   carImageUrl,
   trackImageUrl,
   trackLogoSvg,
+  trackDisplayName,
+  brandInfo,
   iRatingHistory,
 }: {
   session: RaceSession
+  practiceSession?: RaceSession
   trackSvgPath: string | null
   carImageUrl: string | null
   trackImageUrl: string | null
   trackLogoSvg: string | null
+  trackDisplayName: string | null
+  brandInfo: BrandInfo | null
   iRatingHistory: number[]
 }) {
   const meta = (session.metadata || {}) as Record<string, any>
@@ -35,154 +49,250 @@ export default function RaceCard({
   const incidents = session.incidentCount ?? 0
   const bestLap = meta.bestLapTime
   const gameName = meta.gameName || 'iRacing'
+  const fieldSize: number | null = meta.fieldSize ?? null
 
-  // Format lap time
-  let lapStr = '—'
-  if (bestLap && bestLap > 0) {
-    const m = Math.floor(bestLap / 60)
-    const sec = bestLap - m * 60
-    lapStr = m + ':' + (sec < 10 ? '0' : '') + sec.toFixed(3)
+  const sessionTypeLower = (session.sessionType || session.category || '').toLowerCase()
+  const isPractice = sessionTypeLower.includes('practice')
+
+  // Practice best lap (from practiceSession metadata)
+  const practiceMeta = (practiceSession?.metadata || {}) as Record<string, any>
+  const practiceBestLap = practiceMeta.bestLapTime
+
+  const formatLap = (t: number | undefined | null): string => {
+    if (!t || t <= 0) return '—'
+    const m = Math.floor(t / 60)
+    const sec = t - m * 60
+    return m + ':' + (sec < 10 ? '0' : '') + sec.toFixed(3)
   }
 
-  // Format date
+  const lapStr         = formatLap(bestLap)
+  const practiceLapStr = formatLap(practiceBestLap)
+
   const date = new Date(session.createdAt)
-  const dateStr = date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  })
+  const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 
-  // Position badge color
-  let posBg = 'hsla(0,0%,100%,0.08)'
-  let posColor = 'hsla(0,0%,100%,0.5)'
-  if (isDNF) {
-    posBg = 'hsla(270,50%,40%,0.3)'
-    posColor = 'hsl(270,60%,70%)'
-  } else if (pos === 1) {
-    posBg = 'hsla(45,90%,50%,0.2)'
-    posColor = 'hsl(45,90%,60%)'
-  } else if (pos === 2) {
-    posBg = 'hsla(0,0%,75%,0.15)'
-    posColor = 'hsl(0,0%,75%)'
-  } else if (pos === 3) {
-    posBg = 'hsla(30,60%,45%,0.2)'
-    posColor = 'hsl(30,60%,55%)'
-  } else if (pos <= 10) {
-    posBg = 'hsla(142,50%,45%,0.15)'
-    posColor = 'hsl(142,60%,55%)'
-  }
-
+  // Session label (humanised)
   const sessionLabel = (session.sessionType || session.category || '')
     .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .trim()
 
-  // Determine game badge text (short form)
-  const getGameBadge = (name: string): string => {
-    const normalized = name.toLowerCase()
-    if (normalized === 'iracing') return 'iR'
-    if (normalized === 'lmu' || normalized === 'lemans unlimited') return 'LMU'
-    if (normalized === 'acc' || normalized === 'assetto corsa competizione') return 'ACC'
-    if (normalized === 'raceroom') return 'R3'
-    if (normalized === 'rfactor' || normalized === 'rfactor2') return 'RF2'
-    if (normalized === 'ams' || normalized === 'automobilista') return 'AMS'
-    return name.substring(0, 3).toUpperCase()
+  // Position badge colors
+  let posColor = 'var(--text-dim)'
+  if (!isPractice) {
+    if (isDNF)          posColor = 'hsl(270,60%,72%)'
+    else if (pos === 1) posColor = 'hsl(45,90%,62%)'
+    else if (pos === 2) posColor = 'hsl(0,0%,78%)'
+    else if (pos === 3) posColor = 'hsl(30,65%,58%)'
+    else if (pos && pos <= 10) posColor = 'hsl(142,60%,58%)'
   }
 
-  return (
-    <div
-      className="relative overflow-hidden rounded-xl border border-[var(--border)] hover:border-[var(--text-muted)] transition-colors"
-      style={{
-        background: trackImageUrl
-          ? `linear-gradient(135deg, rgba(0,0,0,0.7), rgba(0,0,0,0.5)), url('${trackImageUrl}') center/cover`
-          : 'var(--surface)',
-      }}
-    >
-      {/* Background track image with dark overlay */}
-      {trackImageUrl && (
-        <div
-          className="absolute inset-0 -z-10 bg-cover bg-center blur-sm opacity-20"
-          style={{ backgroundImage: `url('${trackImageUrl}')` }}
-        />
-      )}
+  const getGameBadgeText = (name: string): string => {
+    const n = name.toLowerCase()
+    if (n === 'iracing') return 'iRacing'
+    if (n === 'lmu' || n.includes('le mans')) return 'LMU'
+    if (n === 'acc' || n.includes('assetto corsa')) return 'ACC'
+    if (n === 'raceroom') return 'RaceRoom'
+    if (n.includes('rfactor')) return 'rFactor'
+    if (n.includes('automobilista') || n === 'ams') return 'AMS'
+    return name
+  }
 
-      <div className="relative flex items-center gap-4 p-4">
-        {/* Car thumbnail image */}
-        <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center">
-          {carImageUrl ? (
-            <img
-              src={carImageUrl}
-              alt={session.carModel}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-          ) : trackSvgPath ? (
-            <svg viewBox="0 0 200 200" className="w-full h-full opacity-60">
+  const getGameLogoUrl = (name: string): string | null => {
+    const n = name.toLowerCase()
+    if (n === 'iracing') return '/_demo/images/logos/iracing.svg'
+    if (n === 'lmu' || n.includes('le mans')) return '/_demo/images/logos/le-mans-ultimate.svg'
+    return null
+  }
+
+  const gameLogoUrl = getGameLogoUrl(gameName)
+  const gameLabel   = getGameBadgeText(gameName)
+
+  // Brand logo source (prefer SVG, fallback to PNG data URI)
+  const brandLogoSrc = brandInfo?.logoSvg
+    ? `data:image/svg+xml,${encodeURIComponent(brandInfo.logoSvg)}`
+    : brandInfo?.logoPng
+      ? `data:image/png;base64,${brandInfo.logoPng}`
+      : null
+  const brandColor = brandInfo?.brandColorHex || null
+
+  // Track SVG stroke: always use the active theme token (--k10-red slot, overridden per team)
+  const trackStroke = 'var(--border-accent)'
+
+  // Track display label
+  const trackLabel = trackDisplayName || session.trackName || 'Unknown Track'
+
+  return (
+    <div className="border border-[var(--border)] rounded-lg overflow-hidden bg-[var(--bg-elevated)] hover:border-[var(--border-accent)] transition-colors flex flex-col">
+
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <div className="relative h-40 bg-[var(--bg-panel)] overflow-hidden flex-shrink-0">
+
+        {/* Layer 1: track photo background */}
+        {trackImageUrl && (
+          <img
+            src={trackImageUrl}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover opacity-25 pointer-events-none"
+          />
+        )}
+
+        {/* Layer 2: car photo fallback if no track image */}
+        {!trackImageUrl && carImageUrl && (
+          <img
+            src={carImageUrl}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover opacity-20 pointer-events-none"
+          />
+        )}
+
+        {/* Layer 3: track SVG outline — centered, constrained, colored by brand */}
+        {trackSvgPath && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <svg
+              viewBox="0 0 100 100"
+              className="w-4/5 h-4/5"
+              preserveAspectRatio="xMidYMid meet"
+            >
               <path
                 d={trackSvgPath}
                 fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
+                stroke={trackStroke}
+                strokeWidth="1.4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
             </svg>
+          </div>
+        )}
+
+        {/* Layer 4: bottom gradient — always dark so chips remain legible */}
+        <div className="absolute inset-x-0 bottom-0 h-20 pointer-events-none card-header-gradient" />
+
+        {/* Game logo chip — top left */}
+        <div
+          className="absolute top-2.5 left-2.5 flex items-center gap-1.5 px-2 py-1 rounded-full"
+          style={{ background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.18)', backdropFilter: 'blur(6px)' }}
+        >
+          {gameLogoUrl ? (
+            <img src={gameLogoUrl} alt={gameLabel} className="h-3.5 w-auto object-contain" />
           ) : (
-            <div className="text-xs font-bold text-[var(--text-muted)] text-center px-2">
-              {(session.trackName || '?')[0]}
+            <span className="text-[10px] font-bold leading-none text-[var(--text-secondary)]">{gameLabel}</span>
+          )}
+        </div>
+
+        {/* Brand chip — bottom left, sits on dark gradient */}
+        {brandInfo && (
+          <div
+            className="brand-chip absolute bottom-0 left-0 m-3 flex items-center gap-2 px-2.5 py-1.5"
+            style={{
+              '--chip-bg': brandColor ? `${brandColor}55` : 'rgba(0,0,0,0.55)',
+              '--chip-border': brandColor ? `${brandColor}99` : 'var(--border)',
+              background: 'var(--chip-bg)',
+              border: '1px solid var(--chip-border)',
+              backdropFilter: 'blur(6px)',
+              borderRadius: 'var(--corner-r-sm)',
+            } as React.CSSProperties}
+          >
+            {brandLogoSrc ? (
+              <img src={brandLogoSrc} alt={brandInfo.manufacturerName} className="h-12 w-auto object-contain flex-shrink-0" />
+            ) : brandColor ? (
+              <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: brandColor }} />
+            ) : null}
+          </div>
+        )}
+      </div>
+
+      {/* ── Card body ──────────────────────────────────────────────────────── */}
+      <div className="p-4 flex flex-col flex-grow">
+
+        {/* Track name / car model (left) + position badge (right) */}
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0 mb-0.5">
+              {trackLogoSvg && (
+                <img
+                  src={`data:image/svg+xml,${encodeURIComponent(trackLogoSvg)}`}
+                  alt=""
+                  className="w-4 h-4 flex-shrink-0"
+                />
+              )}
+              <h3 className="font-bold text-[var(--text)] truncate leading-tight">
+                {trackLabel}
+              </h3>
+            </div>
+            <p className="text-xs text-[var(--text-dim)] truncate">
+              {session.carModel || 'Unknown Car'}
+            </p>
+          </div>
+
+          {/* Position badge */}
+          {!isPractice && (
+            <div className="flex flex-col items-end shrink-0 leading-none" style={{ color: posColor }}>
+              <div className="flex items-end">
+                {isDNF ? (
+                  <span className="text-base font-black tracking-tight">DNF</span>
+                ) : (
+                  <>
+                    <span className="text-sm font-bold mr-0.5 mb-0.5 opacity-70">P</span>
+                    <span className="text-5xl font-black tracking-tight leading-none">{pos}</span>
+                  </>
+                )}
+              </div>
+              {fieldSize && !isDNF && (
+                <span className="text-[9px] font-semibold mt-0.5 opacity-60">of {fieldSize}</span>
+              )}
             </div>
           )}
         </div>
 
-        {/* Session info */}
-        <div className="flex-grow min-w-0">
-          <div className="font-semibold text-sm text-[var(--text-secondary)] truncate flex items-center gap-1.5">
-            {trackLogoSvg && (
-              <img
-                src={`data:image/svg+xml,${encodeURIComponent(trackLogoSvg)}`}
-                alt=""
-                className="w-4 h-4 flex-shrink-0"
-              />
-            )}
-            {session.trackName || 'Unknown Track'}
-          </div>
-          <div className="text-xs text-[var(--text-dim)] truncate flex items-center gap-2">
-            <span>{session.carModel || 'Unknown Car'}</span>
-            <span className="flex-shrink-0 px-1.5 py-0.5 rounded bg-[var(--text-muted)] bg-opacity-20 text-[var(--text-muted)] text-xs font-semibold">
-              {getGameBadge(gameName)}
-            </span>
-          </div>
-          <div className="text-xs text-[var(--text-muted)] mt-0.5 flex items-center gap-2 flex-wrap">
-            <span>{dateStr}</span>
-            {sessionLabel && (
-              <>
-                <span className="opacity-30">·</span>
-                <span>{sessionLabel}</span>
-              </>
-            )}
-            {lapStr !== '—' && (
-              <>
-                <span className="opacity-30">·</span>
-                <span className="font-mono">{lapStr}</span>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Position + incidents */}
-        <div className="flex-shrink-0 text-center" style={{ minWidth: '48px' }}>
+        {/* Practice row (whenever a practice session is attached) */}
+        {practiceSession && (
           <div
-            className="inline-flex items-center justify-center rounded-lg px-2 py-1 text-sm font-black"
-            style={{ background: posBg, color: posColor }}
+            className="mb-3 px-2.5 py-2"
+            style={{
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--corner-r-sm)',
+            }}
           >
-            {isDNF ? 'DNF' : 'P' + pos}
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-[var(--text-muted)] uppercase tracking-wide text-[10px] font-semibold">Practice</span>
+              <span className="font-mono text-[var(--text-dim)]">{practiceLapStr}</span>
+            </div>
+            {(practiceSession.incidentCount ?? 0) > 0 && (
+              <div className="mt-0.5 text-[10px] text-[var(--text-muted)]">
+                {practiceSession.incidentCount}× incidents
+              </div>
+            )}
           </div>
-          {incidents > 0 && (
-            <div className="text-xs text-[var(--text-muted)] mt-1">{incidents}x</div>
+        )}
+
+        {/* Spacer pushes sparkline + footer to bottom */}
+        <div className="flex-grow" />
+
+        {/* iRating sparkline */}
+        {iRatingHistory.length > 1 && (
+          <div className="mb-3">
+            <IRatingSparkline values={iRatingHistory} />
+          </div>
+        )}
+
+        {/* Footer: date / session label / race lap */}
+        <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
+          <span>
+            {dateStr}
+            {sessionLabel && (
+              <span className="opacity-50"> · {sessionLabel}</span>
+            )}
+          </span>
+          {lapStr !== '—' && (
+            <span className="font-mono text-[var(--text-dim)]">{lapStr}</span>
           )}
         </div>
 
-        {/* iRating sparkline */}
-        <div className="flex-shrink-0">
-          <IRatingSparkline values={iRatingHistory} />
-        </div>
+        {incidents > 0 && (
+          <div className="mt-1 text-xs text-[var(--text-muted)]">{incidents}× incidents</div>
+        )}
       </div>
     </div>
   )

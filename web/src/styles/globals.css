@@ -44,6 +44,10 @@
   --k10-red-mid: #b02020;
   --k10-red-dark: #700010;
 
+  /* Track map SVG stroke — neutral in K10, team brand color when a set is active.
+     Derived from --k10-red which is already overridden in every team blob. */
+  --track-stroke: rgba(255, 255, 255, 0.55);
+
   /* Semantic colors */
   --green: #43a047;
   --blue: #1e88e5;
@@ -81,6 +85,8 @@
   --k10-red: #d32f2f;
   --k10-red-mid: #c62828;
   --k10-red-dark: #b71c1c;
+
+  --track-stroke: rgba(0, 0, 0, 0.45);
 
   --green: #2e7d32;
   --blue: #1565c0;
@@ -132,3 +138,13 @@ body {
   a { color: var(--purple); text-decoration: none; }
   a:hover { text-decoration: underline; }
 }
+
+
+/* Race card header gradient — dark fade by default, light fade in light mode */
+.card-header-gradient {
+  background: linear-gradient(to top, rgba(0,0,0,0.65), transparent);
+}
+[data-theme="light"] .card-header-gradient {
+  background: linear-gradient(to top, rgba(0,0,0,0.55), transparent);
+}
+
