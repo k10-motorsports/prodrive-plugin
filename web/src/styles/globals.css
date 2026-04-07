@@ -59,6 +59,7 @@
   /* Radii */
   --corner-r: 12px;
   --corner-r-sm: 6px;
+
 }
 
 /* Light theme fallback — overridden by blob CSS when available */
@@ -90,7 +91,7 @@
 
 html {
   color-scheme: dark;
-  font-size: 16px;
+  font-size: 18px;
 }
 
 html[data-theme="light"] {
@@ -98,7 +99,7 @@ html[data-theme="light"] {
 }
 
 body {
-  background: var(--bg);
+  background-color: var(--bg);
   color: var(--text);
   font-family: var(--ff);
   font-size: 16px;

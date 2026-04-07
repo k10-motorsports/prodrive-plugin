@@ -21,7 +21,7 @@ export default async function AdminLayout({
   const user = session.user as unknown as Record<string, unknown>
 
   return (
-    <main className="min-h-screen bg-[var(--bg)]">
+    <main className="min-h-screen">
       <ThemeSetEffects />
       <header className="border-b border-[var(--border)] px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">

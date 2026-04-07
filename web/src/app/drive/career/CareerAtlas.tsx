@@ -198,7 +198,7 @@ export default function CareerAtlas({
 
   if (sessions.length === 0) {
     return (
-      <main className="min-h-screen bg-[var(--bg)]">
+      <main className="min-h-screen">
         <header className="border-b border-[var(--border)] px-6 py-4">
           <a href="/drive/dashboard" className="text-xs text-[var(--text-muted)] hover:text-[var(--text-dim)] transition-colors">
             &larr; Back to Dashboard
@@ -214,7 +214,7 @@ export default function CareerAtlas({
   }
 
   return (
-    <main className="min-h-screen bg-[var(--bg)]">
+    <main className="min-h-screen">
       <header className="border-b border-[var(--border)] px-6 py-4">
         <a href="/drive/dashboard" className="text-xs text-[var(--text-muted)] hover:text-[var(--text-dim)] transition-colors">
           &larr; Back to Dashboard

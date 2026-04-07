@@ -104,7 +104,7 @@ export default async function DashboardPage() {
   const hasEnoughData = raceCount >= 5
 
   return (
-    <main className="min-h-screen bg-[var(--bg)]">
+    <main className="min-h-screen relative">
       <ThemeSetEffects />
       {/* Top bar */}
       <header className="border-b border-[var(--border)] px-6 py-4 flex items-center justify-between">

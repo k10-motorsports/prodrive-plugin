@@ -103,7 +103,7 @@ export default function MomentsPage({ sessions, ratingHistory }: MomentsPageProp
 
   if (moments.length === 0) {
     return (
-      <div className="min-h-screen bg-[var(--bg)] px-6 py-12">
+      <div className="min-h-screen px-6 py-12">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold text-[var(--text-secondary)] mb-2">Your Moments</h1>
           <p className="text-[var(--text-muted)] mb-12">
@@ -122,7 +122,7 @@ export default function MomentsPage({ sessions, ratingHistory }: MomentsPageProp
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] px-6 py-12">
+    <div className="min-h-screen px-6 py-12">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-[var(--text-secondary)] mb-2">Your Moments</h1>
         <p className="text-[var(--text-muted)] mb-12">

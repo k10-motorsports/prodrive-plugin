@@ -85,7 +85,7 @@ export default function WhenEnginePage({ sessions, ratingHistory }: {
 
   if (!hasEnoughData) {
     return (
-      <main className="min-h-screen bg-[var(--bg)] px-6 py-12">
+      <main className="min-h-screen px-6 py-12">
         <div className="max-w-4xl mx-auto">
           <div className="p-8 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-center">
             <Clock size={32} className="mx-auto mb-3 text-[var(--text-muted)]" />
@@ -150,7 +150,7 @@ export default function WhenEnginePage({ sessions, ratingHistory }: {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--bg)] px-6 py-12">
+    <main className="min-h-screen px-6 py-12">
       <div className="max-w-4xl mx-auto space-y-12">
         {/* Heatmap */}
         <section>

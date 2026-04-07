@@ -2232,6 +2232,7 @@
     width: 240px;
     transition: opacity 0.4s ease;
     flex-shrink: 0;
+    overflow: hidden;
   }
   .leaderboard-panel.section-hidden { display: none; }
   /* Position offsets removed — now handled by .sec-container flex layout */
@@ -3442,6 +3443,9 @@
     gap: var(--panel-gap);
     align-items: flex-start;
     pointer-events: none;
+    /* Prevent sec panels from growing into the opposite-edge HUD.
+       JS sets --sec-max-h dynamically; fallback keeps it safe. */
+    max-height: var(--sec-max-h, 55vh);
   }
   .sec-container > * { pointer-events: auto; }
 
@@ -5829,6 +5833,45 @@ html, body {
       </div>
     </div>
 
+    <!-- COL: Maps stacked — rendered dynamically from TrackMapProvider -->
+    <div class="maps-col">
+      <div class="panel map-panel">
+        <svg class="map-svg" id="fullMapSvg" viewBox="0 0 100 100">
+          <path class="map-track-outer" id="fullMapTrackOuter" d="" />
+          <path class="map-track" id="fullMapTrack" d="" />
+          <path class="map-track-inner on-track" id="fullMapTrackInner" d="" />
+          <path class="map-sector" id="mapSector1" d="" />
+          <path class="map-sector" id="mapSector2" d="" />
+          <path class="map-sector" id="mapSector3" d="" />
+          <g id="fullMapSF" class="map-sf" style="display:none;">
+            <line x1="0" y1="-3.5" x2="0" y2="3.5" stroke="hsla(0,0%,100%,0.6)" stroke-width="1.5" stroke-linecap="round"/>
+          </g>
+          <g id="fullMapOpponents"></g>
+          <circle class="map-player" id="fullMapPlayer" cx="50" cy="50" r="4" />
+        </svg>
+        <div class="map-zoom-label" id="fullMapLabel">Full</div>
+      </div>
+      <div class="panel map-zoom-panel">
+        <svg class="map-zoom-svg" id="zoomMapSvg" viewBox="0 0 100 100" overflow="visible">
+          <!-- Rotate group: track + opponents rotate around the player so
+               driving direction always points up. Player dot is OUTSIDE
+               this group so it stays upright and visually centered. -->
+          <g id="zoomMapRotateGroup">
+            <path class="map-track-outer" id="zoomMapTrackOuter" d="" />
+            <path class="map-track" id="zoomMapTrack" d="" />
+            <path class="map-track-inner on-track" id="zoomMapTrackInner" d="" />
+            <g id="zoomMapSF" class="map-sf" style="display:none;">
+              <line x1="0" y1="-2" x2="0" y2="2" stroke="hsla(0,0%,100%,0.6)" stroke-width="0.8" stroke-linecap="round"/>
+            </g>
+            <g id="zoomMapOpponents"></g>
+          </g>
+          <!-- Player dot outside rotate group — always upright at center -->
+          <circle class="map-player" id="zoomMapPlayer" cx="50" cy="50" r="2" />
+        </svg>
+        <div class="map-zoom-label" id="zoomMapLabel">Local</div>
+      </div>
+    </div>
+
     <!-- COL: Position/Rating + Gaps -->
     <div class="pos-gaps-col">
       <div class="panel cycle-container rating-pos-block" id="cycleRatingPos">
@@ -6369,6 +6412,14 @@ const PROP_KEYS = [
   'RaceCorProDrive.Plugin.CommentaryCategory',
   'RaceCorProDrive.Plugin.CommentarySentimentColor',
   'RaceCorProDrive.Plugin.CommentarySeverity',
+  // Incident Coach properties
+  'RaceCorProDrive.Plugin.DS.IncidentCoach.Active',
+  'RaceCorProDrive.Plugin.DS.IncidentCoach.LastIncidentLap',
+  'RaceCorProDrive.Plugin.DS.IncidentCoach.ThreatDrivers',
+  'RaceCorProDrive.Plugin.DS.IncidentCoach.ActiveAlert',
+  'RaceCorProDrive.Plugin.DS.IncidentCoach.RageScore',
+  'RaceCorProDrive.Plugin.DS.IncidentCoach.CooldownActive',
+  'RaceCorProDrive.Plugin.DS.IncidentCoach.SessionBehavior',
   // Strategy engine properties
   'RaceCorProDrive.Plugin.Strategy.Visible',
   'RaceCorProDrive.Plugin.Strategy.Text',
@@ -6461,6 +6512,11 @@ const PROP_KEYS = [
   'RaceCorProDrive.Plugin.DS.SectorS3StartPct',
   'RaceCorProDrive.Plugin.DS.CompletedLaps',
   'RaceCorProDrive.Plugin.DS.IsInPitLane',
+  'RaceCorProDrive.Plugin.DS.SessionMode',
+  'RaceCorProDrive.Plugin.DS.SessionModeName',
+  'RaceCorProDrive.Plugin.DS.IsLapRace',
+  'RaceCorProDrive.Plugin.DS.IsLapInvalid',
+  'RaceCorProDrive.Plugin.DS.SectorBests',
   'RaceCorProDrive.Plugin.DS.SpeedKmh',
   'RaceCorProDrive.Plugin.DS.PitLimiterOn',
   'RaceCorProDrive.Plugin.DS.PitSpeedLimitKmh',
@@ -6509,6 +6565,11 @@ const PROP_KEYS = [
   'RaceCorProDrive.Plugin.Demo.DS.TcActive',
   'RaceCorProDrive.Plugin.Demo.DS.LapDelta',
   'RaceCorProDrive.Plugin.Demo.DS.IsInPitLane',
+  'RaceCorProDrive.Plugin.Demo.DS.SessionMode',
+  'RaceCorProDrive.Plugin.Demo.DS.SessionModeName',
+  'RaceCorProDrive.Plugin.Demo.DS.IsLapRace',
+  'RaceCorProDrive.Plugin.Demo.DS.IsLapInvalid',
+  'RaceCorProDrive.Plugin.Demo.DS.SectorBests',
   'RaceCorProDrive.Plugin.Demo.DS.SpeedKmh',
   'RaceCorProDrive.Plugin.Demo.DS.PitLimiterOn',
   'RaceCorProDrive.Plugin.Demo.DS.PitSpeedLimitKmh',
@@ -6650,9 +6711,10 @@ let _gapsLastLap = 0;          // last completed lap for gaps module
 let _gapsWorstLap = 0;         // worst valid lap time for gaps module
 let _gapsLapNum = 0;           // current lap number for gaps module
 let _gapsNonRaceMode = false;  // currently in non-race session
-let _lapStartIncidents = 0;   // incident count at start of current lap (for invalid detection)
 let _lapInvalid = false;       // true when incidents increased during current lap
 let _prevSectorSplits = [];    // previous poll's sector splits — survives iRacing clearing on lap cross
+let _prevSectorStates = [];    // previous poll's sector color states — retained across lap boundaries
+let _prevTimerSector = 0;      // previous sector number for lap-race timer popup on sector transition
 let _startPosition = 0;
 let _prevBB = -1, _prevTC = -1, _prevABS = -1;
 let _clutchSeenActive = false;
@@ -6912,8 +6974,11 @@ let _discordUser = null;
 
 // K10 Pro Drive state (set by connections.js on startup)
 // Declared here so game-detect.js and other early scripts can reference it
-let _k10User = null;
-let _k10Features = [];
+// Must use var (not let) so these attach to window — session-sync.js (IIFE)
+// accesses them as window._k10User / window._k10Features.
+var _k10User = null;
+var _k10Features = [];
+var _k10Token = null;
 
 // Logo cycling
 let _currentCarLogoIdx = 0;
@@ -7103,10 +7168,9 @@ function _fmtLapTime(secs) {
     return GAME_FEATURES[_currentGameId] || GAME_FEATURES.iracing;
   }
 
-  // Returns true if the current game is allowed (iRacing always allowed; others require K10 Pro)
+  // All games are allowed — no connection check required
   function isGameAllowed() {
-    if (_currentGameId === 'iracing') return true;
-    return !!_k10User;
+    return true;
   }
 
   function isRallyGame() {
@@ -9407,11 +9471,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function switchSettingsTab(tab) {
     const tabName = tab.dataset.tab;
-    // Check if this tab requires pro and is disabled
-    if (tab.classList.contains('disabled') && tab.dataset.proTab) {
-      navigateToConnections();
-      return;
-    }
     // Update both sidebar items and legacy tab bar
     document.querySelectorAll('.settings-sidebar-item').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
     document.querySelectorAll('.settings-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
@@ -9438,7 +9497,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function updateLbMaxRows(value) {
-    _settings.lbMaxRows = Math.max(1, Math.min(40, +value || 5));
+    _settings.lbMaxRows = Math.max(1, Math.min(60, +value || 5));
     window._lbLastJson = '';
     saveSettings();
   }
@@ -9473,12 +9532,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // ── Visual mode presets (Minimal, Minimal+, Standard) ──
   function applyVisualPreset(preset) {
-    // Feature gate: minimal/minimal+ require K10 Pro connection
-    if (preset !== 'standard' && !_k10User) {
-      navigateToConnections();
-      return;
-    }
-
     _settings.visualPreset = preset;
 
     // Remove all mode classes
@@ -9953,20 +10006,13 @@ document.addEventListener('DOMContentLoaded', function () {
   const PRO_FEATURE_KEYS = ['commentary','incidents','spotter','leaderboard','datastream','webgl','reflections','modules','minimal','minimal-plus','branding'];
 
   function isProFeature(key) {
-    const map = {
-      'showCommentary': 'commentary',
-      'showIncidents': 'incidents',
-      'showSpotter': 'spotter',
-      'showLeaderboard': 'leaderboard',
-      'showDatastream': 'datastream',
-      'showWebGL': 'webgl',
-      'ambientMode': 'reflections',
-    };
-    return map[key] || null;
+    // Feature gates removed — all local features are always available
+    return null;
   }
 
   function isProEnabled(featureKey) {
-    return _k10User && _k10Features.includes(featureKey);
+    // Feature gates removed — all local features are always enabled
+    return true;
   }
 
   function updateConnectionsTab() {
@@ -10049,7 +10095,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // Fallback: open website in browser
       if (window.debugConsole) window.debugConsole.logNetwork('info', 'K10 connection not available, opening browser');
       if (window.k10 && window.k10.openExternal) {
-        window.k10.openExternal('https://drive.racecor.io');
+        window.k10.openExternal('https://prodrive.racecor.io');
       }
       return;
     }
@@ -10077,6 +10123,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (window.debugConsole) window.debugConsole.logNetwork('success', 'K10 Pro Drive connected - ' + (result.user.discordUsername || result.user.discordDisplayName || 'User'));
 
         updateK10ConnectionCard();
+
+        // Cache auth token for session-sync.js
+        if (window.k10 && window.k10.getK10Token) {
+          window.k10.getK10Token().then(function(t) { _k10Token = t; }).catch(function() {});
+        }
       } else {
         const errMsg = result?.error || 'Connection failed';
         console.warn('[K10] Pro connect failed:', errMsg);
@@ -10105,6 +10156,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     _k10User = null;
     _k10Features = [];
+    _k10Token = null;
     delete _settings.k10User;
     delete _settings.k10Features;
     saveSettings();
@@ -10112,46 +10164,18 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ── Pro Feature Gating ──
-  // Add disabled state + K10 badge to toggles that require Pro
+  // Previously gated local features behind K10 Pro connection.
+  // All local features are now always available. Only session-sync
+  // and remote dashboard still require a connection.
   function updateProFeatureGating() {
-    const isPro = !!_k10User;
-
-    // Toggle elements with pro gating
-    document.querySelectorAll('[data-pro-feature]').forEach(el => {
-      const featureKey = el.dataset.proFeature;
-      const enabled = isPro && _k10Features.includes(featureKey);
-
-      if (enabled) {
-        el.classList.remove('pro-locked');
-        // Remove pro badge if present
-        const badge = el.parentElement?.querySelector('.pro-badge');
-        if (badge) badge.style.display = 'none';
-      } else {
-        el.classList.add('pro-locked');
-        // Show pro badge
-        let badge = el.parentElement?.querySelector('.pro-badge');
-        if (!badge && el.parentElement) {
-          badge = document.createElement('span');
-          badge.className = 'pro-badge';
-          badge.innerHTML = '<img src="images/branding/logomark.png" alt="Pro" />';
-          badge.title = 'K10 Pro feature — connect to enable';
-          badge.onclick = function(e) { e.stopPropagation(); navigateToConnections(); };
-          el.parentElement.appendChild(badge);
-        }
-        if (badge) badge.style.display = '';
-      }
-    });
-
-    // Sidebar items gating
+    // Clean up any leftover pro-locked classes and badges from prior sessions
+    document.querySelectorAll('.pro-locked').forEach(el => el.classList.remove('pro-locked'));
+    document.querySelectorAll('.pro-badge').forEach(el => el.style.display = 'none');
     document.querySelectorAll('[data-pro-tab]').forEach(tab => {
-      const featureKey = tab.dataset.proTab;
-      const enabled = isPro && _k10Features.includes(featureKey);
-      tab.classList.toggle('disabled', !enabled);
-      tab.title = enabled ? '' : 'K10 Pro feature — connect to enable';
+      tab.classList.remove('disabled');
+      tab.title = '';
     });
 
-    // Update layout rally toggle (now based on K10 Pro, not Discord)
-    updateLayoutRallyToggle();
     syncRallyToggles();
   }
 
@@ -10267,8 +10291,6 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function toggleLayoutRally(el) {
-    // Ignore clicks when disabled (no K10 Pro connection)
-    if (el.classList.contains('disabled')) return;
     const isOn = el.classList.contains('on');
     el.classList.toggle('on', !isOn);
     _rallyModeEnabled = !isOn;
@@ -10288,23 +10310,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (connToggle) connToggle.classList.toggle('on', _rallyModeEnabled);
   }
 
-  /** Enable/disable the layout rally toggle based on K10 Pro state */
+  /** Sync layout rally toggle state — always enabled */
   function updateLayoutRallyToggle() {
     const el = document.getElementById('layoutRallyToggle');
     const hint = document.getElementById('layoutRallyHint');
     if (!el) return;
-    if (_k10User) {
-      el.classList.remove('disabled');
-      if (hint) hint.style.display = 'none';
-    } else {
-      el.classList.add('disabled');
-      el.classList.remove('on');
-      if (hint) hint.style.display = '';
-      // Force rally off when disconnected
-      _rallyModeEnabled = false;
-      _settings.rallyMode = false;
-      _isRally = isRallyGame();
-    }
+    el.classList.remove('disabled');
+    if (hint) hint.style.display = 'none';
   }
 
   // ── Remote Dashboard (LAN streaming via remote-server.js) ──
@@ -10402,6 +10414,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
           updateK10ConnectionCard();
 
+          // Cache auth token for session-sync.js
+          if (window.k10 && window.k10.getK10Token) {
+            window.k10.getK10Token().then(function(t) { _k10Token = t; }).catch(function() {});
+          }
+
           // Verify token in background
           if (window.k10.verifyK10Token) {
             window.k10.verifyK10Token().then(result => {
@@ -10438,15 +10455,15 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       updateK10ConnectionCard();
+
+      // Cache auth token for session-sync.js
+      if (window.k10 && window.k10.getK10Token) {
+        window.k10.getK10Token().then(function(t) { _k10Token = t; }).catch(function() {});
+      }
     }
   }
 
   function toggleSetting(el) {
-    // Check if this is a pro-locked toggle
-    if (el.classList.contains('pro-locked')) {
-      navigateToConnections();
-      return;
-    }
     const key = el.dataset.key;
     const isOn = el.classList.contains('on');
     _settings[key] = !isOn;
@@ -10464,11 +10481,6 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function toggleWebGL(el) {
-    // Check if this is a pro-locked toggle
-    if (el.classList.contains('pro-locked')) {
-      navigateToConnections();
-      return;
-    }
     const isOn = el.classList.contains('on');
     const newVal = !isOn;
     el.classList.toggle('on', newVal);
@@ -10930,52 +10942,44 @@ document.addEventListener('DOMContentLoaded', function () {
     const container = document.getElementById('lbRows');
     if (!container) return;
 
+    // ── Focus + row limit logic ──
+    const focusMode = _settings.lbFocus || 'me';
+
     // Update header title based on focus mode
     const headerEl = document.querySelector('.lb-header');
     if (headerEl) {
       headerEl.textContent = focusMode === 'lead' ? 'LEADERBOARD' : 'RELATIVE';
     }
-
-    // ── Focus + row limit logic ──
-    const focusMode = _settings.lbFocus || 'me';
     let maxRows = _settings.lbMaxRows || 5;
 
-    // Expand to fill: calculate max rows that fit on screen
+    // Calculate available height for the leaderboard — used by both
+    // expand-to-fill (dynamic row count) and the CSS max-height safety net.
+    const sec = document.getElementById('secContainer');
+    const dash = document.getElementById('dashboard');
+    const zoom = parseFloat(sec ? sec.style.zoom : 1) || 1;
+    const vpH = window.innerHeight || 600;
+    const GAP = 24; // minimum gap between leaderboard and opposite-edge HUD
+
+    // Measure how much vertical space the main dashboard occupies
+    let dashFootprint = 0;
+    if (dash) {
+      const dashRect = dash.getBoundingClientRect();
+      if (dashRect.height > 0) dashFootprint = dashRect.height;
+    }
+
+    // Available height = viewport minus dashboard footprint minus edges minus gap
+    const edgePx = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--edge') || '10');
+    const availH = Math.max(100, (vpH - dashFootprint - edgePx * 2 - GAP) / zoom);
+
+    // Set CSS custom property so sec-container can't overflow even without expand-to-fill
+    if (sec) sec.style.setProperty('--sec-max-h', Math.floor(availH * zoom) + 'px');
+
+    // Expand to fill: calculate max rows that fit in available space
     if (expandToFill) {
-      const lbPanel = document.getElementById('leaderboardPanel');
-      const sec = document.getElementById('secContainer');
-      const zoom = parseFloat(sec ? sec.style.zoom : 1) || 1;
-      const rowH = 22; // approximate row height in px (in panel coordinates)
-      // Measure available height from the sec-container position
-      // getBoundingClientRect() returns viewport pixels; divide by zoom to get panel-space pixels
-      const vpH = window.innerHeight || 600;
-      let availH;
-      if (sec && sec.offsetHeight > 0) {
-        const secRect = sec.getBoundingClientRect();
-        const isTop = sec.classList.contains('sec-top');
-        // Available height: from the container's edge toward the opposite viewport edge
-        availH = isTop ? (vpH - secRect.top) / zoom : secRect.bottom / zoom;
-        // Fallback if getBoundingClientRect returned 0 (not laid out yet)
-        if (availH <= 0) {
-          availH = vpH / zoom;
-        }
-      } else if (lbPanel && lbPanel.offsetHeight > 0) {
-        // Fallback: use lbPanel's own height if available
-        availH = lbPanel.offsetHeight / zoom;
-      } else {
-        // Last resort: use viewport height
-        availH = vpH / zoom;
-      }
-      // Reserve space for lb-header, timeline strip, padding, and a safety margin
+      const rowH = 22;  // approximate row height in px (in panel coordinates)
       const headerH = 36; // header + timeline + top/bottom padding
-      const marginH = 16; // breathing room at the edge
+      const marginH = 16; // breathing room
       const calculatedMaxRows = Math.max(3, Math.min(raw.length, Math.floor((availH - headerH - marginH) / rowH)));
-      // Warn if calculated maxRows is suspiciously small when expand-to-fill is enabled
-      if (calculatedMaxRows < 6 && raw.length >= 6) {
-        if (_pollFrame > 0 && _pollFrame % 20 === 0) {
-          console.warn('[K10 LB] expand-to-fill calculated suspiciously small maxRows:', calculatedMaxRows, 'availH:', availH, 'lbPanel.offsetHeight:', lbPanel ? lbPanel.offsetHeight : 'N/A', 'sec.offsetHeight:', sec ? sec.offsetHeight : 'N/A');
-        }
-      }
       maxRows = calculatedMaxRows;
     }
 
@@ -12674,6 +12678,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const startType    = (p[pre + 'StartType'] || 'rolling').toLowerCase();
     const isRolling    = startType === 'rolling';
 
+    // Detect qualifying — no start lights needed (SessionMode: 2=Qualifying)
+    const sessionModePre = isDemo ? 'RaceCorProDrive.Plugin.Demo.SessionMode' : 'RaceCorProDrive.Plugin.DS.SessionMode';
+    const isQuali = +(p[sessionModePre]) === 2;
+
     const mod  = document.getElementById('gridModule');
     const info = document.getElementById('gridInfo');
     const lights = document.getElementById('startLights');
@@ -12683,7 +12691,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // If plugin doesn't send LightsPhase, we generate a synthetic green sequence
     // and hold it for 3 seconds so it's actually visible.
     const transitioningToRace = _gridPrevSessionState >= 1 && _gridPrevSessionState <= 3 && sessionState === 4;
-    if (transitioningToRace && lightsPhase === 0 && _simLightsPhase === 0) {
+    if (transitioningToRace && lightsPhase === 0 && _simLightsPhase === 0 && !isQuali) {
       _simLightsPhase = 7;
       clearTimeout(_simLightsTimer);
       _simLightsTimer = setTimeout(() => { _simLightsPhase = 0; }, 3000);
@@ -17746,13 +17754,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (licSelect) licSelect.value = _manualLicense || 'R';
   }
 
-  // ── Enable/disable iRacing tab based on K10 Pro connection ──
+  // ── iRacing tab state — always enabled ──
   function updateIRacingTabState() {
     const tab = document.getElementById('iracingTab');
     if (!tab) return;
-    const connected = !!_k10User;
-    tab.classList.toggle('disabled', !connected);
-    tab.title = connected ? '' : 'Connect K10 Pro to enable';
+    tab.classList.remove('disabled');
+    tab.title = '';
   }
   window.updateIRacingTabState = updateIRacingTabState;
 
@@ -18307,12 +18314,12 @@ document.addEventListener('DOMContentLoaded', function () {
         states.push(+(p[dsPre + 'SectorStateS' + si]) || 0);
       }
     }
-    var stateClass = ['', 'dh-s-pb', 'dh-s-faster', 'dh-s-slower'];
-    var currentLapTime = isDemo
-      ? (+(p['RaceCorProDrive.Plugin.Demo.CurrentLapTime']) || 0)
-      : (+(p['DataCorePlugin.GameData.CurrentLapTime']) || 0);
+    // Color mapping: green = my best, yellow = worse than my best, red = invalid
+    // No purple — we don't have "best of everyone on track" data
+    // state: 0=none, 1=pb (treat as green), 2=faster (green), 3=slower (yellow)
+    var dhStateClass = ['', 'dh-s-faster', 'dh-s-faster', 'dh-s-slower'];
 
-    // Dynamically create/update drive HUD sector cells
+    // Dynamically create/update drive HUD sector cells (label only — no times)
     var dhSectorsEl = document.querySelector('.dh-sectors');
     if (dhSectorsEl) {
       var existingCells = dhSectorsEl.querySelectorAll('.dh-sector');
@@ -18322,9 +18329,7 @@ document.addEventListener('DOMContentLoaded', function () {
           var cell = document.createElement('div');
           cell.className = 'dh-sector';
           cell.id = 'dhS' + ci;
-          cell.innerHTML = '<div class="dh-sec-label">S' + ci + '</div>' +
-            '<div class="dh-sec-time" id="dhS' + ci + 'Time">—</div>' +
-            '<div class="dh-sec-delta" id="dhS' + ci + 'Delta"></div>';
+          cell.innerHTML = '<div class="dh-sec-label">S' + ci + '</div>';
           dhSectorsEl.appendChild(cell);
         }
       }
@@ -18332,9 +18337,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     for (var si = 1; si <= sectorCount; si++) {
       var cell = document.getElementById('dhS' + si);
-      var timeEl = document.getElementById('dhS' + si + 'Time');
-      var sDeltaEl = document.getElementById('dhS' + si + 'Delta');
-      if (!cell || !timeEl) continue;
+      if (!cell) continue;
 
       cell.classList.remove('dh-s-pb', 'dh-s-faster', 'dh-s-slower', 'dh-s-invalid', 'dh-s-active');
 
@@ -18343,82 +18346,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
       if (si === curSector) {
         cell.classList.add('dh-s-active');
-        // Calculate sector entry time — only if ALL previous splits are valid.
-        // iRacing clears splits at lap-cross in quali; without this guard the
-        // full currentLapTime leaks into the sector cell.
-        var entryTime = 0;
-        var hasPrevSplits = true;
-        for (var k = 0; k < si - 1; k++) {
-          if (!splits[k] || splits[k] <= 0) { hasPrevSplits = false; break; }
-          entryTime += splits[k];
+        // Live delta coloring on active sector
+        if (!_lapInvalid && lapDelta !== 0) {
+          cell.classList.add(lapDelta < 0 ? 'dh-s-faster' : 'dh-s-slower');
         }
-        if (hasPrevSplits && currentLapTime > entryTime) {
-          var elapsed = currentLapTime - entryTime;
-          // Extra guard: no single sector should approach full lap length
-          if (bestLap > 0 && elapsed >= bestLap * 0.85) {
-            timeEl.textContent = '—';
-            if (sDeltaEl) sDeltaEl.textContent = '';
-          } else {
-            var em = Math.floor(elapsed / 60);
-            var es = elapsed % 60;
-            timeEl.textContent = (em > 0 ? em + ':' : '') + (em > 0 && es < 10 ? '0' : '') + es.toFixed(1);
-            if (sDeltaEl) {
-              if (lapDelta !== 0) {
-                sDeltaEl.textContent = (lapDelta >= 0 ? '+' : '') + lapDelta.toFixed(2);
-                cell.classList.add(lapDelta < 0 ? 'dh-s-faster' : 'dh-s-slower');
-              } else { sDeltaEl.textContent = ''; }
-            }
-          }
-        } else if (si === 1 && currentLapTime > 0 && currentLapTime < 120) {
-          // S1 is always valid — entry time is lap start (0)
-          var em = Math.floor(currentLapTime / 60);
-          var es = currentLapTime % 60;
-          timeEl.textContent = (em > 0 ? em + ':' : '') + (em > 0 && es < 10 ? '0' : '') + es.toFixed(1);
-          if (sDeltaEl) {
-            if (lapDelta !== 0) {
-              sDeltaEl.textContent = (lapDelta >= 0 ? '+' : '') + lapDelta.toFixed(2);
-              cell.classList.add(lapDelta < 0 ? 'dh-s-faster' : 'dh-s-slower');
-            } else { sDeltaEl.textContent = ''; }
-          }
-        } else {
-          timeEl.textContent = '—';
-          if (sDeltaEl) sDeltaEl.textContent = '';
+      } else if (states[si - 1] > 0) {
+        // Completed sector with a new performance state — apply and cache it
+        if (!_lapInvalid) {
+          var cls = dhStateClass[states[si - 1]];
+          if (cls) cell.classList.add(cls);
         }
-      } else if (splits[si - 1] > 0) {
-        var split = splits[si - 1];
-        // Sanity check: iRacing sometimes sends cumulative lap time as
-        // the final sector split. Never display a full lap time here.
-        var sumOther = 0, otherCount = 0;
-        for (var sc = 0; sc < sectorCount; sc++) {
-          if (sc !== si - 1 && splits[sc] > 0) { sumOther += splits[sc]; otherCount++; }
+        _prevSectorStates[si - 1] = states[si - 1];
+      } else if (_prevSectorStates[si - 1] > 0) {
+        // No new state yet (e.g. new lap, splits cleared) — retain previous color
+        if (!_lapInvalid) {
+          var cls = dhStateClass[_prevSectorStates[si - 1]];
+          if (cls) cell.classList.add(cls);
         }
-        var exceedsOthers = sumOther > 0 && split >= sumOther;
-        var exceedsBest = bestLap > 0 && split >= bestLap * 0.85;
-        // Also check previous poll's splits — iRacing clears sectors on lap
-        // cross in qualifying, so otherCount can be 0 even for a real split
-        var prevOther = 0;
-        for (var pc = 0; pc < _prevSectorSplits.length; pc++) {
-          if (pc !== si - 1 && _prevSectorSplits[pc] > 0) prevOther++;
-        }
-        var lastNoCtx = si === sectorCount && sectorCount >= 2 && otherCount === 0 && prevOther === 0;
-        if (exceedsOthers || exceedsBest || lastNoCtx) {
-          timeEl.textContent = '—';
-          if (sDeltaEl) sDeltaEl.textContent = '';
-        } else {
-        var m = Math.floor(split / 60);
-        var s = split % 60;
-        timeEl.textContent = (m > 0 ? m + ':' : '') + (m > 0 && s < 10 ? '0' : '') + s.toFixed(1);
-        if (stateClass[states[si - 1]]) cell.classList.add(stateClass[states[si - 1]]);
-        if (sDeltaEl) {
-          var d = deltas[si - 1];
-          if (states[si - 1] === 1) sDeltaEl.textContent = 'PB';
-          else if (d !== 0) sDeltaEl.textContent = (d >= 0 ? '+' : '') + d.toFixed(2);
-          else sDeltaEl.textContent = '';
-        }
-        }
-      } else {
-        timeEl.textContent = '—';
-        if (sDeltaEl) sDeltaEl.textContent = '';
       }
     }
 
@@ -18664,7 +18608,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const _trackDisplayNameCache = {};    // { gameTrackName → displayName }
   const _trackSectorCountCache = {};   // { gameTrackName → sectorCount (3 or 7) }
   const _trackDisplayNamePending = {};  // { gameTrackName → true } (in-flight requests)
-  const K10_DISPLAY_NAME_API = 'https://drive.racecor.io/api/tracks';
+  const K10_DISPLAY_NAME_API = 'https://prodrive.racecor.io/api/tracks';
 
   function resolveTrackDisplayName(gameTrackName) {
     if (_trackDisplayNameCache[gameTrackName] || _trackDisplayNamePending[gameTrackName]) return;
@@ -18757,12 +18701,20 @@ document.addEventListener('DOMContentLoaded', function () {
     const sessNum = parseInt(vs(sessionPre + 'SessionState')) || 0;
     const _inPitLane = +(p[dsPre + 'IsInPitLane']) > 0;
 
+    // Session mode from plugin (single source of truth)
+    // 0=Unknown, 1=Practice, 2=Qualifying, 3=Warmup, 4=Race
+    const sessionMode = +(p[dsPre + 'SessionMode']) || 0;
+
     // ─── Session change detection — reset per-session state ───
     const _currSessionTypeName = _demo
       ? vs('RaceCorProDrive.Plugin.Demo.SessionTypeName')
       : vs('RaceCorProDrive.Plugin.SessionTypeName');
     if (_currSessionTypeName && _currSessionTypeName !== _prevSessionTypeName && _prevSessionTypeName) {
       console.log('[K10] Session changed:', _prevSessionTypeName, '→', _currSessionTypeName);
+      // Capture practice/quali/warmup session end before resetting
+      if (typeof window.capturePracticeSessionEnd === 'function') {
+        window.capturePracticeSessionEnd(p, _demo);
+      }
       if (typeof resetTimeline === 'function') resetTimeline();
       if (typeof resetRaceResults === 'function') resetRaceResults();
       // Capture session start snapshot for sync
@@ -18792,11 +18744,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Game logo overlay
     if (window.updateGameLogo) window.updateGameLogo(_currentGameId, _settings.showGameLogo !== false);
 
-    // Block non-iRacing games unless Discord connected (demo mode always allowed)
-    if (!_demo && !isGameAllowed()) {
-      // Show "Connect Discord to unlock" message
-      return;
-    }
+    // All games are now allowed without connection checks
 
     // Expose rolling/formation start state for leaderboard sparklines
     window._isRollingStart = (sessNum === 2 || sessNum === 3); // Warmup or ParadeLaps
@@ -19054,11 +19002,9 @@ document.addEventListener('DOMContentLoaded', function () {
     //   Qualifying: first timed lap (completedLaps 0 → 1)
     //   Race: green lights (Grid.SessionState transitions to 4)
     if (window.showMfrFlag && _currentCarLogo && _currentCarLogo !== 'generic' && _currentCarLogo !== 'none') {
-      const sessType = (_demo ? (p['RaceCorProDrive.Plugin.Demo.SessionTypeName'] || '')
-                              : (p['RaceCorProDrive.Plugin.SessionTypeName'] || '')).toLowerCase();
-      const isPractice = sessType.includes('practice') || sessType.includes('test') || sessType.includes('warmup');
-      const isQuali = sessType.includes('qualify') || sessType.includes('qual');
-      const isRace = !isPractice && !isQuali && sessType.length > 0;
+      const isPractice = sessionMode === 1 || sessionMode === 3;
+      const isQuali = sessionMode === 2;
+      const isRace = sessionMode === 4;
 
       let shouldFire = false;
 
@@ -19196,14 +19142,46 @@ document.addEventListener('DOMContentLoaded', function () {
     const remLaps = +d('DataCorePlugin.GameData.RemainingLaps', 'Demo.RemainingLaps') || 0;
     const timerEl = document.getElementById('raceTimerValue');
     const timerRow = document.querySelector('.timer-row');
+    const isPracticeTimer = sessionMode === 1 || sessionMode === 3; // Practice or Warmup
+    const isQualiTimer = sessionMode === 2;
+    const isNonRaceTimer = isPracticeTimer || isQualiTimer;
     // Determine if this is a lap-limited race (not timed)
-    const isLapRace = totalLaps > 0 && totalLaps <= 9999 && !(+(p[dsPre + 'IsTimedRace']) > 0);
+    const isLapRace = +(p[dsPre + 'IsLapRace']) > 0;
+    // Read current sector early — needed for lap-race timer popup on sector transitions
+    const timerCurSector = +(p[dsPre + 'CurrentSector']) || 1;
+
     if (timerEl) {
-      if (isLapRace && remLaps >= 0) {
-        // Lap-limited race: show remaining laps instead of time
+      if (isPracticeTimer) {
+        // Practice: show local wall clock time (12-hour format)
+        const now = new Date();
+        let hours = now.getHours();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        const mins = now.getMinutes();
+        timerEl.textContent = hours + ':' + (mins < 10 ? '0' : '') + mins + ' ' + ampm;
+      } else if (isLapRace && !isNonRaceTimer) {
+        // Lap-limited race: show current lap time instead of useless 168:00:00 countdown
         if (remLaps === 1) timerEl.textContent = 'Final Lap';
         else if (remLaps === 0) timerEl.textContent = 'Finish';
-        else timerEl.textContent = remLaps + (remLaps === 1 ? ' Lap' : ' Laps');
+        else if (curLapTime > 0) {
+          const lm = Math.floor(curLapTime / 60);
+          const ls = curLapTime % 60;
+          timerEl.textContent = (lm > 0 ? lm + ':' : '') + (lm > 0 && ls < 10 ? '0' : '') + ls.toFixed(1);
+        } else {
+          timerEl.textContent = '0.0';
+        }
+      } else if (isQualiTimer) {
+        // Qualifying: show remaining session time
+        const serverFmt = p[dsPre + 'RemainingTimeFormatted'] || '';
+        if (serverFmt) {
+          timerEl.textContent = serverFmt;
+        } else if (remTime > 0) {
+          const m = Math.floor(remTime / 60);
+          const s = Math.floor(remTime % 60);
+          timerEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+        } else {
+          timerEl.textContent = '0:00';
+        }
       } else {
         // Timed race: show remaining time
         const serverFmt = p[dsPre + 'RemainingTimeFormatted'] || '';
@@ -19225,26 +19203,39 @@ document.addEventListener('DOMContentLoaded', function () {
     const lastLapEl = document.getElementById('lastLapTimeValue');
     if (lastLapEl) { lastLapEl.textContent = fmtLap(lastLapTime); }
 
-    // Detect lap change → show timer block + force position page
-    if (lap > 0 && lap !== _prevLap && _prevLap > 0 && timerRow) {
-      timerRow.classList.add('timer-visible');
-      showPositionPage();
-      // Clear any pending hide
-      if (_timerHideTimeout) clearTimeout(_timerHideTimeout);
-      // Auto-hide after 30s unless pinned for end-of-race
-      if (!_timerPinned) {
-        _timerHideTimeout = setTimeout(() => {
-          if (!_timerPinned) timerRow.classList.remove('timer-visible');
-        }, 30000);
+    // ── Timer visibility logic ──
+    // Lap-limited races: pop up on sector transitions and lap changes, auto-hide between
+    const sectorChanged = timerCurSector !== _prevTimerSector && _prevTimerSector > 0;
+    _prevTimerSector = timerCurSector;
+
+    if (isLapRace && !isNonRaceTimer && timerRow) {
+      // Show on sector transition or lap change
+      if (sectorChanged || (lap > 0 && lap !== _prevLap && _prevLap > 0)) {
+        timerRow.classList.add('timer-visible');
+        showPositionPage();
+        if (_timerHideTimeout) clearTimeout(_timerHideTimeout);
+        if (!_timerPinned) {
+          _timerHideTimeout = setTimeout(() => {
+            if (!_timerPinned) timerRow.classList.remove('timer-visible');
+          }, 10000); // 10s visibility per sector popup
+        }
+      }
+    } else if (!isNonRaceTimer) {
+      // Timed race: show on lap change, auto-hide after 30s
+      if (lap > 0 && lap !== _prevLap && _prevLap > 0 && timerRow) {
+        timerRow.classList.add('timer-visible');
+        showPositionPage();
+        if (_timerHideTimeout) clearTimeout(_timerHideTimeout);
+        if (!_timerPinned) {
+          _timerHideTimeout = setTimeout(() => {
+            if (!_timerPinned) timerRow.classList.remove('timer-visible');
+          }, 30000);
+        }
       }
     }
-    // ── Lap validity: detect incidents added during this lap ──
-    const _incCount = +(p[dsPre + 'IncidentCount']) || 0;
-    if (lap > 0 && lap !== _prevLap) {
-      _lapStartIncidents = _incCount;
-      _lapInvalid = false;
-    }
-    if (_incCount > _lapStartIncidents) _lapInvalid = true;
+
+    // ── Lap validity from plugin (single source of truth) ──
+    _lapInvalid = +(p[dsPre + 'IsLapInvalid']) > 0;
 
     _prevLap = lap;
 
@@ -19260,6 +19251,11 @@ document.addEventListener('DOMContentLoaded', function () {
       timerRow.classList.add('timer-visible');
     } else if (_timerPinned && !isEndOfRace) {
       _timerPinned = false; // race ended or data reset
+    }
+
+    // Non-race sessions (qualifying, practice): always keep timer visible
+    if (isNonRaceTimer && timerRow) {
+      timerRow.classList.add('timer-visible');
     }
 
     // ─── iRating / Safety ───
@@ -19316,10 +19312,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ─── Gaps / Lap Timing ───
-    // Prefer server-computed DS.IsNonRaceSession, fallback to client-side string check
-    const nonRace = +(p[dsPre + 'IsNonRaceSession']) > 0 || _isNonRaceSession(
-      _demo ? (p['RaceCorProDrive.Plugin.Demo.SessionTypeName'] || '')
-            : (p['RaceCorProDrive.Plugin.SessionTypeName'] || ''));
+    const nonRace = sessionMode >= 1 && sessionMode <= 3; // Practice, Qualifying, or Warmup
 
     const gapLabels = document.querySelectorAll('.gaps-block .panel-label');
     const gapTimes = document.querySelectorAll('.gap-time');
@@ -19368,7 +19361,7 @@ document.addEventListener('DOMContentLoaded', function () {
         : (+(p['DataCorePlugin.GameData.CurrentLapTime']) || 0);
 
       // ── Dynamic sector cell management ──
-      // Ensure sectorIndicator has the right number of cells
+      // Ensure sectorIndicator has the right number of cells (label only — no times)
       if (sectorEl) {
         const existing = sectorEl.querySelectorAll('.sector-cell');
         if (existing.length !== sectorCount) {
@@ -19377,19 +19370,20 @@ document.addEventListener('DOMContentLoaded', function () {
             const cell = document.createElement('div');
             cell.className = 'sector-cell';
             cell.id = 'sector' + i;
-            cell.innerHTML = '<div class="sector-label">S' + i + '</div>' +
-              '<div class="sector-time" id="sector' + i + 'Time">—</div>' +
-              '<div class="sector-delta" id="sector' + i + 'Delta"></div>';
+            cell.innerHTML = '<div class="sector-label">S' + i + '</div>';
             sectorEl.appendChild(cell);
           }
         }
       }
 
+      // Color mapping: green = my best, yellow = worse than my best, red = invalid
+      // No purple — we don't have "best of everyone on track" data
+      // state: 0=none, 1=pb (treat as green), 2=faster (green), 3=slower (yellow)
+      const sectorColorClass = ['', 'sector-faster', 'sector-faster', 'sector-slower'];
+
       for (let si = 1; si <= sectorCount; si++) {
         const cell = document.getElementById('sector' + si);
-        const timeEl = document.getElementById('sector' + si + 'Time');
-        const deltaEl = document.getElementById('sector' + si + 'Delta');
-        if (!cell || !timeEl) continue;
+        if (!cell) continue;
 
         cell.classList.remove('sector-pb', 'sector-faster', 'sector-slower', 'sector-invalid', 'sector-active');
 
@@ -19399,90 +19393,24 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (si === curSector) {
-          // Active sector: show running sector elapsed time, delta below
           cell.classList.add('sector-active');
-          // Calculate sector entry time from completed previous sectors
-          let entryTime = 0;
-          let hasPrevSplits = true;
-          for (let k = 0; k < si - 1; k++) {
-            if (!splits[k] || splits[k] <= 0) { hasPrevSplits = false; break; }
-            entryTime += splits[k];
+          // Live delta coloring on active sector
+          if (!_lapInvalid && lapDelta !== 0) {
+            cell.classList.add(lapDelta < 0 ? 'sector-faster' : 'sector-slower');
           }
-          // Only show sector elapsed if we have valid entry time data
-          // Otherwise show dash to avoid displaying the full lap time
-          if (hasPrevSplits && currentLapTime > entryTime) {
-            const elapsed = currentLapTime - entryTime;
-            const em = Math.floor(elapsed / 60);
-            const es = elapsed % 60;
-            timeEl.textContent = (em > 0 ? em + ':' : '') + (em > 0 && es < 10 ? '0' : '') + es.toFixed(1);
-          } else if (si === 1 && currentLapTime > 0 && currentLapTime < 120) {
-            // S1 is always valid since entry = lap start (time 0)
-            const em = Math.floor(currentLapTime / 60);
-            const es = currentLapTime % 60;
-            timeEl.textContent = (em > 0 ? em + ':' : '') + (em > 0 && es < 10 ? '0' : '') + es.toFixed(1);
-          } else {
-            timeEl.textContent = '—';
+        } else if (states[si - 1] > 0) {
+          // Completed sector with a new performance state — apply and cache it
+          if (!_lapInvalid) {
+            const cls = sectorColorClass[states[si - 1]];
+            if (cls) cell.classList.add(cls);
           }
-          if (deltaEl) {
-            if (lapDelta !== 0) {
-              deltaEl.textContent = (lapDelta >= 0 ? '+' : '') + lapDelta.toFixed(2);
-              if (!_lapInvalid) cell.classList.add(lapDelta < 0 ? 'sector-faster' : 'sector-slower');
-            } else {
-              deltaEl.textContent = '';
-            }
+          _prevSectorStates[si - 1] = states[si - 1];
+        } else if (_prevSectorStates[si - 1] > 0) {
+          // No new state yet (e.g. new lap, splits cleared) — retain previous color
+          if (!_lapInvalid) {
+            const cls = sectorColorClass[_prevSectorStates[si - 1]];
+            if (cls) cell.classList.add(cls);
           }
-        } else if (splits[si - 1] > 0) {
-          // Completed sector: show sector time + delta to my best.
-          // Multi-layered sanity check: iRacing sometimes sends the
-          // cumulative lap time as the final sector split. We must
-          // never display a full lap time inside a sector cell.
-          const split = splits[si - 1];
-          let sumOtherSplits = 0;
-          let otherSplitCount = 0;
-          for (let k = 0; k < sectorCount; k++) {
-            if (k !== si - 1 && splits[k] > 0) {
-              sumOtherSplits += splits[k];
-              otherSplitCount++;
-            }
-          }
-          // Check 1: split >= sum of all other known sectors (original check)
-          const exceedsOthers = sumOtherSplits > 0 && split >= sumOtherSplits;
-          // Check 2: split >= 85% of best lap — no single sector should be
-          // that large relative to the full lap
-          const exceedsBestLap = bestLap > 0 && split >= bestLap * 0.85;
-          // Check 3: last sector with no other splits populated yet —
-          // this is the classic case where iRacing sends cumulative time
-          // before the earlier sectors are filled in.
-          // BUT: in qualifying, iRacing clears previous sectors on lap cross
-          // right as the final split arrives. Use _prevSectorSplits to avoid
-          // false positives — if the previous poll had other sectors filled,
-          // this is a real split, not a cumulative time.
-          let prevOtherCount = 0;
-          for (let k = 0; k < _prevSectorSplits.length; k++) {
-            if (k !== si - 1 && _prevSectorSplits[k] > 0) prevOtherCount++;
-          }
-          const lastSectorNoContext = si === sectorCount && sectorCount >= 2
-            && otherSplitCount === 0 && prevOtherCount === 0;
-          const looksLikeFullLap = exceedsOthers || exceedsBestLap || lastSectorNoContext;
-          if (looksLikeFullLap) {
-            // Suppress — never show a full lap time inside a sector cell
-            timeEl.textContent = '—';
-            if (deltaEl) deltaEl.textContent = '';
-          } else {
-            const m = Math.floor(split / 60);
-            const s = (split % 60);
-            timeEl.textContent = (m > 0 ? m + ':' : '') + (m > 0 && s < 10 ? '0' : '') + s.toFixed(1);
-            if (!_lapInvalid && stateClass[states[si - 1]]) cell.classList.add(stateClass[states[si - 1]]);
-            if (deltaEl) {
-              const d = deltas[si - 1];
-              if (d !== 0) deltaEl.textContent = (d >= 0 ? '+' : '') + d.toFixed(2);
-              else if (states[si - 1] === 1) deltaEl.textContent = 'PB';
-              else deltaEl.textContent = '';
-            }
-          }
-        } else {
-          timeEl.textContent = '—';
-          if (deltaEl) deltaEl.textContent = '';
         }
       }
 
@@ -19715,7 +19643,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const mapOpp  = vs('RaceCorProDrive.Plugin.TrackMap.Opponents') || '';
     const mapHeading = +v('RaceCorProDrive.Plugin.TrackMap.PlayerHeading') || 0;
     // Use plugin path if available; show no track when map isn't ready
-    updateTrackMap(mapPath, mapPX, mapPY, mapOpp, speed, mapHeading);
+    try { updateTrackMap(mapPath, mapPX, mapPY, mapOpp, speed, mapHeading); } catch(e) { console.error('[K10] Track map error:', e); }
     // Full map label: show display name (from K10 API) or fall back to game name
     const fullMapLbl = document.getElementById('fullMapLabel');
     if (fullMapLbl) {
@@ -19775,6 +19703,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ─── Spotter (disabled in pit lane — no close racing alerts) ───
     try { if (!_inPitLane) updateSpotter(p, _demo); } catch(e) { console.error('[K10] Spotter error:', e); }
+
+    // ─── Incident Coach (threat tracking, composure, cool-down, voice) ───
+    try { if (typeof updateIncidentCoach === 'function') updateIncidentCoach(p); } catch(e) { console.error('[K10] IncidentCoach error:', e); }
 
     // ─── Tire / Track Condition Mismatch ───
     try { if (typeof checkTyreMismatch === 'function' && !_inPitLane) checkTyreMismatch(p, _demo); } catch(e) { console.error('[K10] Tire mismatch check error:', e); }

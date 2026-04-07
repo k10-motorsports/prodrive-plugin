@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import DriveNav from '@/components/DriveNav'
+import DashboardBackground from '@/components/DashboardBackground'
 
 export const metadata: Metadata = {
   title: 'RaceCor.io Pro Drive',
@@ -8,7 +9,8 @@ export const metadata: Metadata = {
 
 export default function DriveLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
+    <div className="min-h-screen bg-[var(--bg)]/80" style={{ position: 'relative', zIndex: 1 }}>
+      <DashboardBackground />
       <DriveNav />
       {children}
     </div>
