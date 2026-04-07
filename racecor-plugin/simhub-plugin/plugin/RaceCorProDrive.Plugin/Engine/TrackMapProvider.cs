@@ -494,8 +494,9 @@ namespace RaceCorProDrive.Plugin.Engine
             // Normalise to 0–100 SVG viewBox with 5% padding
             NormaliseAndBuild(_samples);
 
-            // Save to our cache only (bundled CSV files have been removed)
+            // Save to both caches
             SaveToOwnCache(_currentTrackId);
+            SaveToBundledMaps(_currentTrackId);
 
             SimHub.Logging.Current.Info($"[RaceCorProDrive] Track map recorded: {_outline.Length} points");
         }
@@ -806,14 +807,40 @@ namespace RaceCorProDrive.Plugin.Engine
         }
 
         /// <summary>
-        /// Save a recorded track map to the trackmaps directory as a CSV file.
-        /// These CSV files are loaded directly at runtime — no recompilation needed.
+        /// Save a recorded track map to the racecorprodrive-data/trackmaps directory
+        /// as a CSV file so it is available locally without requiring the web API.
         /// </summary>
         private void SaveToBundledMaps(string trackId)
         {
-            // Bundled CSV files have been removed from the repository (#113).
-            // All tracks should be saved to K10 cache only and loaded from the web API.
-            // This method is kept as a no-op for backward compatibility.
+            if (string.IsNullOrEmpty(_simhubDir)) return;
+
+            try
+            {
+                string dir = Path.Combine(_simhubDir, "racecorprodrive-data", "trackmaps");
+                Directory.CreateDirectory(dir);
+
+                string safe = trackId;
+                foreach (char c in Path.GetInvalidFileNameChars())
+                    safe = safe.Replace(c, '_');
+                string path = Path.Combine(dir, safe + ".csv");
+
+                var sb = new StringBuilder(_samples.Count * 40);
+                foreach (var s in _samples)
+                {
+                    sb.Append(s.WorldX.ToString("F4", CultureInfo.InvariantCulture));
+                    sb.Append(',');
+                    sb.Append(s.WorldZ.ToString("F4", CultureInfo.InvariantCulture));
+                    sb.Append(',');
+                    sb.AppendLine(s.LapDistPct.ToString("F6", CultureInfo.InvariantCulture));
+                }
+
+                File.WriteAllText(path, sb.ToString());
+                SimHub.Logging.Current.Info($"[RaceCorProDrive] Track map saved to {path}");
+            }
+            catch (Exception ex)
+            {
+                SimHub.Logging.Current.Warn($"[RaceCorProDrive] Failed to save track map to trackmaps dir: {ex.Message}");
+            }
         }
 
         /// <summary>
