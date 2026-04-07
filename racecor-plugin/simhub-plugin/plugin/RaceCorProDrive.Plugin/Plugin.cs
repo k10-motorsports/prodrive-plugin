@@ -1533,6 +1533,11 @@ namespace RaceCorProDrive.Plugin
                     Jp(sb, "RaceCorProDrive.Plugin.Demo.DS.TcActive", dt.TcActive ? 1 : 0);
                     Jp(sb, "RaceCorProDrive.Plugin.Demo.DS.LapDelta", dt.LapDelta, ic);
                     Jp(sb, "RaceCorProDrive.Plugin.Demo.DS.IsInPitLane", dt.IsInPitLane ? 1 : 0);
+                    Jp(sb, "RaceCorProDrive.Plugin.Demo.DS.SessionMode", (int)dt.SessionMode);
+                    Jp(sb, "RaceCorProDrive.Plugin.Demo.DS.SessionModeName", Escape(dt.SessionMode.ToString()));
+                    Jp(sb, "RaceCorProDrive.Plugin.Demo.DS.IsLapRace", dt.IsLapRace ? 1 : 0);
+                    Jp(sb, "RaceCorProDrive.Plugin.Demo.DS.IsLapInvalid", dt.IsLapInvalid ? 1 : 0);
+                    Jp(sb, "RaceCorProDrive.Plugin.Demo.DS.SectorBests", "");
                     Jp(sb, "RaceCorProDrive.Plugin.Demo.DS.SpeedKmh", dt.SpeedKmh, ic);
                     Jp(sb, "RaceCorProDrive.Plugin.Demo.DS.PitLimiterOn", dt.IsInPitLane ? 1 : 0);
                     Jp(sb, "RaceCorProDrive.Plugin.Demo.DS.PitSpeedLimitKmh", 72.0, ic);
