@@ -1049,6 +1049,61 @@ namespace RaceCorProDrive.Plugin
                         continue;
                     }
 
+                    // ── iRacing Data API — latest recent races (post-race delta) ──
+                    if (action == "iracingLatest")
+                    {
+                        string resultJson;
+                        try
+                        {
+                            if (!_iracingData.IsAuthenticated)
+                            {
+                                _iracingData.TryLoadLocalCookies();
+                            }
+                            if (!_iracingData.IsAuthenticated
+                                && !string.IsNullOrEmpty(Settings.IRacingEmail)
+                                && !string.IsNullOrEmpty(Settings.IRacingPassword))
+                            {
+                                _iracingData.Authenticate(Settings.IRacingEmail, Settings.IRacingPassword);
+                            }
+
+                            if (!_iracingData.IsAuthenticated)
+                            {
+                                resultJson = "{\"ok\":false,\"error\":\"Not authenticated to iRacing.\"}";
+                            }
+                            else
+                            {
+                                var memberInfo = _iracingData.GetMemberInfo();
+                                int custId = memberInfo?.Value<int>("cust_id") ?? 0;
+                                string displayName = memberInfo?.Value<string>("display_name") ?? "";
+
+                                var recentRaces = _iracingData.GetRecentRaces(custId);
+
+                                var payload = new Newtonsoft.Json.Linq.JObject
+                                {
+                                    ["custId"] = custId,
+                                    ["displayName"] = displayName,
+                                    ["recentRaces"] = recentRaces,
+                                    ["fetchedAt"] = DateTime.UtcNow.ToString("o")
+                                };
+
+                                resultJson = "{\"ok\":true,\"data\":" + payload.ToString(Newtonsoft.Json.Formatting.None) + "}";
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            SimHub.Logging.Current.Error($"[RaceCorProDrive] iRacing latest fetch error: {ex}");
+                            resultJson = "{\"ok\":false,\"error\":\"" + Escape(ex.Message) + "\"}";
+                        }
+
+                        byte[] latestBytes = Encoding.UTF8.GetBytes(resultJson);
+                        ctx.Response.ContentType = "application/json";
+                        ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                        ctx.Response.StatusCode = 200;
+                        ctx.Response.OutputStream.Write(latestBytes, 0, latestBytes.Length);
+                        ctx.Response.OutputStream.Close();
+                        continue;
+                    }
+
                     // ── iRacing auth — direct login with email/password ──────
                     if (action == "iracingAuth")
                     {

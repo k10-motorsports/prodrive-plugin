@@ -5,6 +5,8 @@ import { db, schema } from '@/db'
 import { and, eq, gt, desc } from 'drizzle-orm'
 import { Download, BarChart3, Trophy, Shield, Car } from 'lucide-react'
 import RaceCard from './RaceCard'
+import RaceCalendarHeatmap, { type SessionDataPoint } from './RaceCalendarHeatmap'
+import RaceScatterGrid from './RaceScatterGrid'
 import { getCarImage, getTrackImage } from '@/lib/commentary-images'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -70,13 +72,11 @@ export default async function DashboardPage() {
 
       const allSessions = await db.select().from(schema.raceSessions)
         .where(eq(schema.raceSessions.userId, dbUser.id))
+        .orderBy(desc(schema.raceSessions.createdAt))
       raceCount = allSessions.length
 
       if (isPluginConnected) {
-        recentSessions = (await db.select().from(schema.raceSessions)
-          .where(eq(schema.raceSessions.userId, dbUser.id))
-          .orderBy(desc(schema.raceSessions.createdAt))
-          .limit(30)) as RaceSession[]   // fetch extra so grouping has room
+        recentSessions = (allSessions.slice(0, 30)) as RaceSession[]   // top 30 for card grouping
       }
     }
   }
@@ -155,6 +155,65 @@ export default async function DashboardPage() {
     iRatingHistory = history.map(h => h.iRating).reverse()
   }
 
+  // ── Visualization data (all sessions + rating deltas) ───────────────────────
+  let vizData: SessionDataPoint[] = []
+  if (isPluginConnected && dbUser) {
+    // Build a map of rating history entries by (trackName + createdAt) for matching
+    const allRatingHistory = await db.select({
+      iRating: schema.ratingHistory.iRating,
+      prevIRating: schema.ratingHistory.prevIRating,
+      safetyRating: schema.ratingHistory.safetyRating,
+      prevSafetyRating: schema.ratingHistory.prevSafetyRating,
+      trackName: schema.ratingHistory.trackName,
+      createdAt: schema.ratingHistory.createdAt,
+    }).from(schema.ratingHistory)
+      .where(eq(schema.ratingHistory.userId, dbUser.id))
+      .orderBy(desc(schema.ratingHistory.createdAt))
+
+    // Index rating history by date (within 30 min of a session)
+    const ratingByDate = new Map<string, { irDelta: number; srDelta: number }>()
+    for (const rh of allRatingHistory) {
+      const irDelta = (rh.prevIRating != null) ? rh.iRating - rh.prevIRating : 0
+      const srDelta = (rh.prevSafetyRating != null)
+        ? parseFloat(rh.safetyRating) - parseFloat(rh.prevSafetyRating)
+        : 0
+      // Key by ISO date string for fuzzy matching
+      const key = rh.createdAt.toISOString()
+      ratingByDate.set(key, { irDelta, srDelta })
+    }
+
+    // For each race session, find closest rating history entry
+    const allSessionRows = await db.select().from(schema.raceSessions)
+      .where(eq(schema.raceSessions.userId, dbUser.id))
+
+    for (const s of allSessionRows) {
+      // Find the closest rating history entry (within 30 minutes)
+      let bestMatch: { irDelta: number; srDelta: number } | null = null
+      let bestDist = 30 * 60 * 1000 // 30 min threshold
+      const sessionTime = s.createdAt.getTime()
+
+      for (const rh of allRatingHistory) {
+        const dist = Math.abs(rh.createdAt.getTime() - sessionTime)
+        if (dist < bestDist && rh.trackName === s.trackName) {
+          bestDist = dist
+          bestMatch = {
+            irDelta: (rh.prevIRating != null) ? rh.iRating - rh.prevIRating : 0,
+            srDelta: (rh.prevSafetyRating != null)
+              ? parseFloat(rh.safetyRating) - parseFloat(rh.prevSafetyRating)
+              : 0,
+          }
+        }
+      }
+
+      vizData.push({
+        date: s.createdAt.toISOString(),
+        iRatingDelta: bestMatch?.irDelta ?? 0,
+        srDelta: bestMatch?.srDelta ?? 0,
+        incidents: (s.incidentCount as number) ?? 0,
+      })
+    }
+  }
+
   // ── Group practice sessions into the race that immediately followed them ─────
   // Two-pass approach:
   //   Pass 1 — scan ASC, pre-mark which practices are claimed by a race.
@@ -212,7 +271,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="min-h-screen relative">
-      <div className="max-w-5xl mx-auto px-6 py-12">
+      <div className="max-w-[120rem] mx-auto px-6 py-12">
         {isPluginConnected ? (
           <>
             {/* Welcome */}
@@ -258,6 +317,16 @@ export default async function DashboardPage() {
                 </div>
               )}
             </section>
+
+            {/* Visualizations — Calendar Heatmap + Scatter Grid */}
+            {vizData.length > 0 && (
+              <section className="mb-12">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <RaceCalendarHeatmap sessions={vizData} />
+                  <RaceScatterGrid sessions={vizData} />
+                </div>
+              </section>
+            )}
 
             {/* Performance */}
             <section className="mb-12">
