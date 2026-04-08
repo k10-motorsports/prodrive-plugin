@@ -329,19 +329,6 @@ export default function RaceCalendarHeatmap({ sessions }: Props) {
                 }}
                 onMouseLeave={() => setTooltip(null)}
               />
-              {/* Day number */}
-              <text
-                x={cx + cw / 2}
-                y={cy + ch / 2 + 1}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                fill={val !== null ? 'rgba(255,255,255,0.85)' : 'var(--text-muted)'}
-                fontSize={11}
-                fontFamily="var(--ff)"
-                pointerEvents="none"
-              >
-                {day.getDate()}
-              </text>
             </g>
           )
         })}
