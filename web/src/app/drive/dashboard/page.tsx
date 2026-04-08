@@ -9,6 +9,8 @@ import RaceCalendarHeatmap, {
   type SessionDataPoint,
 } from "./RaceCalendarHeatmap";
 import RaceScatterGrid from "./RaceScatterGrid";
+import DriverDNARadar from "./DriverDNARadar";
+import SessionLengthCards from "./SessionLengthCards";
 import IRacingQuickImport from "./IRacingQuickImport";
 import { getCarImage, getTrackImage } from "@/lib/commentary-images";
 
@@ -186,6 +188,8 @@ export default async function DashboardPage() {
 
   // ── Visualization data (all sessions + rating deltas) ───────────────────────
   let vizData: SessionDataPoint[] = [];
+  let dnaSessionData: { finishPosition: number | null; incidentCount: number | null; metadata: Record<string, any> | null; carModel: string; trackName: string | null; gameName: string | null; createdAt: string }[] = [];
+  let dnaRatingData: { iRating: number; prevIRating: number | null; createdAt: string }[] = [];
   if (isPluginConnected && dbUser) {
     // Build a map of rating history entries by (trackName + createdAt) for matching
     const allRatingHistory = await db
@@ -250,6 +254,23 @@ export default async function DashboardPage() {
         incidents: (s.incidentCount as number) ?? 0,
       });
     }
+
+    // ── Driver DNA data (serialized for client component) ──────────────────────
+    dnaSessionData = recentSessions.map((s) => ({
+      finishPosition: s.finishPosition,
+      incidentCount: s.incidentCount,
+      metadata: s.metadata,
+      carModel: s.carModel,
+      trackName: s.trackName,
+      gameName: (s.metadata as Record<string, any>)?.gameName ?? null,
+      createdAt: new Date(s.createdAt).toISOString(),
+    }));
+
+    dnaRatingData = allRatingHistory.map((r) => ({
+      iRating: r.iRating,
+      prevIRating: r.prevIRating ?? 0,
+      createdAt: r.createdAt.toISOString(),
+    }));
   }
 
   // ── Group practice sessions into the race that immediately followed them ─────
@@ -305,6 +326,7 @@ export default async function DashboardPage() {
   console.log(displayCards.length);
 
   const hasEnoughData = raceCount >= 5;
+  
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
   const trackKey = (name: string | null) => (name || "").toLowerCase();
@@ -333,9 +355,11 @@ export default async function DashboardPage() {
             {/* Visualizations — Calendar Heatmap + Scatter Grid */}
             {vizData.length > 0 && (
               <section className="mb-12">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                   <RaceCalendarHeatmap sessions={vizData} />
                   <RaceScatterGrid sessions={vizData} />
+                  <DriverDNARadar sessions={dnaSessionData} ratingHistory={dnaRatingData} />
+                  <SessionLengthCards sessions={dnaSessionData} />
                 </div>
               </section>
             )}
