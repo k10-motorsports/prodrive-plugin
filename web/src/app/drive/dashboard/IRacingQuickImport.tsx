@@ -108,7 +108,7 @@ export default function IRacingQuickImport() {
           {/* Instructions */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <Upload size={12} className="text-[var(--k10-red)] shrink-0" />
+              <Upload size={12} className="text-[var(--border-accent)] shrink-0" />
               <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
                 Import iRacing Data
               </span>
@@ -150,7 +150,7 @@ export default function IRacingQuickImport() {
 
       {status === 'uploading' && (
         <div className="flex items-center gap-2 py-1">
-          <Loader2 size={14} className="animate-spin text-[var(--k10-red)]" />
+          <Loader2 size={14} className="animate-spin text-[var(--border-accent)]" />
           <span className="text-xs text-[var(--text-dim)]">
             Importing{fileName ? ` ${fileName}` : ''}...
           </span>

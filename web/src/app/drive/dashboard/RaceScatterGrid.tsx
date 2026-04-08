@@ -220,7 +220,7 @@ export default function RaceScatterGrid({ sessions }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
-          <Clock size={14} className="text-[var(--k10-red)]" />
+          <Clock size={24} className="text-[var(--border-accent)]" />
           Race Schedule
         </div>
         <select

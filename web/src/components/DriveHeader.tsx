@@ -63,7 +63,7 @@ export default async function DriveHeader() {
           {/* Left: logo + nav links */}
           <div className="flex items-center gap-4">
             <a href="/drive/dashboard" className="flex items-center gap-2 py-2 flex-shrink-0">
-              <LogoMark className="h-6 w-auto" />
+              <LogoMark className="h-5 w-auto" />
             </a>
             <DriveNavLinks />
           </div>

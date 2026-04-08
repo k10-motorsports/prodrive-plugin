@@ -354,7 +354,7 @@ export default function RaceCalendarHeatmap({ sessions }: Props) {
       {/* Header row */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
-          <CalendarDays size={14} className="text-[var(--k10-red)]" />
+          <CalendarDays size={24} className="text-[var(--border-accent)]" />
           Race Calendar
         </div>
         <select
@@ -375,7 +375,7 @@ export default function RaceCalendarHeatmap({ sessions }: Props) {
           disabled={activeIdx === 0}
           className="p-0.5 rounded hover:bg-[var(--bg-surface)] disabled:opacity-25 transition-colors"
         >
-          <ChevronLeft size={16} className="text-[var(--text-secondary)]" />
+          <ChevronLeft size={24} className="text-[var(--text-secondary)]" />
         </button>
         <span className="text-sm font-bold text-[var(--text)] min-w-[80px] text-center tracking-wide">
           {season.label}
@@ -385,7 +385,7 @@ export default function RaceCalendarHeatmap({ sessions }: Props) {
           disabled={activeIdx === allSeasons.length - 1}
           className="p-0.5 rounded hover:bg-[var(--bg-surface)] disabled:opacity-25 transition-colors"
         >
-          <ChevronRight size={16} className="text-[var(--text-secondary)]" />
+          <ChevronRight size={24} className="text-[var(--text-secondary)]" />
         </button>
       </div>
 

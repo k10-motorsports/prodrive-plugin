@@ -9,7 +9,6 @@ import {
   CalendarClock,
   MapPin,
   Sparkles,
-  Upload,
 } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -19,7 +18,6 @@ const NAV_ITEMS = [
   { href: '/drive/when', label: 'When', icon: CalendarClock },
   { href: '/drive/tracks', label: 'Tracks & Cars', icon: MapPin },
   { href: '/drive/moments', label: 'Moments', icon: Sparkles },
-  { href: '/drive/iracing', label: 'iRacing Import', icon: Upload },
 ]
 
 export default function DriveNavLinks() {
@@ -36,17 +34,17 @@ export default function DriveNavLinks() {
             href={item.href}
             className={`
               px-3 py-2 flex items-center gap-1.5
-              text-xs font-medium whitespace-nowrap
+              text-sm font-medium whitespace-nowrap
               border-b-2 transition-colors
               ${
                 isActive
-                  ? 'text-[var(--text-secondary)] border-b-[var(--k10-red)]'
+                  ? 'text-[var(--text-secondary)] border-b-[var(--border-accent)]'
                   : 'text-[var(--text-muted)] border-b-transparent hover:text-[var(--text-dim)]'
               }
             `}
           >
-            <Icon size={14} />
-            <span>{item.label}</span>
+            <Icon size={24} />
+            <span className="uppercase tracking-wide">{item.label}</span>
           </Link>
         )
       })}

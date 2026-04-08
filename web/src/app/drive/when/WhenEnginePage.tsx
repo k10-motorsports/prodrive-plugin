@@ -256,7 +256,7 @@ export default function WhenEnginePage({ sessions, ratingHistory }: {
         {/* Day of Week Chart */}
         <section>
           <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-            <Calendar size={18} className="text-[var(--k10-red)]" />
+            <Calendar size={24} className="text-[var(--border-accent)]" />
             Day of Week Performance
           </h2>
           <div className="p-6 rounded-xl bg-[var(--surface)] border border-[var(--border)]">
@@ -288,7 +288,7 @@ export default function WhenEnginePage({ sessions, ratingHistory }: {
         {/* Session Length Cards */}
         <section>
           <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-            <Zap size={18} className="text-[var(--k10-red)]" />
+            <Zap size={24} className="text-[var(--border-accent)]" />
             Performance by Session Length
           </h2>
           <div className="grid grid-cols-3 gap-4">
@@ -334,7 +334,7 @@ export default function WhenEnginePage({ sessions, ratingHistory }: {
         {insights.length > 0 && (
           <section>
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <Sun size={18} className="text-[var(--k10-red)]" />
+              <Sun size={24} className="text-[var(--border-accent)]" />
               Insights
             </h2>
             <div className="space-y-3">

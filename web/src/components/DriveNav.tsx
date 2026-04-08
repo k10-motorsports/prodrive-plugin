@@ -44,7 +44,7 @@ export default function DriveNav() {
                 }
               `}
             >
-              <Icon size={16} />
+              <Icon size={24} />
               <span>{item.label}</span>
             </Link>
           )

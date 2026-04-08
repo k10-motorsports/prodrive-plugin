@@ -290,8 +290,8 @@ export default async function DashboardPage() {
 
             {/* Race History */}
             <section className="mb-12">
-              <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <Car size={18} className="text-[var(--k10-red)]" />
+              <h2 className="font-bold mb-4 flex items-center gap-2" style={{ fontSize: '23px' }}>
+                <Car size={24} className="text-[var(--border-accent)]" />
                 Race History
               </h2>
               {displayCards.length > 0 ? (
@@ -334,8 +334,8 @@ export default async function DashboardPage() {
 
             {/* Performance */}
             <section className="mb-12">
-              <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <BarChart3 size={18} className="text-[var(--k10-red)]" />
+              <h2 className="font-bold mb-4 flex items-center gap-2" style={{ fontSize: '23px' }}>
+                <BarChart3 size={24} className="text-[var(--border-accent)]" />
                 Performance
               </h2>
               {hasEnoughData ? (
@@ -368,8 +368,8 @@ export default async function DashboardPage() {
 
             {/* Pro Features */}
             <section className="mb-12">
-              <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <Shield size={18} className="text-[var(--k10-red)]" />
+              <h2 className="font-bold mb-4 flex items-center gap-2" style={{ fontSize: '23px' }}>
+                <Shield size={24} className="text-[var(--border-accent)]" />
                 Pro Features
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -400,7 +400,7 @@ export default async function DashboardPage() {
                 href="/api/download/latest"
                 className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-dim)] transition-colors"
               >
-                <Download size={12} />
+                <Download size={24} />
                 Need to reinstall? Download RaceCor.io Overlay
               </a>
             </section>
@@ -426,7 +426,7 @@ export default async function DashboardPage() {
                 href="/api/download/latest"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[var(--k10-red)] text-white font-bold text-sm uppercase tracking-wider hover:brightness-110 transition"
               >
-                <Download size={16} />
+                <Download size={24} />
                 Download RaceCor Overlay
               </a>
               <p className="mt-2 text-xs text-[var(--text-muted)]">
@@ -435,7 +435,7 @@ export default async function DashboardPage() {
             </section>
 
             <section className="mb-12 p-6 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)]">
-              <h2 className="text-lg font-bold mb-4">Get Connected</h2>
+              <h2 className="font-bold mb-4" style={{ fontSize: '23px' }}>Get Connected</h2>
               <ol className="space-y-3 text-sm text-[var(--text-dim)]">
                 {[
                   'Install the RaceCor overlay using the download above',
@@ -454,8 +454,8 @@ export default async function DashboardPage() {
             </section>
 
             <section className="mb-12">
-              <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <BarChart3 size={18} className="text-[var(--k10-red)]" />
+              <h2 className="font-bold mb-4 flex items-center gap-2" style={{ fontSize: '23px' }}>
+                <BarChart3 size={24} className="text-[var(--border-accent)]" />
                 Performance
               </h2>
               {hasEnoughData ? (
@@ -487,8 +487,8 @@ export default async function DashboardPage() {
             </section>
 
             <section>
-              <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                <Shield size={18} className="text-[var(--k10-red)]" />
+              <h2 className="font-bold mb-4 flex items-center gap-2" style={{ fontSize: '23px' }}>
+                <Shield size={24} className="text-[var(--border-accent)]" />
                 Pro Features
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

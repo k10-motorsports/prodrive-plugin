@@ -113,7 +113,7 @@ export default function LogoCustomizer({ customLogoUrl, userToken }: LogoCustomi
   return (
     <section className="mb-12">
       <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-        <ImageIcon size={18} className="text-[var(--k10-red)]" />
+        <ImageIcon size={24} className="text-[var(--border-accent)]" />
         Overlay Branding
       </h2>
 
@@ -163,9 +163,9 @@ export default function LogoCustomizer({ customLogoUrl, userToken }: LogoCustomi
             }`}
           >
             {feedback.type === 'success' ? (
-              <Check size={16} className="flex-shrink-0 mt-0.5" />
+              <Check size={24} className="flex-shrink-0 mt-0.5" />
             ) : (
-              <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+              <AlertCircle size={24} className="flex-shrink-0 mt-0.5" />
             )}
             <span>{feedback.message}</span>
           </div>
@@ -185,7 +185,7 @@ export default function LogoCustomizer({ customLogoUrl, userToken }: LogoCustomi
             disabled={isLoading || !customLogoUrl}
             className="px-4 py-2 rounded-lg bg-[var(--border)] text-[var(--text-secondary)] font-semibold text-sm uppercase tracking-wider hover:bg-[var(--surface-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
           >
-            <RotateCcw size={14} />
+            <RotateCcw size={24} />
             Reset to Default
           </button>
         </div>
