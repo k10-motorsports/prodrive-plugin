@@ -12,6 +12,7 @@ import RaceScatterGrid from "./RaceScatterGrid";
 import DriverDNARadar from "./DriverDNARadar";
 import SessionLengthCards from "./SessionLengthCards";
 import IRacingQuickImport from "./IRacingQuickImport";
+import DataManagement from "./DataManagement";
 import { getCarImage, getTrackImage } from "@/lib/commentary-images";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -92,10 +93,17 @@ export default async function DashboardPage() {
       raceCount = allSessions.length;
 
       if (isPluginConnected) {
-        recentSessions = allSessions.slice(0, 100) as RaceSession[]; // top 30 for card grouping
+        recentSessions = allSessions.slice(0, 100) as RaceSession[]; // top 100 for card grouping
       }
     }
   }
+
+  // ── Count empty sessions (0 laps, no best lap) ──────────────────────────────
+  const emptySessionCount = recentSessions.filter(s => {
+    const laps = s.metadata?.completedLaps as number | undefined
+    const best = s.metadata?.bestLapTime as number | undefined
+    return (!laps || laps <= 0) && (!best || best <= 0)
+  }).length
 
   // ── Track maps + display names ───────────────────────────────────────────────
   let trackMapLookup: Record<string, string> = {};
@@ -414,6 +422,11 @@ export default async function DashboardPage() {
                 </div>
               )}
             </section>
+
+            {/* Data Management (collapsible) */}
+            {isPluginConnected && raceCount > 0 && (
+              <DataManagement totalSessions={raceCount} emptySessions={emptySessionCount} />
+            )}
 
             {/* Performance */}
             <section className="mb-12">
