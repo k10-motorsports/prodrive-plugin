@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateToken } from '@/lib/plugin-auth'
 import { db, schema } from '@/db'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, and } from 'drizzle-orm'
 
 /**
  * POST /api/sessions — Record a completed race session
@@ -34,6 +34,11 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!carModel || !trackName || !sessionType) {
       return NextResponse.json({ error: 'Missing required session fields' }, { status: 400 })
+    }
+
+    // Reject empty sessions (no laps completed and no best lap time)
+    if ((!completedLaps || completedLaps <= 0) && (!bestLapTime || bestLapTime <= 0)) {
+      return NextResponse.json({ error: 'Empty session — no laps completed' }, { status: 422 })
     }
 
     // Determine game and whether it's iRacing
@@ -147,4 +152,74 @@ export async function GET(request: NextRequest) {
     .limit(100)
 
   return NextResponse.json({ sessions })
+}
+
+/**
+ * DELETE /api/sessions — Delete a session by ID (or purge empty sessions)
+ * Query params:
+ *   ?id=<sessionId>      — delete a specific session
+ *   ?purge=empty          — delete all sessions with 0 laps and no best lap time
+ */
+export async function DELETE(request: NextRequest) {
+  const authHeader = request.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) {
+    return NextResponse.json({ error: 'missing_token' }, { status: 401 })
+  }
+
+  const result = await validateToken(authHeader.slice(7))
+  if (!result) {
+    return NextResponse.json({ error: 'invalid_token' }, { status: 401 })
+  }
+
+  const { searchParams } = new URL(request.url)
+  const sessionId = searchParams.get('id')
+  const purge = searchParams.get('purge')
+
+  try {
+    if (sessionId) {
+      // Delete a specific session (must belong to this user)
+      const deleted = await db.delete(schema.raceSessions)
+        .where(and(
+          eq(schema.raceSessions.id, sessionId),
+          eq(schema.raceSessions.userId, result.user.id)
+        ))
+        .returning()
+
+      if (deleted.length === 0) {
+        return NextResponse.json({ error: 'Session not found or not yours' }, { status: 404 })
+      }
+      return NextResponse.json({ success: true, deleted: deleted.length })
+    }
+
+    if (purge === 'empty') {
+      // Purge all empty sessions (0 laps, no meaningful data) for this user
+      // First find them, then delete
+      const allSessions = await db.select().from(schema.raceSessions)
+        .where(eq(schema.raceSessions.userId, result.user.id))
+
+      const emptySessions = allSessions.filter(s => {
+        const meta = s.metadata as Record<string, unknown> | null
+        const laps = meta?.completedLaps as number | undefined
+        const best = meta?.bestLapTime as number | undefined
+        return (!laps || laps <= 0) && (!best || best <= 0)
+      })
+
+      let deletedCount = 0
+      for (const s of emptySessions) {
+        await db.delete(schema.raceSessions)
+          .where(and(
+            eq(schema.raceSessions.id, s.id),
+            eq(schema.raceSessions.userId, result.user.id)
+          ))
+        deletedCount++
+      }
+
+      return NextResponse.json({ success: true, purged: deletedCount, total: allSessions.length })
+    }
+
+    return NextResponse.json({ error: 'Provide ?id=<sessionId> or ?purge=empty' }, { status: 400 })
+  } catch (err) {
+    console.error('[sessions] DELETE error:', err)
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+  }
 }
