@@ -7,8 +7,8 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyProduct("RaceCor.io Pro Drive")]
 [assembly: AssemblyCopyright("")]
 [assembly: ComVisible(false)]
-[assembly: AssemblyVersion("0.9.21.0")]
-[assembly: AssemblyFileVersion("0.9.21.0")]
+[assembly: AssemblyVersion("0.9.22.0")]
+[assembly: AssemblyFileVersion("0.9.22.0")]
 #if !CROSS_PLATFORM
 [assembly: System.Windows.ThemeInfo(
     System.Windows.ResourceDictionaryLocation.None,
