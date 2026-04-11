@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateToken } from '@/lib/plugin-auth'
 import { db, schema } from '@/db'
-import { eq, and, desc } from 'drizzle-orm'
+import { eq, and, desc, ne, inArray, sql } from 'drizzle-orm'
 
 /**
  * POST /api/ratings — Receive rating updates (legacy endpoint, kept for compatibility)
@@ -150,5 +150,52 @@ export async function GET(request: NextRequest) {
       return acc
     }, {} as Record<string, unknown>),
     history
+  })
+}
+
+/**
+ * DELETE /api/ratings — Clear duplicate history rows, keeping one per category
+ */
+export async function DELETE(request: NextRequest) {
+  const authHeader = request.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) {
+    return NextResponse.json({ error: 'missing_token' }, { status: 401 })
+  }
+
+  const result = await validateToken(authHeader.slice(7))
+  if (!result) {
+    return NextResponse.json({ error: 'invalid_token' }, { status: 401 })
+  }
+
+  // For each category, keep only the most recent history row
+  const allHistory = await db.select().from(schema.ratingHistory)
+    .where(eq(schema.ratingHistory.userId, result.user.id))
+    .orderBy(desc(schema.ratingHistory.createdAt))
+
+  const keepIds = new Set<string>()
+  const seenCategories = new Set<string>()
+  for (const row of allHistory) {
+    if (!seenCategories.has(row.category)) {
+      seenCategories.add(row.category)
+      keepIds.add(row.id)
+    }
+  }
+
+  const deleteIds = allHistory
+    .filter(r => !keepIds.has(r.id))
+    .map(r => r.id)
+
+  if (deleteIds.length > 0) {
+    await db.delete(schema.ratingHistory)
+      .where(and(
+        eq(schema.ratingHistory.userId, result.user.id),
+        inArray(schema.ratingHistory.id, deleteIds)
+      ))
+  }
+
+  return NextResponse.json({
+    success: true,
+    kept: keepIds.size,
+    deleted: deleteIds.length,
   })
 }
