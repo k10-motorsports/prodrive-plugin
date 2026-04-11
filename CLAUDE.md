@@ -21,6 +21,25 @@ K10 Motorsports — broadcast-grade sim racing platform.
 | `scripts/` | Bash, Node, Python | Build, install, launch scripts |
 | `docs/` | Markdown, HTML | Architecture and design docs |
 
+## iRacing Web Scraping — HARD CONSTRAINTS
+
+The iRacing member site is an Angular SSR app. **No data API calls work from the embedded Electron BrowserWindow.** This has been tested extensively:
+
+- `/data/` API endpoints require separate OAuth auth that the embedded browser does not have
+- `/bff/pub/proxy/api/` BFF proxy endpoints return OAuth session metadata, NOT member/racing data
+- `fetchBff`, `fetchIRacingEndpoint`, `fetchDirectData`, `fetchViaWebContents` — all fail for chart/member data
+- The only working approach is **DOM scraping of server-rendered pages**
+
+To get historical iRating data, you MUST:
+1. Navigate the BrowserWindow to the page that renders the iRating chart (e.g. profile/charts)
+2. Wait for Angular SSR to render the chart into the DOM
+3. Scrape data points from the rendered SVG/Canvas chart elements
+4. Navigate back to the dashboard afterward
+
+**Do not attempt API/BFF calls for iRating history. They do not work. Period.**
+
+Key file: `racecor-overlay/iracing-client.js` — `runSync(wc)` function (line ~1092)
+
 ## Data Flow
 
 iRacing SDK → C# TelemetrySnapshot → cross-game normalization → 33+ commentary triggers → strategy modules (tire/fuel/pit/opponent/position) → HTTP API on port 8889 (`http://localhost:8889/racecor-io-pro-drive/`) → overlay polls at ~30fps → WebGL rendering. Homebridge subscribes for light color mapping.

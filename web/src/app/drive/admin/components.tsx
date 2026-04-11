@@ -102,7 +102,6 @@ export function SearchFilterBar({ search, onSearch, game, onGame, sort, onSort, 
       >
         <option value="">All Games</option>
         <option value="iracing">iRacing</option>
-        <option value="lmu">Le Mans Ultimate</option>
         <option value="acc">ACC</option>
       </select>
       <select
@@ -121,7 +120,6 @@ export function SearchFilterBar({ search, onSearch, game, onGame, sort, onSort, 
 export function GameBadge({ game }: { game: string }) {
   const colors: Record<string, string> = {
     iracing: 'bg-blue-500/20 text-blue-400',
-    lmu: 'bg-amber-500/20 text-amber-400',
     acc: 'bg-green-500/20 text-green-400',
   }
   return (

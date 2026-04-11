@@ -6,7 +6,7 @@ These instructions will cover the creation of a duo of tools that will serve me 
 
 It will function as a SimHub plugin:
 
-- digesting racing data (primarily iRacing, but also Automobilista 2, Le Mans Ultimate, and Assetto Corsa)
+- digesting racing data (primarily iRacing, but also Automobilista 2 and Assetto Corsa)
 - comparing that real-time data stream to a database of common sim-racing youtuber commentary (data set to be provided in the format of youtube channel links)
 - deciding what i should comment on in that moment, at a maximum rate of 1 suggestion every two minutes
 - displaying the comment suggestion on-screen as a sim-hub dashboard with large white text on a black background, in wide-screen format

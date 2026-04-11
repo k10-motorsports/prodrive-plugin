@@ -105,7 +105,6 @@ function UploadForm({ onUploaded }: { onUploaded: () => void }) {
           <select value={gameName} onChange={e => setGameName(e.target.value)}
             className="bg-[var(--bg-panel)] border border-[var(--border-subtle)] rounded px-3 py-2 text-sm text-[var(--text)] focus:outline-none focus:border-[var(--k10-red)]">
             <option value="iracing">iRacing</option>
-            <option value="lmu">Le Mans Ultimate</option>
             <option value="acc">ACC</option>
           </select>
         </div>

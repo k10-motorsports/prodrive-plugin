@@ -8,7 +8,7 @@ const meta: Meta<typeof GameBadge> = {
   argTypes: {
     game: {
       control: 'select',
-      options: ['iracing', 'lmu', 'acc'],
+      options: ['iracing', 'acc'],
     },
   },
 }
@@ -17,14 +17,12 @@ export default meta
 type Story = StoryObj<typeof GameBadge>
 
 export const IRacing: Story = { args: { game: 'iracing' } }
-export const LMU: Story = { args: { game: 'lmu' } }
 export const ACC: Story = { args: { game: 'acc' } }
 
 export const AllGames: Story = {
   render: () => (
     <div className="flex gap-2">
       <GameBadge game="iracing" />
-      <GameBadge game="lmu" />
       <GameBadge game="acc" />
     </div>
   ),

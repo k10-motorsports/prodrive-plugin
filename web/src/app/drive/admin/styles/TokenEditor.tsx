@@ -434,7 +434,7 @@ function FontEditor({
             value={effectiveValue}
             onChange={(e) => onUpdate(e.target.value)}
             className="w-full px-2 py-1 text-sm bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded"
-            placeholder="e.g., 'neutronic-rounded', sans-serif"
+            placeholder="e.g., sofia-pro-comp, sans-serif"
           />
         </div>
       )}

@@ -347,7 +347,7 @@ const tokens: DesignToken[] = [
   // ── Typography tokens (category: "typography") ──
   {
     path: 'typography.fontFamily.base',
-    value: "'neutronic-rounded', sans-serif",
+    value: "sofia-pro-comp, sans-serif",
     kind: 'font',
     cssProperty: '--ff',
     platforms: 'both',
@@ -357,7 +357,7 @@ const tokens: DesignToken[] = [
   },
   {
     path: 'typography.fontFamily.display',
-    value: "'neutronic-rounded-black', sans-serif",
+    value: "\"stolzl\", sans-serif",
     kind: 'font',
     cssProperty: '--ff-display',
     platforms: 'both',

@@ -55,7 +55,6 @@ const components: ComponentEntry[] = [
     preview: () => (
       <div className="flex gap-2">
         <GameBadge game="iracing" />
-        <GameBadge game="lmu" />
         <GameBadge game="acc" />
       </div>
     ),

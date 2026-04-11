@@ -89,7 +89,6 @@ export default function RaceCard({
   const getGameBadgeText = (name: string): string => {
     const n = name.toLowerCase()
     if (n === 'iracing') return 'iRacing'
-    if (n === 'lmu' || n.includes('le mans')) return 'LMU'
     if (n === 'acc' || n.includes('assetto corsa')) return 'ACC'
     if (n === 'raceroom') return 'RaceRoom'
     if (n.includes('rfactor')) return 'rFactor'
@@ -100,7 +99,6 @@ export default function RaceCard({
   const getGameLogoUrl = (name: string): string | null => {
     const n = name.toLowerCase()
     if (n === 'iracing') return '/_demo/images/logos/iracing.svg'
-    if (n === 'lmu' || n.includes('le mans')) return '/_demo/images/logos/le-mans-ultimate.svg'
     return null
   }
 

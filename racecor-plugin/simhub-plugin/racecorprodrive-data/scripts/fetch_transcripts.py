@@ -32,7 +32,7 @@ OUTPUT_DIR = DATASET_DIR / "transcripts"
 # Keywords used to identify sim-racing relevant videos (title/description filter)
 RELEVANT_KEYWORDS = [
     "iracing", "assetto corsa", "acc", "automobilista", "ams2",
-    "le mans ultimate", "lmu", "setup", "force feedback", "ffb",
+    "setup", "force feedback", "ffb",
     "tire", "tyre", "lap time", "race", "qualifying", "overtake",
     "hotlap", "hot lap", "onboard", "cockpit", "car", "sim racing",
     "irating", "safety rating", "oval", "road", "gt3", "gt4",

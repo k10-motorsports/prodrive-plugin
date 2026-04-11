@@ -28,7 +28,6 @@ function getGameBadgeColor(gameName: string): { bg: string; text: string; badge:
   const n = gameName.toLowerCase()
   if (n === 'iracing') return { bg: 'hsla(213,90%,50%,0.15)', text: 'hsl(213,90%,60%)', badge: 'iR' }
   if (n === 'acc' || n === 'assetto corsa competizione') return { bg: 'hsla(0,90%,50%,0.15)', text: 'hsl(0,90%,60%)', badge: 'ACC' }
-  if (n === 'lmu' || n === 'lemans unlimited') return { bg: 'hsla(142,50%,45%,0.15)', text: 'hsl(142,60%,55%)', badge: 'LMU' }
   return { bg: 'hsla(270,50%,50%,0.15)', text: 'hsl(270,60%,70%)', badge: gameName.substring(0, 3).toUpperCase() }
 }
 

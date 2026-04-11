@@ -8,7 +8,7 @@
       "id": "jimmy_broadbent",
       "handle": "@Jimmy_Broadbent",
       "url": "https://www.youtube.com/@Jimmy_Broadbent",
-      "primarySims": ["iRacing", "Assetto Corsa Competizione", "Le Mans Ultimate"],
+      "primarySims": ["iRacing", "Assetto Corsa Competizione"],
       "contentStyle": "high_energy_humorous",
       "keyTraits": [
         "Self-deprecating humor about mistakes ('world-class incompetence')",
@@ -92,7 +92,7 @@
       "id": "traxion_gg",
       "handle": "@TraxionGG",
       "url": "https://www.youtube.com/@TraxionGG",
-      "primarySims": ["iRacing", "Assetto Corsa Competizione", "Gran Turismo", "Le Mans Ultimate", "Automobilista 2"],
+      "primarySims": ["iRacing", "Assetto Corsa Competizione", "Gran Turismo", "Automobilista 2"],
       "contentStyle": "journalistic_review",
       "keyTraits": [
         "News and review focused — game releases, updates, hardware",

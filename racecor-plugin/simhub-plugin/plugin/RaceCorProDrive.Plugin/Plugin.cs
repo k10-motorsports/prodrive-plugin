@@ -44,12 +44,6 @@ namespace RaceCorProDrive.Plugin
         // iRacing Data API client — reads local cookies / credentials to fetch career data
         private readonly Engine.IRacingDataClient _iracingData = new Engine.IRacingDataClient();
 
-        // LMU/rFactor 2 results XML parser — scans local result files and exports session history
-        private readonly LMUResultsParser _lmuResults = new LMUResultsParser();
-
-        // LMU DuckDB telemetry reader — extracts post-session enrichment data
-        private LMUTelemetryReader _lmuTelemetry = new LMUTelemetryReader();
-
         // Car change detection for pedal profile auto-switch
         private string _lastCarModel = "";
 
@@ -1153,75 +1147,6 @@ namespace RaceCorProDrive.Plugin
                         ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
                         ctx.Response.StatusCode = 200;
                         ctx.Response.OutputStream.Write(statusBytes, 0, statusBytes.Length);
-                        ctx.Response.OutputStream.Close();
-                        continue;
-                    }
-
-                    // ── LMU Results — parse local XML result files ─────────
-                    if (action == "lmuImport")
-                    {
-                        string resultJson;
-                        try
-                        {
-                            var history = _lmuResults.ExportSessionHistory();
-                            if (history != null)
-                            {
-                                resultJson = "{\"ok\":true,\"data\":" + history.ToString(Newtonsoft.Json.Formatting.None) + "}";
-                            }
-                            else
-                            {
-                                resultJson = "{\"ok\":false,\"error\":\"" + Escape(_lmuResults.LastError ?? "No results found") + "\"}";
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            SimHub.Logging.Current.Error($"[RaceCorProDrive] LMU import error: {ex}");
-                            resultJson = "{\"ok\":false,\"error\":\"" + Escape(ex.Message) + "\"}";
-                        }
-
-                        byte[] importBytes = Encoding.UTF8.GetBytes(resultJson);
-                        ctx.Response.ContentType = "application/json";
-                        ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
-                        ctx.Response.StatusCode = 200;
-                        ctx.Response.OutputStream.Write(importBytes, 0, importBytes.Length);
-                        ctx.Response.OutputStream.Close();
-                        continue;
-                    }
-
-                    // ── LMU Telemetry Enrichment — extract post-session DuckDB stats ──
-                    if (action == "lmuTelemetry")
-                    {
-                        string resultJson;
-                        try
-                        {
-                            var qs = ctx.Request.QueryString;
-                            string track = qs["track"] ?? "";
-                            string car = qs["car"] ?? "";
-
-                            var enrichment = _lmuTelemetry.EnrichLastSession(
-                                string.IsNullOrEmpty(track) ? null : track,
-                                string.IsNullOrEmpty(car) ? null : car);
-
-                            if (enrichment != null)
-                            {
-                                resultJson = "{\"ok\":true,\"data\":" + enrichment.ToString(Newtonsoft.Json.Formatting.None) + "}";
-                            }
-                            else
-                            {
-                                resultJson = "{\"ok\":false,\"error\":\"" + Escape(_lmuTelemetry.LastError ?? "No telemetry data found") + "\"}";
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            SimHub.Logging.Current.Error($"[RaceCorProDrive] LMU telemetry error: {ex}");
-                            resultJson = "{\"ok\":false,\"error\":\"" + Escape(ex.Message) + "\"}";
-                        }
-
-                        byte[] telBytes = Encoding.UTF8.GetBytes(resultJson);
-                        ctx.Response.ContentType = "application/json";
-                        ctx.Response.Headers.Add("Access-Control-Allow-Origin", "*");
-                        ctx.Response.StatusCode = 200;
-                        ctx.Response.OutputStream.Write(telBytes, 0, telBytes.Length);
                         ctx.Response.OutputStream.Close();
                         continue;
                     }

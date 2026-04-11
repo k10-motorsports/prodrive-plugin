@@ -263,7 +263,7 @@ export default function PreviewPanel() {
                 color: 'var(--text-secondary)',
               }}
             >
-              Body text in Neutronic Rounded
+              Body text in Sofia Pro
             </p>
             <p
               style={{

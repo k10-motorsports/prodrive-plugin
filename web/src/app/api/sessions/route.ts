@@ -44,7 +44,6 @@ export async function POST(request: NextRequest) {
     // Determine game and whether it's iRacing
     const normalizedGameName = (gameName || 'iRacing').trim()
     const isIRacing = normalizedGameName.toLowerCase() === 'iracing'
-    const isLMU = normalizedGameName.toLowerCase() === 'lmu' || normalizedGameName.toLowerCase().includes('le mans') || normalizedGameName.toLowerCase().includes('rfactor')
 
     // Insert session (race or practice/qualifying/warmup)
     const session = await db.insert(schema.raceSessions).values({
@@ -52,7 +51,7 @@ export async function POST(request: NextRequest) {
       carModel: carModel || 'Unknown',
       manufacturer: null, // Could be extracted from carModel later
       category: _detectCategory(sessionType),
-      gameName: isIRacing ? 'iracing' : isLMU ? 'lmu' : normalizedGameName.toLowerCase(),
+      gameName: isIRacing ? 'iracing' : normalizedGameName.toLowerCase(),
       trackName,
       sessionType,
       finishPosition: finishPosition || null,

@@ -7080,8 +7080,8 @@ function _fmtLapTime(secs) {
             if (logo.brandColorHex) window.carBrandColors[logo.brandKey] = logo.brandColorHex;
           }
           console.log('[RaceCor] Loaded', data.logos.length, 'logos from cloud');
-          // Still load special local-only logos (generic, none, honda_white, iracing, le-mans-ultimate)
-          const localOnly = ['generic', 'none', 'honda_white', 'iracing', 'le-mans-ultimate'];
+          // Still load special local-only logos (generic, none, honda_white, iracing)
+          const localOnly = ['generic', 'none', 'honda_white', 'iracing'];
           await Promise.allSettled(localOnly.map(async key => {
             if (!window.carLogos[key]) {
               const r = await fetch('images/logos/' + key + '.svg');
@@ -7178,7 +7178,6 @@ function _fmtLapTime(secs) {
     ac:          { hasIRating: false, hasIncidents: false, hasFlags: true,  hasFormation: false, hasDRS: false, hasERS: false },
     acevo:       { hasIRating: false, hasIncidents: false, hasFlags: true,  hasFormation: false, hasDRS: false, hasERS: false },
     acrally:     { hasIRating: false, hasIncidents: false, hasFlags: false, hasFormation: false, hasDRS: false, hasERS: false },
-    lmu:         { hasIRating: false, hasIncidents: false, hasFlags: true,  hasFormation: true,  hasDRS: true,  hasERS: true  },
     raceroom:    { hasIRating: false, hasIncidents: false, hasFlags: true,  hasFormation: true,  hasDRS: true,  hasERS: false },
     eawrc:       { hasIRating: false, hasIncidents: false, hasFlags: false, hasFormation: false, hasDRS: false, hasERS: false },
     forza:       { hasIRating: false, hasIncidents: false, hasFlags: false, hasFormation: false, hasDRS: false, hasERS: false },
@@ -7192,7 +7191,6 @@ function _fmtLapTime(secs) {
     if (g.includes('assettocorsaevo')) return 'acevo';
     if (g.includes('assettocorsarally')) return 'acrally';
     if (g.includes('assettocorsa') || g === 'ac') return 'ac';
-    if (g.includes('lemans') || g.includes('lmu') || g.includes('rfactor')) return 'lmu';
     if (g.includes('raceroom') || g === 'rrre' || g === 'r3e') return 'raceroom';
     if (g.includes('wrc') || g.includes('eawrc')) return 'eawrc';
     if (g.includes('forza')) return 'forza';
@@ -7407,7 +7405,6 @@ function _fmtLapTime(secs) {
     document.body.classList.toggle('game-iracing', _isIRacing);
     document.body.classList.toggle('game-rally', _isRally);
     document.body.classList.toggle('game-acc', _currentGameId === 'acc');
-    document.body.classList.toggle('game-lmu', _currentGameId === 'lmu');
   }
 
 
@@ -17601,7 +17598,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // ── modules/js/game-logo.js ──
 // ═══════════════════════════════════════════════════════════════
 // K10 Motorsports — Game Logo Overlay
-// Shows the current game's logo (iRacing, LMU, etc.) in the
+// Shows the current game's logo (iRacing, etc.) in the
 // corner opposite the main dashboard layout position.
 // ═══════════════════════════════════════════════════════════════
 
@@ -17617,8 +17614,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Map game IDs to SVG filenames
   var GAME_LOGO_FILES = {
-    'iracing': 'iracing.svg',
-    'lmu':     'le-mans-ultimate.svg'
+    'iracing': 'iracing.svg'
   };
 
   // Logo-corner mapping: dashboard position → logo position
@@ -17785,7 +17781,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   /**
    * Called from poll-engine on each telemetry tick.
-   * @param {string} gameId — current game ID (e.g. 'iracing', 'lmu')
+   * @param {string} gameId — current game ID (e.g. 'iracing')
    * @param {boolean} show — whether the setting is enabled
    */
   window.updateGameLogo = function(gameId, show) {

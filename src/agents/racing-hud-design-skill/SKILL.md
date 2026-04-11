@@ -5,7 +5,7 @@ description: >
   sim racing overlay, broadcast racing graphic, or game HUD that displays real-time vehicle or performance
   data. Use this skill whenever the user mentions racing dashboards, SimHub overlays, telemetry displays,
   tachometers, leaderboards, tire data, fuel gauges, pedal traces, track maps, lap timing, race position
-  displays, iRacing/ACC/LMU interfaces, F1-style broadcast graphics, automobile instrument panels, or any
+  displays, iRacing/ACC interfaces, F1-style broadcast graphics, automobile instrument panels, or any
   heads-up display in a driving/racing context. Also trigger when someone says "review my dashboard",
   "improve my overlay", "design a HUD", or asks about layout, readability, or information hierarchy in
   a racing or driving interface — even if they don't mention "racing" explicitly but the context involves

@@ -34,14 +34,14 @@ Comprehensive audit of on-screen fields that are failing, falling back, hardcode
 
 These fields show `0`, `—`, or empty for every game except iRacing because the capture logic has no handler.
 
-| On-screen field | What it shows | Correct source for ACC/LMU/R3E |
+| On-screen field | What it shows | Correct source for ACC/R3E |
 |---|---|---|
-| Incident count | `0` for RaceRoom, LMU, Forza, EAWRC | R3E: `DataCorePlugin.GameRawData.CutTrackWarnings` / ACC: already handled / LMU: `Scoring.mNumPenalties` |
-| Steering torque | `0.0 Nm` | ACC: `Physics.WheelsTorque` / LMU: `Telemetry.mFilteredSteering` × torque |
+| Incident count | `0` for RaceRoom, Forza, EAWRC | R3E: `DataCorePlugin.GameRawData.CutTrackWarnings` / ACC: already handled |
+| Steering torque | `0.0 Nm` | ACC: `Physics.WheelsTorque` |
 | Frame rate | `—` | Not game telemetry — use SimHub's `DataCorePlugin.GameData.FramesPerSecond` (available all games) |
-| DRS status | hidden but 0 | ACC: `Graphics.DrsEnabled` + `Graphics.DrsAvailable` / LMU: `Telemetry.mRearFlapLegalStatus` |
-| Pit stop selections (fuel, pressures, compound) | All `—` | ACC: `Graphics.MfdFuelToAdd`, `Graphics.MfdTyrePressure*` / LMU: pit menu via shared memory |
-| Player car arrays (LapDistPct, OnPitRoad, LapCompleted) | Empty arrays | ACC: not available per-car / LMU: `Scoring.mVehicles[]` |
+| DRS status | hidden but 0 | ACC: `Graphics.DrsEnabled` + `Graphics.DrsAvailable` |
+| Pit stop selections (fuel, pressures, compound) | All `—` | ACC: `Graphics.MfdFuelToAdd`, `Graphics.MfdTyrePressure*` |
+| Player car arrays (LapDistPct, OnPitRoad, LapCompleted) | Empty arrays | ACC: not available per-car |
 | Pit speed limit | `0` | ACC: `StaticInfo.PitSpeedLimit` / R3E: `DataCorePlugin.GameRawData.SessionPitSpeedLimit` |
 
 ---
@@ -76,7 +76,7 @@ The 5-step priority chain works but each step can independently return 0, causin
 |---|---|---|---|
 | Sector 1/2/3 split times | `poll-engine.js:534,540,564` | Shows `—` until the player completes a sector | This is correct behavior — no fix needed, just cosmetic |
 | Sector boundaries (S2/S3 start %) | `poll-engine.js:500-502` | Only set if `s2Pct > 0 && s3Pct > s2Pct` — silent failure if YAML parsing fails | `IRatingEstimator.ParseSplitTimeInfo()` already reads these. Add validation logging so a parse failure is detectable |
-| Sector delta coloring | `poll-engine.js` | Uses `SectorStateS1/S2/S3` (0=none, 1=pb, 2=faster, 3=slower) | Working correctly for iRacing; not available for ACC/LMU — could compute from split time comparison |
+| Sector delta coloring | `poll-engine.js` | Uses `SectorStateS1/S2/S3` (0=none, 1=pb, 2=faster, 3=slower) | Working correctly for iRacing; not available for ACC — could compute from split time comparison |
 
 ---
 
@@ -107,7 +107,6 @@ The 5-step priority chain works but each step can independently return 0, causin
 |---|---|---|---|
 | Session flags (ACC) | `TelemetrySnapshot.Capture.cs:543-550` | Maps ACC flag types 0-5 to iRacing bitmask — **skips type 6 (penalty)** | Add: `if (accFlag == 6) irMask \|= 0x10000;` to map ACC penalty flag to iRacing black flag bit |
 | Session flags (RaceRoom) | `TelemetrySnapshot.Capture.cs:551-556` | Only maps Yellow, Blue, Black | R3E also has: `Flags.Green`, `Flags.White`, `Flags.Checkered` — add those mappings |
-| Session flags (LMU/AMS2) | Not handled — falls through to iRacing default | Returns 0 always | LMU: `Scoring.mScoringInfo.mGamePhase` for yellows, `Telemetry.mHighestFlagColor` for individual flags |
 | Flag context text | `poll-engine.js:612` | Hardcoded context strings per flag type | Working correctly — no change needed |
 
 ---
@@ -128,7 +127,7 @@ The 5-step priority chain works but each step can independently return 0, causin
 
 | On-screen field | File | What it does today | Correct source |
 |---|---|---|---|
-| Session time remaining | `poll-engine.js:379-391` | Server-computed `RemainingTimeFormatted` → fallback to client-side calculation | The fallback uses `SessionTimeRemain` which is iRacing raw. For ACC: use `Graphics.SessionTimeLeft`. For LMU: use `Scoring.mScoringInfo.mEndET - mCurrentET` |
+| Session time remaining | `poll-engine.js:379-391` | Server-computed `RemainingTimeFormatted` → fallback to client-side calculation | The fallback uses `SessionTimeRemain` which is iRacing raw. For ACC: use `Graphics.SessionTimeLeft`. |
 | Laps remaining | Not directly shown | `SessionLapsRemainEx` is in the catalog but not wired | Wire `SessionLapsRemainEx` (avoids the off-by-one in `SessionLapsRemain`) and display in the session info area |
 
 ---
@@ -140,7 +139,7 @@ The 5-step priority chain works but each step can independently return 0, causin
 | Lateral G | `TelemetrySnapshot.Capture.cs:85` | iRacing raw → SimHub `AccelerationSway` fallback | Working, but units differ: iRacing reports m/s², SimHub normalizes to G. The dashboard assumes G — verify the conversion is applied |
 | Longitudinal G | Same | iRacing raw → `AccelerationSurge` | Same unit concern |
 | Yaw rate | `poll-engine.js:447` | Shows `0.00 r/s` when no data | iRacing: `YawRate` (rad/s) — correct. Other games: SimHub's `YawVelocity` — verify units match |
-| Track temperature | `poll-engine.js:468` | Shows `—°C` when no data | iRacing: `TrackTemp` wired. ACC: `Physics.RoadTemp`. LMU: `Scoring.mScoringInfo.mTrackTemp`. SimHub: `DataCorePlugin.GameData.RoadTemperature` (universal fallback) |
+| Track temperature | `poll-engine.js:468` | Shows `—°C` when no data | iRacing: `TrackTemp` wired. ACC: `Physics.RoadTemp`. SimHub: `DataCorePlugin.GameData.RoadTemperature` (universal fallback) |
 
 ---
 

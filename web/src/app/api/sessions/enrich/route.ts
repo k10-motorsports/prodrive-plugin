@@ -6,7 +6,6 @@ import { eq, and } from 'drizzle-orm'
 /**
  * POST /api/sessions/enrich — Add telemetry enrichment data to a session
  *
- * Called after an LMU session ends with DuckDB telemetry summary data.
  * Updates the session's metadata JSONB with telemetry stats.
  *
  * Auth: Bearer token (plugin auth)

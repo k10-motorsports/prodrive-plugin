@@ -56,8 +56,8 @@
   --cyan: #00acc1;
 
   /* Typography */
-  --ff: 'neutronic-rounded', sans-serif;
-  --ff-display: 'neutronic-rounded-black', sans-serif;
+  --ff: sofia-pro-comp, sans-serif;
+  --ff-display: "stolzl", sans-serif;
   --ff-mono: 'JetBrains Mono', 'Consolas', 'SF Mono', monospace;
 
   /* Radii */
