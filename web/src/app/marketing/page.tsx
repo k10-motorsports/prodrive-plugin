@@ -14,7 +14,7 @@ export default async function HomePage() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-[var(--k10-red)]/[0.04] blur-3xl pointer-events-none" />
 
         <LogoMark className="h-20 w-auto mb-8 relative z-10" />
-        <h1 className="font-[var(--ff-display)] text-[48px] font-bold tracking-tight leading-none mb-4 relative z-10" style={{ fontFamily: 'var(--ff-display)' }}>
+        <h1 className="text-[48px] font-black tracking-tight leading-none mb-4 relative z-10" style={{ fontFamily: 'var(--ff-display)' }}>
           {RACECOR_NAME}
         </h1>
         <p className="text-xl text-[var(--text-dim)] max-w-2xl leading-relaxed mb-10 relative z-10">
@@ -44,7 +44,7 @@ export default async function HomePage() {
 
       {/* Get Started */}
       <section id="install" className="px-6 py-20 max-w-4xl mx-auto w-full">
-        <h2 className="text-3xl font-bold mb-10" style={{ fontFamily: 'var(--ff-display)' }}>Get Started</h2>
+        <h2 className="text-3xl font-black mb-10" style={{ fontFamily: 'var(--ff-display)' }}>Get Started</h2>
 
         <div className="space-y-8">
           <div>

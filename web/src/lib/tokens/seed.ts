@@ -347,7 +347,7 @@ const tokens: DesignToken[] = [
   // ── Typography tokens (category: "typography") ──
   {
     path: 'typography.fontFamily.base',
-    value: "'Barlow Condensed', 'Corbel', 'Segoe UI', system-ui, sans-serif",
+    value: "'neutronic-rounded', sans-serif",
     kind: 'font',
     cssProperty: '--ff',
     platforms: 'both',
@@ -357,7 +357,7 @@ const tokens: DesignToken[] = [
   },
   {
     path: 'typography.fontFamily.display',
-    value: "'Cinzel Decorative', 'Georgia', serif",
+    value: "'neutronic-rounded-black', sans-serif",
     kind: 'font',
     cssProperty: '--ff-display',
     platforms: 'both',

@@ -1,30 +1,18 @@
 import type { Metadata } from 'next'
-import { Barlow_Condensed, Cinzel_Decorative, JetBrains_Mono } from 'next/font/google'
+import { JetBrains_Mono } from 'next/font/google'
 import '@/styles/globals.css'
 import { SITE_NAME, SITE_DESCRIPTION, SITE_URL } from '@/lib/constants'
 import { getTokenCssUrl } from '@/lib/tokens/get-token-css-url'
 import { getThemeFromCookie, getThemeSetFromCookie } from '@/lib/theme'
 import { ThemeScript } from '@/components/ThemeScript'
 
-const barlow = Barlow_Condensed({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800', '900'],
-  variable: '--font-barlow',
-  display: 'swap',
-})
-
-const cinzel = Cinzel_Decorative({
-  subsets: ['latin'],
-  weight: ['700'],
-  variable: '--font-display',
-  display: 'swap',
-})
 
 const jetbrains = JetBrains_Mono({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-mono',
   display: 'swap',
+  preload: false,
 })
 
 export const metadata: Metadata = {
@@ -62,9 +50,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       lang="en"
       data-theme={theme}
       data-set={await getThemeSetFromCookie()}
-      className={`${barlow.variable} ${cinzel.variable} ${jetbrains.variable} h-full antialiased`}
+      className={`${jetbrains.variable} h-full antialiased`}
     >
       <head>
+        <link rel="stylesheet" href="https://use.typekit.net/pdg5yka.css" />
         <ThemeScript />
         {tokenCssUrl && (
           <link rel="stylesheet" href={tokenCssUrl} />

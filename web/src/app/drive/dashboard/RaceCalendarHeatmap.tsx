@@ -216,7 +216,7 @@ export default function RaceCalendarHeatmap({ sessions }: Props) {
   }, [metric, dayMap, getValue])
 
   const cellColor = useCallback((value: number | null): string => {
-    if (value === null || value === 0) return rgbStr(...colors.empty)
+    if (value === null || value === 0) return 'transparent'
     if (isDivergent) {
       if (value > 0) {
         const t = maxVal > 0 ? Math.min(value / maxVal, 1) : 0

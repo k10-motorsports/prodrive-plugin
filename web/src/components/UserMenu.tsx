@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { Settings, LogOut, ChevronDown } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Settings, LogOut, ChevronDown, Upload, Check, AlertCircle, Loader2 } from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
 import ThemeSetSelector from '@/components/ThemeSetSelector'
 
@@ -18,6 +18,8 @@ interface UserMenuProps {
 export default function UserMenu({ user, signOutAction }: UserMenuProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const [importStatus, setImportStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle')
+  const [importMsg, setImportMsg] = useState<string | null>(null)
 
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
@@ -27,6 +29,46 @@ export default function UserMenu({ user, signOutAction }: UserMenuProps) {
     }
     document.addEventListener('mousedown', onClickOutside)
     return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [])
+
+  const handleImportFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImportStatus('uploading')
+    setImportMsg(null)
+    try {
+      const raw = await file.text()
+      let payload = JSON.parse(raw)
+      if (Array.isArray(payload)) {
+        while (payload.length === 1 && Array.isArray(payload[0])) payload = payload[0]
+      }
+      const body = Array.isArray(payload) ? { recentRaces: payload } : payload
+      if (body.cust_id && !body.custId) {
+        body.custId = body.cust_id
+        body.displayName = body.display_name || body.displayName || ''
+      }
+      const res = await fetch('/api/iracing/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        setImportStatus('success')
+        setImportMsg(`${data.imported?.sessions ?? 0} sessions imported`)
+        setTimeout(() => { setImportStatus('idle'); setImportMsg(null) }, 3000)
+      } else {
+        setImportStatus('error')
+        setImportMsg(data.error || 'Import failed')
+        setTimeout(() => { setImportStatus('idle'); setImportMsg(null) }, 4000)
+      }
+    } catch (err: any) {
+      setImportStatus('error')
+      setImportMsg(err.message || 'Invalid JSON')
+      setTimeout(() => { setImportStatus('idle'); setImportMsg(null) }, 4000)
+    }
+    // Reset file input so the same file can be re-selected
+    e.target.value = ''
   }, [])
 
   return (
@@ -82,6 +124,43 @@ export default function UserMenu({ user, signOutAction }: UserMenuProps) {
               <ThemeSetSelector />
               <ThemeToggle />
             </div>
+          </div>
+
+          {/* Divider */}
+          <div className="my-1 border-t border-[var(--border)]" />
+
+          {/* iRacing Import */}
+          <div className="px-3 py-1.5">
+            {importStatus === 'idle' && (
+              <label className="flex items-center gap-2 text-xs font-medium text-[var(--text-dim)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer">
+                <Upload size={14} />
+                Import iRacing Data
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleImportFile}
+                  className="hidden"
+                />
+              </label>
+            )}
+            {importStatus === 'uploading' && (
+              <div className="flex items-center gap-2">
+                <Loader2 size={14} className="animate-spin text-[var(--border-accent)]" />
+                <span className="text-xs text-[var(--text-dim)]">Importing...</span>
+              </div>
+            )}
+            {importStatus === 'success' && (
+              <div className="flex items-center gap-1.5">
+                <Check size={13} style={{ color: '#66bb6a' }} />
+                <span className="text-xs font-medium" style={{ color: '#66bb6a' }}>{importMsg}</span>
+              </div>
+            )}
+            {importStatus === 'error' && (
+              <div className="flex items-center gap-1.5">
+                <AlertCircle size={13} style={{ color: '#ef5350' }} />
+                <span className="text-xs text-[var(--text-dim)]">{importMsg}</span>
+              </div>
+            )}
           </div>
 
           {/* Divider */}

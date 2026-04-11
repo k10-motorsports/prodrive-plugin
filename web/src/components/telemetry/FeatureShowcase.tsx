@@ -106,7 +106,7 @@ export function FeatureShowcase() {
 
   return (
     <section id="features" className="px-6 py-20 max-w-6xl mx-auto w-full">
-      <h2 className="text-3xl font-bold mb-10 text-center" style={{ fontFamily: 'var(--ff-display)' }}>What&apos;s Inside</h2>
+      <h2 className="text-3xl font-black mb-10 text-center" style={{ fontFamily: 'var(--ff-display)' }}>What&apos;s Inside</h2>
 
       <div className="flex flex-col lg:flex-row gap-8 items-stretch">
         {/* Left: static module preview with crossfade */}

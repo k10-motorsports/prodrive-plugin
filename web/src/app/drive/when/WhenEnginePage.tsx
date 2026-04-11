@@ -155,7 +155,7 @@ export default function WhenEnginePage({ sessions, ratingHistory }: {
         {/* Heatmap */}
         <section>
           <div className="mb-6">
-            <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: 'var(--ff-display)' }}>Performance Heatmap</h1>
+            <h1 className="text-3xl font-black mb-2" style={{ fontFamily: 'var(--ff-display)' }}>Performance Heatmap</h1>
             <p className="text-[var(--text-dim)] text-sm">When do you race your best?</p>
           </div>
 

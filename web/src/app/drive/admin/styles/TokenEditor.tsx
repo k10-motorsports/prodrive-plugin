@@ -434,7 +434,7 @@ function FontEditor({
             value={effectiveValue}
             onChange={(e) => onUpdate(e.target.value)}
             className="w-full px-2 py-1 text-sm bg-[var(--bg)] text-[var(--text)] border border-[var(--border)] rounded"
-            placeholder="e.g., 'Barlow Condensed', sans-serif"
+            placeholder="e.g., 'neutronic-rounded', sans-serif"
           />
         </div>
       )}
@@ -786,6 +786,65 @@ export default function TokenEditor() {
     }
   }
 
+  const [buildingAll, setBuildingAll] = useState(false)
+
+  const handleRebuildAll = async () => {
+    setBuildingAll(true)
+    setError(null)
+
+    try {
+      // Step 1: Reseed base tokens from seed.ts into DB
+      const seedRes = await fetch('/api/admin/tokens/reseed', { method: 'POST' })
+      if (!seedRes.ok) throw new Error('Reseed failed — base tokens not updated')
+
+      // Step 2: Rebuild CSS blobs for every theme set
+      let built = 0
+      let failed = 0
+
+      for (const set of themeSets) {
+        try {
+          const res = await fetch('/api/admin/tokens/build', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ setSlug: set.slug }),
+          })
+          if (!res.ok) { failed++; continue }
+
+          const data = await res.json()
+
+          // If the current set was rebuilt, update the live preview
+          if (set.slug === activeSetSlug) {
+            const webBuild = data.builds?.find((b: { platform: string; url: string }) => b.platform === 'web')
+            window.dispatchEvent(new CustomEvent('theme-css-rebuilt', {
+              detail: { setSlug: set.slug, cssUrl: webBuild?.url || null },
+            }))
+          }
+
+          built++
+        } catch {
+          failed++
+        }
+      }
+
+      // Step 3: Reload token list so the editor shows updated values
+      const refreshRes = await fetch(`/api/admin/tokens?set=${activeSetSlug}`)
+      if (refreshRes.ok) {
+        const data = await refreshRes.json()
+        if (data.tokens) setTokens(data.tokens)
+      }
+
+      const msg = failed
+        ? `Reseeded + rebuilt ${built}/${themeSets.length} sets (${failed} failed).`
+        : `Reseeded + rebuilt all ${built} theme sets.`
+      setSuccess(msg)
+      setTimeout(() => setSuccess(null), 5000)
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setBuildingAll(false)
+    }
+  }
+
   // Resolved dark value for this set = base token + set dark overrides
   const getResolvedDarkValue = useCallback((token: DesignToken) => {
     return darkOverrides.get(token.path) ?? token.value
@@ -871,10 +930,17 @@ export default function TokenEditor() {
           )}
           <button
             onClick={handleRebuild}
-            disabled={saving}
+            disabled={saving || buildingAll}
             className="px-4 py-2 border border-[var(--border)] text-[var(--text-secondary)] text-sm font-bold uppercase tracking-wider rounded-md hover:border-[var(--border-accent)] transition-colors disabled:opacity-50"
           >
             {saving ? 'Building...' : 'Rebuild CSS'}
+          </button>
+          <button
+            onClick={handleRebuildAll}
+            disabled={saving || buildingAll}
+            className="px-4 py-2 border border-[var(--amber)] text-[var(--amber)] text-sm font-bold uppercase tracking-wider rounded-md hover:bg-[var(--amber)]/10 transition-colors disabled:opacity-50"
+          >
+            {buildingAll ? `Seeding + building ${themeSets.length} sets...` : 'Reseed & Rebuild All'}
           </button>
         </div>
       </div>

@@ -250,7 +250,7 @@ export default function PreviewPanel() {
               style={{
                 fontFamily: 'var(--ff-display)',
                 fontSize: '18px',
-                fontWeight: 700,
+                fontWeight: 900,
                 color: 'var(--text-primary)',
               }}
             >
@@ -263,7 +263,7 @@ export default function PreviewPanel() {
                 color: 'var(--text-secondary)',
               }}
             >
-              Body text in Barlow Condensed
+              Body text in Neutronic Rounded
             </p>
             <p
               style={{

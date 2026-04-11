@@ -24,7 +24,7 @@ export default async function DrivePage({ searchParams }: { searchParams: Promis
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-[var(--k10-red)]/[0.06] blur-3xl pointer-events-none" />
 
       <LogoMark className="h-16 w-auto mb-8 relative z-10 opacity-80" />
-      <h1 className="text-4xl font-bold mb-3 relative z-10" style={{ fontFamily: 'var(--ff-display)' }}>RaceCor.io Pro Drive</h1>
+      <h1 className="text-4xl font-black mb-3 relative z-10" style={{ fontFamily: 'var(--ff-display)' }}>RaceCor.io Pro Drive</h1>
       <p className="text-[var(--text-dim)] max-w-md mb-8 relative z-10">
         Your sim racing performance dashboard. Track iRating, Safety Rating, license progression,
         and race history across all iRacing categories.

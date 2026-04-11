@@ -36,15 +36,15 @@
     --cyan: #00acc1;
     --purple: hsl(280,80%,70%);
 
-    --ff: 'Barlow Condensed', 'Corbel', 'Segoe UI', system-ui, sans-serif;
-    --ff-display: 'Cinzel Decorative', 'Georgia', serif;
+    --ff: 'neutronic-rounded', sans-serif;
+    --ff-display: 'neutronic-rounded-black', sans-serif;
     --ff-mono: 'JetBrains Mono', 'Consolas', 'SF Mono', monospace;
     --fs-xl: 20px;
     --fs-lg: 13px;
     --fs-md: 11px;
     --fs-sm: 11px;
     --fs-xs: 10px;
-    --fw-black: 800;
+    --fw-black: 900;
     --fw-bold: 700;
     --fw-semi: 600;
     --fw-medium: 500;
@@ -695,7 +695,7 @@
     mask-image: none;
   }
   .commentary-text {
-    font-family: 'Barlow Semi Condensed', var(--ff);
+    font-family: 'neutronic-rounded', var(--ff);
     font-size: 15px;
     font-weight: var(--fw-medium);
     line-height: 1.2;
@@ -2550,6 +2550,38 @@
     border: 1px solid hsla(0, 60%, 50%, 0.15);
   }
 
+  /* ── iRacing Data Sync Card ──────────────────────────────── */
+  .conn-card-iracing {
+    background: hsla(35, 50%, 30%, 0.08);
+    border: 1px solid hsla(35, 50%, 45%, 0.15);
+  }
+  .conn-card-icon.iracing {
+    background: hsla(35, 50%, 35%, 0.2);
+    border-radius: 8px;
+  }
+  .conn-btn.iracing-btn {
+    background: hsl(35, 85%, 48%);
+    color: #000;
+    font-weight: 700;
+  }
+  .conn-btn.iracing-btn:disabled {
+    background: hsla(35, 50%, 35%, 0.5);
+    color: hsla(0,0%,100%,0.4);
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  .conn-btn.iracing-sync-btn {
+    background: hsla(35, 60%, 50%, 0.15);
+    color: hsl(35, 80%, 65%);
+    border: 1px solid hsla(35, 60%, 50%, 0.25);
+    font-size: 10px;
+    padding: 4px 10px;
+  }
+  .conn-btn.iracing-sync-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
   /* Pro feature info panel (when not connected) */
   .conn-pro-info {
     background: hsla(0,0%,100%,0.02);
@@ -2561,7 +2593,7 @@
   .conn-pro-info-title {
     font-family: var(--ff-display);
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 900;
     color: hsla(0,0%,100%,0.6);
     margin-bottom: 4px;
   }
@@ -3151,7 +3183,7 @@
     border: 1px solid hsla(0, 0%, 100%, 0.14);
     border-radius: 8px;
     padding: 0;
-    font-family: 'Barlow Condensed', sans-serif;
+    font-family: 'neutronic-rounded', sans-serif;
     overflow: hidden;
   }
 
@@ -3839,7 +3871,7 @@
   .settings-title {
     font-family: var(--ff-display);
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 900;
     margin-bottom: 4px;
   }
   .settings-subtitle {
@@ -4102,7 +4134,7 @@
     border-radius: 6px;
     padding: 8px 10px;
     margin-top: 4px;
-    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-family: 'JetBrains Mono', monospace;
     font-size: 14px;
     line-height: 1.6;
   }
@@ -4437,7 +4469,7 @@
     width: 75%;
     height: auto;
   }
-  /* Hide dashboard in idle */
+  /* Hide dashboard + car brand logo in idle (logo-only shows K10 mark only) */
   body.idle-state #dashboard,
   body.idle-state .leaderboard-panel,
   body.idle-state .datastream-panel,
@@ -4446,7 +4478,9 @@
   body.idle-state .spotter-panel,
   body.idle-state .pit-banner,
   body.idle-state .rc-banner,
-  body.idle-state .grid-module {
+  body.idle-state .grid-module,
+  body.idle-state #carLogoSquare,
+  body.idle-state .game-logo {
     opacity: 0 !important;
     pointer-events: none !important;
     transition: opacity 0.6s ease;
@@ -10577,33 +10611,121 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.updateGameLogo) window.updateGameLogo(window._currentGameId || 'iracing', !isOn);
   }
 
-  // ─── iRacing Data Sync toggle ───
-  function toggleIRacingSync(el) {
-    var isOn = el.classList.contains('on');
-    var newVal = !isOn;
-    el.classList.toggle('on', newVal);
-    _settings.iracingDataSync = newVal;
+  // ─── iRacing Data Sync (embedded browser login) ───
 
-    var detail = document.getElementById('iracingSyncDetail');
-    var active = document.getElementById('iracingSyncActive');
-    if (detail) detail.style.display = newVal ? 'none' : '';
-    if (active) active.style.display = newVal ? '' : 'none';
+  function updateIRacingCard(status) {
+    var notConn = document.getElementById('iracingNotConnected');
+    var conn    = document.getElementById('iracingConnected');
+    var name    = document.getElementById('iracingDisplayName');
+    var openBtn = document.getElementById('iracingOpenBtn');
 
-    saveSettings();
-
-    // If just enabled, trigger sync check now
-    if (newVal && window.checkAndSyncIRacingHistory) {
-      window.checkAndSyncIRacingHistory();
+    if (status && status.connected) {
+      if (notConn) notConn.style.display = 'none';
+      if (conn) conn.style.display = '';
+      if (name) name.textContent = status.displayName || 'iRacing Member';
+      if (openBtn) openBtn.textContent = 'Open iRacing';
+    } else {
+      if (notConn) notConn.style.display = '';
+      if (conn) conn.style.display = 'none';
+      if (openBtn) openBtn.textContent = 'Open iRacing';
     }
   }
-  window.toggleIRacingSync = toggleIRacingSync;
 
-  // ─── iRacing OAuth Notice ───
-  // Legacy auth retired Dec 2025. Show notice when sync can't authenticate.
-  window.showIRacingOAuthNotice = function() {
-    var notice = document.getElementById('iracingOAuthNotice');
-    if (notice) notice.style.display = '';
-  };
+  async function connectIRacing() {
+    var btn = document.getElementById('iracingOpenBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Opening...'; }
+
+    try {
+      var result = await window.k10.iracingConnect();
+      if (result && result.success) {
+        updateIRacingCard({ connected: true, displayName: result.displayName, custId: result.custId });
+      }
+    } catch (e) {
+      console.error('[K10] iRacing connect error:', e);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Open iRacing'; }
+    }
+  }
+  window.connectIRacing = connectIRacing;
+
+  // disconnectIRacing is now handled by the sidebar panel on the iRacing window
+
+  // syncIRacing is now handled by the sidebar panel on the iRacing window
+
+  // Listen for sync events pushed from main process
+  if (window.k10 && window.k10.onIRacingSync) {
+    window.k10.onIRacingSync(function(data) {
+      updateIRacingCard({
+        connected: true,
+        displayName: data.displayName,
+        custId: data.custId,
+        lastSync: data.exportedAt,
+      });
+
+      // ── Forward Electron sync data to Pro Drive web API ──
+      // The Electron iRacing client fetches career data directly (chartData,
+      // recentRaces, etc.) but only saves locally. Push it to the web API so
+      // the dashboard can display iRating history, race sessions, etc.
+      var token = window._k10Token;
+      if (token && data && (data.chartData || data.recentRaces)) {
+        var API_BASE = (window._k10ApiBase || 'https://prodrive.racecor.io');
+        console.log('[Connections] Forwarding Electron sync data to Pro Drive API...');
+        if (window.debugConsole) window.debugConsole.logIRacingSync('info', 'Forwarding sync data to Pro Drive API...');
+        fetch(API_BASE + '/api/iracing/import', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify(data)
+        })
+        .then(function(r) { return r.ok ? r.json() : r.json().then(function(e) { throw new Error(e.error || r.status); }); })
+        .then(function(result) {
+          console.log('[Connections] Pro Drive import result:', result);
+          if (window.debugConsole) {
+            var imp = result.imported || {};
+            window.debugConsole.logIRacingSync('success',
+              'Pro Drive import: ' + (imp.sessions || 0) + ' sessions, ' +
+              (imp.historyPoints || 0) + ' iRating points');
+          }
+        })
+        .catch(function(err) {
+          console.warn('[Connections] Pro Drive import failed:', err.message || err);
+          if (window.debugConsole) window.debugConsole.logIRacingSync('error', 'Pro Drive import failed: ' + (err.message || err));
+        });
+      }
+    });
+  }
+
+  // iRacing client logs now pipe to the sidebar console on the iRacing window
+
+  // Init: load persisted status on startup
+  async function initIRacingState() {
+    try {
+      var status = await window.k10.getIRacingStatus();
+      updateIRacingCard(status);
+    } catch (e) {
+      // Not available yet — leave as disconnected
+    }
+  }
+
+  // Auto-connect: main process tries iRacing sync on startup with persisted cookies.
+  // If it succeeds, update the card to show connected state.
+  if (window.k10 && window.k10.onIRacingAutoConnected) {
+    window.k10.onIRacingAutoConnected(function(result) {
+      if (result && result.success) {
+        updateIRacingCard({
+          connected: true,
+          displayName: result.displayName,
+          custId: result.custId,
+          lastSync: result.exportedAt
+        });
+        if (window.debugConsole) {
+          window.debugConsole.logIRacingSync('success', 'Auto-connected to iRacing');
+        }
+      }
+    });
+  }
 
   // ─── Logo subtitle ───
   function updateLogoSubtitle(value) {
@@ -10926,16 +11048,7 @@ document.addEventListener('DOMContentLoaded', function () {
   initDiscordState();
   initK10State();
   initRemoteDashState();
-
-  // Restore iRacing sync toggle state
-  var syncToggle = document.getElementById('iracingSyncToggle');
-  if (syncToggle && _settings.iracingDataSync) {
-    syncToggle.classList.add('on');
-    var detail = document.getElementById('iracingSyncDetail');
-    var active = document.getElementById('iracingSyncActive');
-    if (detail) detail.style.display = 'none';
-    if (active) active.style.display = '';
-  }
+  initIRacingState();
 
   // ═══════════════════════════════════════════════════════════════
 
@@ -18731,7 +18844,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const ds = (gameKey, demoKey) => _demo ? vs('RaceCorProDrive.Plugin.' + demoKey) : vs(gameKey);
 
     // ─── Idle State Detection ───
+    // Always use REAL game state for idle detection (never demo-swapped).
+    // This ensures logo-only mode when no game is actually running,
+    // even if the SimHub plugin has demo mode enabled.
     const gameRunning = +v('DataCorePlugin.GameRunning') || 0;
+    const realSessNum = parseInt(vs('RaceCorProDrive.Plugin.Grid.SessionState')) || 0;
     const sessionPre = _demo ? 'RaceCorProDrive.Plugin.Demo.Grid.' : 'RaceCorProDrive.Plugin.Grid.';
     const dsPre = _demo ? 'RaceCorProDrive.Plugin.Demo.DS.' : 'RaceCorProDrive.Plugin.DS.';
     const sessNum = parseInt(vs(sessionPre + 'SessionState')) || 0;
@@ -18785,9 +18902,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // Expose rolling/formation start state for leaderboard sparklines
     window._isRollingStart = (sessNum === 2 || sessNum === 3); // Warmup or ParadeLaps
 
-    // Idle detection: only idle when no session (sessNum === 0) or game not running
-    // Pre-race states (sessNum 1=GetInCar, 2=Warmup, 3=ParadeLaps) should stay active
-    const nowIdle = !_demo && (!gameRunning || sessNum === 0);
+    // Idle detection: use REAL session state (not demo-swapped) so the overlay
+    // stays logo-only when no game is actually running, regardless of demo mode.
+    // Pre-race states (1=GetInCar, 2=Warmup, 3=ParadeLaps) keep the HUD active.
+    const nowIdle = !gameRunning || realSessNum === 0;
     const idleLogo = document.getElementById('idleLogo');
     if (nowIdle !== _isIdle) {
       _isIdle = nowIdle;

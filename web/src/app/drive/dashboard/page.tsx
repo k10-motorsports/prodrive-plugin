@@ -3,15 +3,16 @@ import { redirect } from "next/navigation";
 import { SITE_URL, SITE_NAME } from "@/lib/constants";
 import { db, schema } from "@/db";
 import { and, eq, gt, desc } from "drizzle-orm";
-import { Download, BarChart3, Trophy, Shield, Car } from "lucide-react";
-import RaceCard from "./RaceCard";
+import { Download, BarChart3, Trophy, Shield } from "lucide-react";
+import RaceHistory from "./RaceHistory";
 import RaceCalendarHeatmap, {
   type SessionDataPoint,
 } from "./RaceCalendarHeatmap";
 import RaceScatterGrid from "./RaceScatterGrid";
 import DriverDNARadar from "./DriverDNARadar";
 import SessionLengthCards from "./SessionLengthCards";
-import IRacingQuickImport from "./IRacingQuickImport";
+
+import IRatingTimeline, { type RatingHistoryPoint } from "./IRatingTimeline";
 import DataManagement from "./DataManagement";
 import { getCarImage, getTrackImage } from "@/lib/commentary-images";
 
@@ -61,6 +62,7 @@ export default async function DashboardPage() {
   let dbUser: { id: string } | null = null;
   let isPluginConnected = false;
   let recentSessions: RaceSession[] = [];
+  let allSessions: Array<typeof schema.raceSessions.$inferSelect> = [];
 
   if (discordId) {
     const users = await db
@@ -85,7 +87,7 @@ export default async function DashboardPage() {
         .limit(1);
       isPluginConnected = activeTokens.length > 0;
 
-      const allSessions = await db
+      allSessions = await db
         .select()
         .from(schema.raceSessions)
         .where(eq(schema.raceSessions.userId, dbUser.id))
@@ -182,16 +184,39 @@ export default async function DashboardPage() {
     }
   }
 
-  // ── iRating sparkline ────────────────────────────────────────────────────────
+  // ── iRating history (full, per-category) ──────────────────────────────────────
   let iRatingHistory: number[] = [];
+  let iRatingByCategory: { category: string; iRating: number }[] = [];
+  let iRatingFullHistory: { category: string; iRating: number; createdAt: string }[] = [];
   if (isPluginConnected && dbUser) {
-    const history = await db
-      .select({ iRating: schema.ratingHistory.iRating })
+    const allHistory = await db
+      .select({
+        category: schema.ratingHistory.category,
+        iRating: schema.ratingHistory.iRating,
+        createdAt: schema.ratingHistory.createdAt,
+      })
       .from(schema.ratingHistory)
       .where(eq(schema.ratingHistory.userId, dbUser.id))
-      .orderBy(desc(schema.ratingHistory.createdAt))
-      .limit(100);
-    iRatingHistory = history.map((h) => h.iRating).reverse();
+      .orderBy(desc(schema.ratingHistory.createdAt));
+
+    // Full history for the timeline chart (serialise dates)
+    iRatingFullHistory = allHistory.map(r => ({
+      category: r.category,
+      iRating: r.iRating,
+      createdAt: r.createdAt.toISOString(),
+    }));
+
+    // Legacy sparkline (cross-category, last 100)
+    iRatingHistory = allHistory.slice(0, 100).map(h => h.iRating).reverse();
+
+    // Latest iRating per category
+    const seen = new Set<string>();
+    for (const row of allHistory) {
+      if (!seen.has(row.category)) {
+        seen.add(row.category);
+        iRatingByCategory.push({ category: row.category, iRating: row.iRating });
+      }
+    }
   }
 
   // ── Visualization data (all sessions + rating deltas) ───────────────────────
@@ -331,10 +356,34 @@ export default async function DashboardPage() {
 
   // Most recent first
   const displayCards = groups.reverse();
-  console.log(displayCards.length);
 
   const hasEnoughData = raceCount >= 5;
-  
+
+  // ── Career summary stats ────────────────────────────────────────────────────
+  const careerStats = (() => {
+    const totalLaps = allSessions.reduce((sum, s) => {
+      const meta = (s.metadata as Record<string, any>) || {};
+      return sum + ((meta.completedLaps as number) || 0);
+    }, 0);
+    const uniqueTracks = new Set(allSessions.map(s => s.trackName).filter(Boolean)).size;
+    const uniqueCars = new Set(allSessions.map(s => s.carModel).filter(Boolean)).size;
+    const uniqueGames = new Set(allSessions.map(s => s.gameName).filter(Boolean)).size;
+    let careerSpan: string | null = null;
+    if (allSessions.length > 1) {
+      const oldest = new Date(allSessions[allSessions.length - 1].createdAt);
+      const newest = new Date(allSessions[0].createdAt);
+      const diffDays = Math.floor((newest.getTime() - oldest.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays < 30) careerSpan = `${diffDays}d`;
+      else if (diffDays < 365) careerSpan = `${Math.floor(diffDays / 30)}mo`;
+      else {
+        const y = Math.floor(diffDays / 365);
+        const m = Math.floor((diffDays % 365) / 30);
+        careerSpan = m > 0 ? `${y}y ${m}mo` : `${y}y`;
+      }
+    }
+
+    return { totalLaps, uniqueTracks, uniqueCars, uniqueGames, careerSpan };
+  })();
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
   const trackKey = (name: string | null) => (name || "").toLowerCase();
@@ -344,20 +393,17 @@ export default async function DashboardPage() {
       <div className="max-w-[120rem] mx-auto px-6 py-12">
         {isPluginConnected ? (
           <>
-            {/* Welcome + Quick Import */}
-            <section className="mb-12 flex items-start justify-between gap-6">
-              <div>
-                <h1
-                  className="text-3xl font-bold mb-2"
-                  style={{ fontFamily: "var(--ff-display)" }}
-                >
-                  Welcome, {displayName}
-                </h1>
-                <p className="text-[var(--text-dim)]">
-                  Your overlay is connected and sending data to Pro Drive.
-                </p>
-              </div>
-              <IRacingQuickImport />
+            {/* Welcome */}
+            <section className="mb-12">
+              <h1
+                className="text-3xl font-black mb-2"
+                style={{ fontFamily: "var(--ff-display)" }}
+              >
+                Welcome, {displayName}
+              </h1>
+              <p className="text-[var(--text-dim)]">
+                Your overlay is connected and sending data to Pro Drive.
+              </p>
             </section>
 
             {/* Visualizations — Calendar Heatmap + Scatter Grid */}
@@ -372,56 +418,85 @@ export default async function DashboardPage() {
               </section>
             )}
 
-            {/* Race History */}
-            <section className="mb-8">
-              <h2
-                className="font-bold mb-4 flex items-center gap-2"
-                style={{ fontSize: "23px" }}
-              >
-                <Car size={24} className="text-[var(--border-accent)]" />
-                Race History
-              </h2>
-              {displayCards.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-                  {displayCards.map(({ session: s, practiceSession }) => (
-                    <RaceCard
-                      key={s.id}
-                      session={s}
-                      practiceSession={practiceSession}
-                      trackSvgPath={
-                        trackMapLookup[trackKey(s.trackName)] || null
-                      }
-                      carImageUrl={carImageLookup[s.carModel] || null}
-                      trackImageUrl={
-                        trackImageLookup[s.trackName ?? ""] || null
-                      }
-                      trackLogoSvg={
-                        trackLogoLookup[trackKey(s.trackName)] || null
-                      }
-                      trackDisplayName={
-                        trackDisplayNameLookup[trackKey(s.trackName)] || null
-                      }
-                      brandInfo={brandLogoLookup[s.carModel] ?? null}
-                      iRatingHistory={iRatingHistory}
-                    />
-                  ))}
+            {/* iRating Timeline */}
+            {iRatingFullHistory.length > 0 && (
+              <section className="mb-12">
+                <IRatingTimeline history={iRatingFullHistory} />
+              </section>
+            )}
+
+            {/* Career Summary */}
+            {allSessions.length > 0 && (
+              <section className="mb-12">
+                <h2
+                  className="font-bold flex items-center gap-2 mb-4"
+                  style={{ fontSize: '23px' }}
+                >
+                  <Trophy size={24} className="text-[var(--border-accent)]" />
+                  Career Summary
+                </h2>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3">
+                  <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)]">
+                    <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-2">Total Races</div>
+                    <div className="text-2xl font-black" style={{ fontFamily: 'var(--ff-mono)' }}>{raceCount}</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)]">
+                    <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-2">Total Laps</div>
+                    <div className="text-2xl font-black" style={{ fontFamily: 'var(--ff-mono)' }}>{careerStats.totalLaps.toLocaleString()}</div>
+                  </div>
+                  {iRatingByCategory.map(({ category, iRating }) => {
+                    const label: Record<string, string> = {
+                      road: 'Road iR',
+                      oval: 'Oval iR',
+                      dirt_road: 'Dirt Road iR',
+                      dirt_oval: 'Dirt Oval iR',
+                      sports_car: 'Sports Car iR',
+                    }
+                    return (
+                      <div key={category} className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)]">
+                        <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-2">{label[category] || `${category} iR`}</div>
+                        <div className="text-2xl font-black" style={{ fontFamily: 'var(--ff-mono)' }}>{iRating.toLocaleString()}</div>
+                      </div>
+                    )
+                  })}
+                  {careerStats.careerSpan && (
+                    <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)]">
+                      <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-2">Career Span</div>
+                      <div className="text-2xl font-black">{careerStats.careerSpan}</div>
+                    </div>
+                  )}
+                  {careerStats.uniqueGames > 1 && (
+                    <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)]">
+                      <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-2">Games</div>
+                      <div className="text-2xl font-black" style={{ fontFamily: 'var(--ff-mono)' }}>{careerStats.uniqueGames}</div>
+                    </div>
+                  )}
+                  <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)]">
+                    <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-2">Tracks</div>
+                    <div className="text-2xl font-black" style={{ fontFamily: 'var(--ff-mono)' }}>{careerStats.uniqueTracks}</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)]">
+                    <div className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-2">Unique Cars</div>
+                    <div className="text-2xl font-black" style={{ fontFamily: 'var(--ff-mono)' }}>{careerStats.uniqueCars}</div>
+                  </div>
                 </div>
-              ) : (
-                <div className="p-8 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)] text-center">
-                  <Car
-                    size={32}
-                    className="mx-auto mb-3 text-[var(--text-muted)]"
-                  />
-                  <p className="text-sm text-[var(--text-dim)] mb-1">
-                    No races recorded yet
-                  </p>
-                  <p className="text-xs text-[var(--text-muted)]">
-                    Your session data will appear here after your next race with
-                    data sync enabled.
-                  </p>
-                </div>
-              )}
-            </section>
+              </section>
+            )}
+
+            {/* Race History — card grid / list toggle */}
+            <RaceHistory
+              displayCards={displayCards}
+              lookups={{
+                trackMapLookup,
+                carImageLookup,
+                trackImageLookup,
+                trackLogoLookup,
+                trackDisplayNameLookup,
+                brandLogoLookup,
+                iRatingHistory,
+              }}
+            />
 
             {/* Data Management (collapsible) */}
             {isPluginConnected && raceCount > 0 && (
@@ -544,7 +619,7 @@ export default async function DashboardPage() {
             {/* Not Connected */}
             <section className="mb-12">
               <h1
-                className="text-3xl font-bold mb-2"
+                className="text-3xl font-black mb-2"
                 style={{ fontFamily: "var(--ff-display)" }}
               >
                 Welcome, {displayName}

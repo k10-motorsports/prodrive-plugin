@@ -770,7 +770,7 @@ const components: ComponentEntry[] = [
     description: 'Driver analytics panel with iRating/SR trend sparklines and session statistics.',
     preview: () => (
       <OverlayFrame className="p-3">
-        <div className="text-sm font-bold text-white mb-2" style={{ fontFamily: 'var(--ff-display, Georgia, serif)' }}>alternatekev</div>
+        <div className="text-sm font-black text-white mb-2" style={{ fontFamily: 'var(--ff-display, sans-serif)' }}>alternatekev</div>
         <div className="flex gap-4">
           <div>
             <div className="text-[7px] text-white/45 uppercase">iRating</div>

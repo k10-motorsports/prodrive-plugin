@@ -4,7 +4,6 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
   LayoutDashboard,
-  Clock,
   Dna,
   CalendarClock,
   MapPin,
@@ -13,7 +12,7 @@ import {
 
 const NAV_ITEMS = [
   { href: '/drive/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/drive/career', label: 'Career', icon: Clock },
+
   { href: '/drive/dna', label: 'DNA', icon: Dna },
   { href: '/drive/when', label: 'When', icon: CalendarClock },
   { href: '/drive/tracks', label: 'Tracks & Cars', icon: MapPin },

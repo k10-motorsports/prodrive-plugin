@@ -269,6 +269,91 @@ namespace RaceCorProDrive.Plugin.Engine
             return result?["data"] as JArray ?? new JArray();
         }
 
+        /// <summary>
+        /// Search ALL official race results for a member, paginating through the
+        /// /results/search_series endpoint. Returns every race the member has
+        /// entered (official races only, all event types).
+        ///
+        /// The iRacing Data API returns results in pages of ~35 items.
+        /// We follow the chunk URLs until exhausted.
+        /// </summary>
+        public JArray SearchAllRaces(int custId)
+        {
+            var allRaces = new JArray();
+            var startRangeBegin = new DateTime(2008, 1, 1).ToString("yyyy-MM-ddT00:00:00Z");
+            var startRangeEnd = DateTime.UtcNow.ToString("yyyy-MM-ddT23:59:59Z");
+
+            string path = $"/results/search_series?cust_id={custId}"
+                + $"&start_range_begin={startRangeBegin}"
+                + $"&start_range_end={startRangeEnd}"
+                + "&official_only=false&event_types=2,3,4,5";  // race, qualifying, practice, time-trial
+
+            try
+            {
+                var firstPage = ApiGet(path);
+                if (firstPage == null) return allRaces;
+
+                // The search endpoint returns { data: { chunk_info: { ... }, results_page: [...] } }
+                // or a flat results array, or paginated with chunk URLs.
+                var data = firstPage["data"] as JObject;
+                if (data != null)
+                {
+                    var chunkInfo = data["chunk_info"] as JObject;
+                    if (chunkInfo != null)
+                    {
+                        // Paginated response — fetch each chunk URL
+                        var baseUrl = chunkInfo.Value<string>("base_download_url") ?? "";
+                        var chunkFileNames = chunkInfo["chunk_file_names"] as JArray;
+
+                        if (chunkFileNames != null && !string.IsNullOrEmpty(baseUrl))
+                        {
+                            foreach (var chunk in chunkFileNames)
+                            {
+                                string chunkUrl = baseUrl + chunk.ToString();
+                                try
+                                {
+                                    var chunkData = FetchSignedUrl(chunkUrl);
+                                    if (chunkData is JArray arr)
+                                    {
+                                        foreach (var item in arr) allRaces.Add(item);
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    SimHub.Logging.Current.Warn($"[IRacingData] Chunk fetch failed: {ex.Message}");
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Non-paginated — results_page directly in data
+                        var resultsPage = data["results_page"] as JArray;
+                        if (resultsPage != null)
+                        {
+                            foreach (var item in resultsPage) allRaces.Add(item);
+                        }
+                    }
+                }
+                else
+                {
+                    // Flat array response
+                    var arr = firstPage as JArray;
+                    if (arr != null)
+                    {
+                        foreach (var item in arr) allRaces.Add(item);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                SimHub.Logging.Current.Warn($"[IRacingData] SearchAllRaces failed: {ex.Message}");
+            }
+
+            SimHub.Logging.Current.Info($"[IRacingData] SearchAllRaces found {allRaces.Count} results");
+            return allRaces;
+        }
+
         /// <summary>Get yearly stats breakdown.</summary>
         public JArray GetYearlyStats(int? custId = null)
         {
@@ -309,13 +394,28 @@ namespace RaceCorProDrive.Plugin.Engine
 
                 SimHub.Logging.Current.Info($"[IRacingData] Exporting career for {displayName} (#{custId})");
 
-                // 2. Fetch recent races
+                // 2. Fetch ALL race results via paginated search, fall back to recent
                 JArray recentRaces;
-                try { recentRaces = GetRecentRaces(custId); }
+                try
+                {
+                    var allRaces = SearchAllRaces(custId);
+                    if (allRaces.Count > 0)
+                    {
+                        recentRaces = allRaces;
+                        SimHub.Logging.Current.Info($"[IRacingData] Full history: {allRaces.Count} races found");
+                    }
+                    else
+                    {
+                        // Fallback to member_recent_races (last ~25)
+                        recentRaces = GetRecentRaces(custId);
+                        SimHub.Logging.Current.Info($"[IRacingData] Full search empty, falling back to recent: {recentRaces.Count} races");
+                    }
+                }
                 catch (Exception ex)
                 {
-                    SimHub.Logging.Current.Warn($"[IRacingData] Recent races fetch failed: {ex.Message}");
-                    recentRaces = new JArray();
+                    SimHub.Logging.Current.Warn($"[IRacingData] Full history search failed, trying recent: {ex.Message}");
+                    try { recentRaces = GetRecentRaces(custId); }
+                    catch { recentRaces = new JArray(); }
                 }
 
                 // 3. Fetch career summary
@@ -412,6 +512,21 @@ namespace RaceCorProDrive.Plugin.Engine
                 }
 
                 return envelope;
+            }
+        }
+
+        /// <summary>Fetch a pre-signed URL and return the raw parsed JSON (array or object).</summary>
+        private JToken FetchSignedUrl(string url)
+        {
+            var request = (HttpWebRequest)WebRequest.Create(url);
+            request.Method = "GET";
+            request.Accept = "application/json";
+
+            using (var response = (HttpWebResponse)request.GetResponse())
+            using (var reader = new StreamReader(response.GetResponseStream()))
+            {
+                string body = reader.ReadToEnd().Trim();
+                return JToken.Parse(body);
             }
         }
 

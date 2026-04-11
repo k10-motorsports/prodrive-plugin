@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
       recentRaces = recentRaces[0]
     }
     const careerSummary = (body.careerSummary || body.career_summary || body.stats || []) as any[]
+    const chartData = (body.chartData || body.chart_data || null) as Record<string, any[]> | null
     const custId = body.custId || body.cust_id || 0
     const displayName = body.displayName || body.display_name || ''
 
@@ -174,7 +175,81 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── 3. Import career summary → driverRatings ──
+    // ── 3. Create rating_history entries from race iRating data ──
+    let historyPointsImported = 0
+    if (Array.isArray(recentRaces)) {
+      for (const race of recentRaces) {
+        try {
+          const postIR = race.newi_rating ?? race.new_irating ?? 0
+          if (postIR <= 0) continue
+
+          const preIR = race.oldi_rating ?? race.old_irating ?? 0
+          const postSR = (race.new_sub_level ?? 0) / 100
+          const preSR = (race.old_sub_level ?? 0) / 100
+          const category = detectCategoryFromRace(race)
+          const raceTime = race.session_start_time || race.start_time
+            ? new Date(race.session_start_time || race.start_time)
+            : new Date()
+
+          await db.insert(schema.ratingHistory).values({
+            userId,
+            category,
+            iRating: Math.round(postIR),
+            safetyRating: postSR.toFixed(2),
+            license: (race.new_license_level ? String(Math.floor(race.new_license_level / 4) + 1) : 'R'),
+            prevIRating: preIR > 0 ? Math.round(preIR) : null,
+            prevSafetyRating: preSR > 0 ? preSR.toFixed(2) : null,
+            sessionType: (race.event_type_name as string) || category,
+            trackName: race.track?.track_name || race.track_name || race.trackName || null,
+            carModel: race.car_name || race.carName || null,
+            createdAt: raceTime,
+          })
+          historyPointsImported++
+        } catch {
+          // Skip duplicates / errors for individual points
+        }
+      }
+    }
+
+    // ── 4. Import chartData → ratingHistory (iRating timeline per category) ──
+    // Handles two shapes:
+    //   Flat:   { road: [{ when, value }, ...] }
+    //   Nested: { road: { irating: [{ when, value }, ...], sr: [...] } }
+    let chartPointsImported = 0
+    if (chartData && typeof chartData === 'object') {
+      for (const [category, raw] of Object.entries(chartData)) {
+        const points: any[] = Array.isArray(raw)
+          ? raw
+          : (raw && typeof raw === 'object' && Array.isArray((raw as any).irating))
+            ? (raw as any).irating
+            : []
+
+        for (const point of points) {
+          try {
+            const when = point.when || point.date || ''
+            const value = point.value || point.irating || point.iRating || 0
+            if (!when || value <= 0) continue
+
+            await db.insert(schema.ratingHistory).values({
+              userId,
+              category,
+              iRating: Math.round(value),
+              safetyRating: '0.00',
+              license: 'R',
+              sessionType: category,
+              trackName: null,
+              carModel: null,
+              createdAt: new Date(when),
+            })
+            chartPointsImported++
+          } catch {
+            // Skip duplicates
+          }
+        }
+      }
+    }
+
+    // ── 5. Import career summary → driverRatings ──
     // If careerSummary was provided, use it. Otherwise derive categories from race data.
     const categoriesToUpsert = new Set<string>()
 
@@ -235,10 +310,13 @@ export async function POST(request: NextRequest) {
       imported: {
         sessions: sessionsImported,
         ratings: ratingsUpdated,
+        chartPoints: chartPointsImported,
+        ratingHistoryFromRaces: historyPointsImported,
       },
       received: {
         races: recentRaces.length,
         careerSummary: careerSummary.length,
+        chartDataCategories: chartData ? Object.keys(chartData) : [],
       },
       errors: errors.length > 0 ? errors : undefined,
       trackMappings: trackResolutions,

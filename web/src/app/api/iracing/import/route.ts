@@ -155,14 +155,43 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 4. Import iRating chart data → ratingHistory ──
+    // Handles MANY shapes from different sync paths:
+    //   Flat:      { road: [{ when, value }, ...] }
+    //   Nested:    { road: { irating: [{ when, value }, ...], sr: [...] } }
+    //   API wrap:  { road: { irating: { data: [...], type: 1 }, sr: { data: [...] } } }
+    //   Raw API:   { road: { data: [...], type: 1, category_id: 2 } }
+    const chartDiag: Record<string, { rawType: string; pointCount: number; sample: unknown; inserted: number; skipped: number; errors: number }> = {}
     if (chartData && typeof chartData === 'object') {
-      for (const [category, points] of Object.entries(chartData)) {
-        if (!Array.isArray(points)) continue
+      for (const [category, raw] of Object.entries(chartData)) {
+        const diag = { rawType: Array.isArray(raw) ? 'array' : typeof raw, pointCount: 0, sample: null as unknown, inserted: 0, skipped: 0, errors: 0 }
+
+        // Normalise: try every known shape to extract the iRating points array
+        let points: any[] = []
+        if (Array.isArray(raw)) {
+          // Flat: [{ when, value }, ...]
+          points = raw
+        } else if (raw && typeof raw === 'object') {
+          const r = raw as any
+          if (Array.isArray(r.irating)) {
+            // Nested: { irating: [...], sr: [...] }
+            points = r.irating
+          } else if (r.irating && typeof r.irating === 'object' && Array.isArray(r.irating.data)) {
+            // API wrap: { irating: { data: [...] } }
+            points = r.irating.data
+          } else if (Array.isArray(r.data)) {
+            // Raw API response: { data: [...], type: 1 }
+            points = r.data
+          }
+        }
+
+        diag.pointCount = points.length
+        if (points.length > 0) diag.sample = points[0]
+
         for (const point of points) {
           try {
             const when = point.when || point.date || ''
             const value = point.value || point.irating || 0
-            if (!when || value <= 0) continue
+            if (!when || value <= 0) { diag.skipped++; continue }
 
             await db.insert(schema.ratingHistory).values({
               userId,
@@ -176,10 +205,13 @@ export async function POST(request: NextRequest) {
               createdAt: new Date(when),
             })
             historyPointsImported++
+            diag.inserted++
           } catch (err: any) {
+            diag.errors++
             // Skip individual point errors (may be duplicates)
           }
         }
+        chartDiag[category] = diag
       }
     }
 
@@ -199,6 +231,10 @@ export async function POST(request: NextRequest) {
         ratings: ratingsUpdated,
         historyPoints: historyPointsImported,
       },
+      chartDataDiag: Object.keys(chartDiag).length > 0 ? chartDiag : { _note: 'no chartData in payload' },
+      hasChartData: !!chartData,
+      chartDataType: chartData === null ? 'null' : chartData === undefined ? 'undefined' : typeof chartData,
+      chartDataKeys: chartData && typeof chartData === 'object' ? Object.keys(chartData) : [],
       errors: errors.length > 0 ? errors : undefined,
     })
   } catch (err: any) {
