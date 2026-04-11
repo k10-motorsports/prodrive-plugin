@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Also record a history point so we build up iRating history over time
+    let historyError: string | null = null
     if (iRating > 0) {
       try {
         await db.insert(schema.ratingHistory).values({
@@ -59,12 +60,18 @@ export async function POST(request: NextRequest) {
           carModel: null,
           createdAt: new Date(),
         })
-      } catch {
-        // Ignore duplicate/constraint errors — history point may already exist
+      } catch (histErr: unknown) {
+        historyError = histErr instanceof Error ? histErr.message : String(histErr)
+        console.error('[ratings] ratingHistory insert failed:', historyError)
       }
     }
 
-    return NextResponse.json({ success: true, timestamp: new Date().toISOString(), historyRecorded: iRating > 0 })
+    return NextResponse.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      historyRecorded: iRating > 0 && !historyError,
+      historyError,
+    })
   } catch (err) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }
