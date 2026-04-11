@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { validateToken } from '@/lib/plugin-auth'
 import { db, schema } from '@/db'
-import { eq, desc } from 'drizzle-orm'
+import { eq, and, desc } from 'drizzle-orm'
 
 /**
  * POST /api/ratings — Receive rating updates (legacy endpoint, kept for compatibility)
@@ -25,14 +25,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Upsert driver rating (current values)
+    // Upsert driver rating per category
     const existing = await db.select().from(schema.driverRatings)
-      .where(eq(schema.driverRatings.userId, result.user.id))
+      .where(and(
+        eq(schema.driverRatings.userId, result.user.id),
+        eq(schema.driverRatings.category, category)
+      ))
       .limit(1)
 
     if (existing.length > 0) {
       await db.update(schema.driverRatings).set({
-        category, iRating, safetyRating: String(safetyRating), license,
+        iRating, safetyRating: String(safetyRating), license,
         updatedAt: new Date()
       }).where(eq(schema.driverRatings.id, existing[0].id))
     } else {
