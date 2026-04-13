@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { MapPin, TrendingDown, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface RaceSession {
@@ -203,7 +204,11 @@ export default function IncidentHotspots({ raceSessions, ratingHistory }: Incide
                   key={hotspot.track}
                   className="border-b border-zinc-800 hover:bg-zinc-800 hover:bg-opacity-50 transition-colors"
                 >
-                  <td className="py-3 px-4 text-zinc-100">{hotspot.track}</td>
+                  <td className="py-3 px-4 text-zinc-100">
+                    <Link href={`/drive/track/${encodeURIComponent(hotspot.track)}`} className="hover:text-emerald-400 transition-colors">
+                      {hotspot.track}
+                    </Link>
+                  </td>
                   <td className="py-3 px-4 text-right text-zinc-300">{hotspot.totalRaces}</td>
                   <td className="py-3 px-4 text-right text-zinc-300">{hotspot.totalIncidents}</td>
                   <td className="py-3 px-4 text-right">

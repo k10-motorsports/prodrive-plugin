@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import {
   Trophy,
   Medal,
@@ -154,9 +155,9 @@ export default function MomentsPage({ sessions, ratingHistory }: MomentsPageProp
                         {moment.gameName && <span>•</span>}
                         {moment.gameName && <span>{moment.gameName}</span>}
                         {moment.carModel && <span>•</span>}
-                        {moment.carModel && <span>{moment.carModel}</span>}
+                        {moment.carModel && <Link href={`/drive/car/${encodeURIComponent(moment.carModel)}`} className="hover:text-[var(--text-secondary)] transition-colors">{moment.carModel}</Link>}
                         {moment.trackName && <span>•</span>}
-                        {moment.trackName && <span>{moment.trackName}</span>}
+                        {moment.trackName && <Link href={`/drive/track/${encodeURIComponent(moment.trackName)}`} className="hover:text-[var(--text-secondary)] transition-colors">{moment.trackName}</Link>}
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
@@ -203,8 +204,8 @@ export default function MomentsPage({ sessions, ratingHistory }: MomentsPageProp
                         </div>
                         <div className="flex-shrink-0 text-right text-xs text-[var(--text-muted)]">
                           <div>{formatDate(moment.date)}</div>
-                          {moment.carModel && <div className="mt-1">{moment.carModel}</div>}
-                          {moment.trackName && <div>{moment.trackName}</div>}
+                          {moment.carModel && <div className="mt-1"><Link href={`/drive/car/${encodeURIComponent(moment.carModel)}`} className="hover:text-[var(--text-secondary)] transition-colors">{moment.carModel}</Link></div>}
+                          {moment.trackName && <div><Link href={`/drive/track/${encodeURIComponent(moment.trackName)}`} className="hover:text-[var(--text-secondary)] transition-colors">{moment.trackName}</Link></div>}
                         </div>
                       </div>
                     ))}

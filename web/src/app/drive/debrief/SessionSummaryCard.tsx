@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { BarChart3, TrendingUp, TrendingDown, AlertCircle } from 'lucide-react'
 
 interface RaceSession {
@@ -93,11 +94,11 @@ export default function SessionSummaryCard({
       <div className="bg-zinc-750 border-b border-zinc-700 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-zinc-100">
+            <Link href={`/drive/track/${encodeURIComponent(session.trackName || '')}`} className="text-lg font-semibold text-zinc-100 hover:text-emerald-400 transition-colors">
               {session.trackName || 'Unknown Track'}
-            </h2>
+            </Link>
             <p className="text-sm text-zinc-400 mt-1">
-              {session.carModel} • {formatDate(session.createdAt)}
+              <Link href={`/drive/car/${encodeURIComponent(session.carModel)}`} className="hover:text-zinc-200 transition-colors">{session.carModel}</Link> • {formatDate(session.createdAt)}
             </p>
           </div>
           <div className="flex items-center gap-2">

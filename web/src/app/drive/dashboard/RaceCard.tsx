@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import IRatingSparkline from './IRatingSparkline'
 
 interface RaceSession {
@@ -25,6 +26,7 @@ interface BrandInfo {
 export default function RaceCard({
   session,
   practiceSession,
+  qualifyingSession,
   trackSvgPath,
   carImageUrl,
   trackImageUrl,
@@ -35,6 +37,7 @@ export default function RaceCard({
 }: {
   session: RaceSession
   practiceSession?: RaceSession
+  qualifyingSession?: RaceSession
   trackSvgPath: string | null
   carImageUrl: string | null
   trackImageUrl: string | null
@@ -58,6 +61,11 @@ export default function RaceCard({
   const practiceMeta = (practiceSession?.metadata || {}) as Record<string, any>
   const practiceBestLap = practiceMeta.bestLapTime
 
+  // Qualifying best lap + position
+  const qualifyingMeta = (qualifyingSession?.metadata || {}) as Record<string, any>
+  const qualifyingBestLap = qualifyingMeta.bestLapTime
+  const qualifyingPosition = qualifyingSession?.finishPosition
+
   const formatLap = (t: number | undefined | null): string => {
     if (!t || t <= 0) return '—'
     const m = Math.floor(t / 60)
@@ -67,6 +75,7 @@ export default function RaceCard({
 
   const lapStr         = formatLap(bestLap)
   const practiceLapStr = formatLap(practiceBestLap)
+  const qualifyingLapStr = formatLap(qualifyingBestLap)
 
   const date = new Date(session.createdAt)
   const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -120,7 +129,10 @@ export default function RaceCard({
   const trackLabel = trackDisplayName || session.trackName || 'Unknown Track'
 
   return (
-    <div className="border border-[var(--border)] rounded-lg overflow-hidden bg-[var(--bg-elevated)] hover:border-[var(--border-accent)] transition-colors flex flex-col">
+    <Link
+      href={`/drive/race/${session.id}`}
+      className="border border-[var(--border)] rounded-lg overflow-hidden bg-[var(--bg-elevated)] hover:border-[var(--border-accent)] transition-colors flex flex-col cursor-pointer"
+    >
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="relative h-40 bg-[var(--bg-panel)] overflow-hidden flex-shrink-0">
@@ -214,11 +226,11 @@ export default function RaceCard({
                   className="w-4 h-4 flex-shrink-0"
                 />
               )}
-              <h3 className="font-bold text-[var(--text)] truncate leading-tight">
+              <h3 className="font-bold text-[var(--text)] truncate leading-tight hover:text-[var(--border-accent)] transition-colors">
                 {trackLabel}
               </h3>
             </div>
-            <p className="text-xs text-[var(--text-dim)] truncate">
+            <p className="text-xs text-[var(--text-dim)] truncate hover:text-[var(--text-secondary)] transition-colors">
               {session.carModel || 'Unknown Car'}
             </p>
           </div>
@@ -243,23 +255,47 @@ export default function RaceCard({
           )}
         </div>
 
-        {/* Practice row (whenever a practice session is attached) */}
-        {practiceSession && (
-          <div
-            className="mb-3 px-2.5 py-2"
-            style={{
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--corner-r-sm)',
-            }}
-          >
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-[var(--text-muted)] uppercase tracking-wide text-xs font-semibold">Practice</span>
-              <span className="font-mono text-[var(--text-dim)]">{practiceLapStr}</span>
-            </div>
-            {(practiceSession.incidentCount ?? 0) > 0 && (
-              <div className="mt-0.5 text-xs text-[var(--text-muted)]">
-                {practiceSession.incidentCount}× incidents
+        {/* Pre-race sessions (practice + qualifying) */}
+        {(practiceSession || qualifyingSession) && (
+          <div className="mb-3 space-y-1.5">
+            {practiceSession && (
+              <div
+                className="px-2.5 py-2"
+                style={{
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--corner-r-sm)',
+                }}
+              >
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[var(--text-muted)] uppercase tracking-wide text-xs font-semibold">Practice</span>
+                  <span className="font-mono text-[var(--text-dim)]">{practiceLapStr}</span>
+                </div>
+                {(practiceSession.incidentCount ?? 0) > 0 && (
+                  <div className="mt-0.5 text-xs text-[var(--text-muted)]">
+                    {practiceSession.incidentCount}× incidents
+                  </div>
+                )}
+              </div>
+            )}
+            {qualifyingSession && (
+              <div
+                className="px-2.5 py-2"
+                style={{
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid hsla(45,60%,50%,0.15)',
+                  borderRadius: 'var(--corner-r-sm)',
+                }}
+              >
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[var(--text-muted)] uppercase tracking-wide text-xs font-semibold">Qualifying</span>
+                  <div className="flex items-center gap-2">
+                    {qualifyingPosition && qualifyingPosition > 0 && (
+                      <span className="font-bold text-amber-400" style={{ fontFamily: 'var(--ff-display)' }}>P{qualifyingPosition}</span>
+                    )}
+                    <span className="font-mono text-[var(--text-dim)]">{qualifyingLapStr}</span>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -292,6 +328,6 @@ export default function RaceCard({
           <div className="mt-1 text-xs text-[var(--text-muted)]">{incidents}× incidents</div>
         )}
       </div>
-    </div>
+    </Link>
   )
 }

@@ -68,10 +68,10 @@ function Separator() {
 
 function Stat({ label, value, mono = true }: { label: string; value: string | number; mono?: boolean }) {
   return (
-    <div className="flex flex-col items-center gap-0.5 px-3" style={{color: 'var(--text-dim)'}}>
-      <span className="text-xs uppercase tracking-wider leading-none" style={{color: 'var(--text-secondary)'}}>{label}</span>
+    <div className="flex flex-col items-left gap-0.5 px-3" style={{color: 'var(--text-secondary)'}}>
+      <span className="text-xs uppercase tracking-wider leading-none" style={{color: 'var(--text-muted)'}}>{label}</span>
       <span
-        className="text-sm font-bold leading-none"
+        className="text-xs font-bold leading-none"
         style={mono ? { fontFamily: 'var(--ff-mono)' } : undefined}
       >
         {typeof value === 'number' ? value.toLocaleString() : value}
@@ -82,7 +82,7 @@ function Stat({ label, value, mono = true }: { label: string; value: string | nu
 
 /* ── Sparkline ──────────────────────────────────────────────────────────────── */
 
-const SPARK_W = 200
+const SPARK_W = 100
 const SPARK_H = 28
 const SPARK_PAD = 2
 
@@ -116,14 +116,14 @@ function Sparkline({ points, color, label, current, sr }: {
     : `${pathD} L${(SPARK_W - SPARK_PAD).toFixed(1)},${SPARK_H} L${SPARK_PAD},${SPARK_H} Z`
 
   return (
-    <div className="flex items-center gap-2 px-3 shrink-0" style={{ width: SPARK_W + 100, color: 'var(--text-dim)' }}>
+    <div className="flex items-center gap-2 px-3 shrink-0" style={{ width: SPARK_W + 100, color: 'var(--text-secondary)' }}>
       {/* Label + value */}
       <div className="flex flex-col gap-0.5 shrink-0 min-w-[70px]">
-        <span className="text-xs uppercase tracking-wider leading-none"  style={{color: 'var(--text-secondary)'}}>
+        <span className="text-xs uppercase tracking-wider leading-none"  style={{color: 'var(--text-muted)'}}>
           {label}
         </span>
         <div className="flex items-center gap-1">
-          <span className="text-sm font-bold leading-none" style={{ fontFamily: 'var(--ff-mono)' }}>
+          <span className="text-xs font-bold leading-none" style={{ fontFamily: 'var(--ff-mono)' }}>
             {current.toLocaleString()}
           </span>
           {sr && (

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Clock, Target, AlertTriangle, Flame, Shield, Zap, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react'
 import { resolveIRacingTrackId } from '@/data/iracing-track-map'
 import { useElectron } from '@/hooks/useElectron'
@@ -210,9 +211,12 @@ function HeroRaceCard({
     ? `${trackDisplayName || suggestion.trackName} — ${suggestion.trackConfig}`
     : (trackDisplayName || suggestion.trackName)
 
+  const suggestionHref = `/drive/suggestion?track=${encodeURIComponent(suggestion.trackName)}${suggestion.seriesName ? `&series=${encodeURIComponent(suggestion.seriesName)}` : ''}${carClassNames.length > 0 ? `&cars=${encodeURIComponent(carClassNames.join(','))}` : ''}`
+
   return (
-    <div
-      className="relative rounded-lg overflow-hidden bg-[var(--bg-elevated)] border border-[var(--border)] hover:border-[var(--border-accent)] transition-colors flex flex-col"
+    <Link
+      href={suggestionHref}
+      className="relative rounded-lg overflow-hidden bg-[var(--bg-elevated)] border border-[var(--border)] hover:border-[var(--border-accent)] transition-colors flex flex-col cursor-pointer"
     >
       {/* ── Hero image area ─ same layered pattern as RaceCard ─────────── */}
       <div className="relative h-48 bg-[var(--bg-panel)] overflow-hidden flex-shrink-0">
@@ -408,13 +412,14 @@ function HeroRaceCard({
               background: accentColor,
               color: '#fff',
             }}
+            onClick={(e) => e.stopPropagation()}
           >
             <ExternalLink size={14} />
             Register &amp; Join
           </a>
         )}
       </div>
-    </div>
+    </Link>
   )
 }
 

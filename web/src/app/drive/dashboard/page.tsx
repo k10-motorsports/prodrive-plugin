@@ -52,10 +52,18 @@ type BrandInfo = {
 type DisplayCard = {
   session: RaceSession;
   practiceSession?: RaceSession;
+  qualifyingSession?: RaceSession;
 };
 
 const isPractice = (s: RaceSession) =>
   (s.sessionType || s.category || "").toLowerCase().includes("practice");
+
+const isQualifying = (s: RaceSession) => {
+  const t = (s.sessionType || s.category || "").toLowerCase();
+  return t.includes("qualify") || t.includes("qual") || t === "qualifying";
+};
+
+const isRace = (s: RaceSession) => !isPractice(s) && !isQualifying(s);
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
@@ -605,40 +613,43 @@ export default async function DashboardPage() {
 
   const consumedIds = new Set<string>();
   const practiceForRace = new Map<string, RaceSession>(); // raceId → its paired practice
+  const qualifyingForRace = new Map<string, RaceSession>(); // raceId → its paired qualifying
 
-  // Pass 1: pair each race with the immediately preceding practice on the same track
+  // Pass 1: pair each race with the immediately preceding practice/qualifying on the same track
   for (let i = 0; i < sortedAsc.length; i++) {
     const s = sortedAsc[i];
-    if (isPractice(s)) continue;
+    if (!isRace(s)) continue;
 
     const sTrackId = sessionTrackId(s);
 
-    // Find the nearest preceding unclaimed practice on the same track within 8 h
+    // Scan backward for unclaimed practice and qualifying within 8h
     for (let j = i - 1; j >= 0; j--) {
       const prev = sortedAsc[j];
       if (consumedIds.has(prev.id)) continue;
       const gapMs =
         new Date(s.createdAt).getTime() - new Date(prev.createdAt).getTime();
-      if (
-        isPractice(prev) &&
-        sessionTrackId(prev) === sTrackId &&
-        gapMs < 8 * 60 * 60 * 1000
-      ) {
+      if (gapMs >= 8 * 60 * 60 * 1000) break; // too far back
+      if (sessionTrackId(prev) !== sTrackId) continue;
+
+      if (isQualifying(prev) && !qualifyingForRace.has(s.id)) {
+        qualifyingForRace.set(s.id, prev);
+        consumedIds.add(prev.id);
+      } else if (isPractice(prev) && !practiceForRace.has(s.id)) {
         practiceForRace.set(s.id, prev);
         consumedIds.add(prev.id);
       }
-      break; // only consider the single immediately-preceding unconsumed session
+      // Keep scanning — a race might have both practice + qualifying before it
     }
   }
 
-  // Pass 2: build display groups — consumed practices are silently dropped
+  // Pass 2: build display groups — consumed sessions are silently dropped
   const groups: DisplayCard[] = [];
   for (const s of sortedAsc) {
     if (consumedIds.has(s.id)) continue;
     groups.push(
-      isPractice(s)
-        ? { session: s } // standalone practice
-        : { session: s, practiceSession: practiceForRace.get(s.id) }, // race ± practice
+      isRace(s)
+        ? { session: s, practiceSession: practiceForRace.get(s.id), qualifyingSession: qualifyingForRace.get(s.id) }
+        : { session: s }, // standalone practice or qualifying
     );
   }
 

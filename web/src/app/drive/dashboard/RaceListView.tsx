@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import Link from 'next/link'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -20,6 +21,7 @@ interface RaceSession {
 interface DisplayCard {
   session: RaceSession
   practiceSession?: RaceSession
+  qualifyingSession?: RaceSession
 }
 
 interface BrandInfo {
@@ -103,7 +105,7 @@ export default function RaceListView({ cards, lookups }: { cards: DisplayCard[];
 
           {/* Rows */}
           <div className="space-y-1.5 ml-3">
-            {monthCards.map(({ session, practiceSession }) => {
+            {monthCards.map(({ session, practiceSession, qualifyingSession }) => {
               const meta = (session.metadata || {}) as Record<string, any>
               const gameName = meta.gameName || 'iRacing'
               const gameBadge = getGameBadgeColor(gameName)
@@ -121,8 +123,9 @@ export default function RaceListView({ cards, lookups }: { cards: DisplayCard[];
               }
 
               return (
-                <div
+                <Link
                   key={session.id}
+                  href={`/drive/race/${session.id}`}
                   className="grid items-center gap-2 px-3 py-2.5 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border)] hover:border-[var(--text-muted)] transition-colors"
                   style={{ gridTemplateColumns: GRID_COLS }}
                 >
@@ -231,11 +234,11 @@ export default function RaceListView({ cards, lookups }: { cards: DisplayCard[];
                     {incidents > 0 ? `${incidents}x` : ''}
                   </div>
 
-                  {/* Col 9 — Linked practice indicator */}
-                  <div className="text-xs text-[var(--text-muted)] text-center" title={practiceSession ? 'Includes linked practice session' : ''}>
-                    {practiceSession ? '+P' : ''}
+                  {/* Col 9 — Linked session indicators */}
+                  <div className="text-xs text-[var(--text-muted)] text-center" title={[practiceSession ? 'Practice' : '', qualifyingSession ? 'Qualifying' : ''].filter(Boolean).join(' + ')}>
+                    {[qualifyingSession ? 'Q' : '', practiceSession ? 'P' : ''].filter(Boolean).join('+')}
                   </div>
-                </div>
+                </Link>
               )
             })}
           </div>

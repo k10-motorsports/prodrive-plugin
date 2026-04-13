@@ -30,6 +30,7 @@ interface BrandInfo {
 interface DisplayCard {
   session: RaceSession
   practiceSession?: RaceSession
+  qualifyingSession?: RaceSession
 }
 
 interface CardLookups {
@@ -117,11 +118,12 @@ export default function RaceHistory({
       {displayCards.length > 0 ? (
         view === 'cards' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {displayCards.map(({ session: s, practiceSession }) => (
+            {displayCards.map(({ session: s, practiceSession, qualifyingSession }) => (
               <RaceCard
                 key={s.id}
                 session={s}
                 practiceSession={practiceSession}
+                qualifyingSession={qualifyingSession}
                 trackSvgPath={lookups.trackMapLookup[trackKey(s.trackName)] || null}
                 carImageUrl={lookups.carImageLookup[s.carModel] || null}
                 trackImageUrl={lookups.trackImageLookup[s.trackName ?? ''] || null}

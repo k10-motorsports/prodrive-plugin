@@ -67,9 +67,10 @@ export default function TopTracksAndCars({ tracks, cars, trackMapLookup, trackDi
                 trackDisplayNameLookup[track.trackName.toLowerCase()] || track.trackName
               const svgPath = trackMapLookup[track.trackName.toLowerCase()] || null
               return (
-                <div
+                <Link
+                  href={`/drive/track/${encodeURIComponent(track.trackName)}`}
                   key={track.trackName}
-                  className="rounded-xl p-3 border border-[var(--border)] bg-[var(--bg-elevated)] flex items-center gap-3"
+                  className="rounded-xl p-3 border border-[var(--border)] bg-[var(--bg-elevated)] flex items-center gap-3 hover:border-[var(--border-accent)] transition-colors"
                 >
                   {/* Track map — floated left of all content */}
                   <div className="flex-shrink-0 flex items-center justify-center w-10 h-10">
@@ -127,7 +128,7 @@ export default function TopTracksAndCars({ tracks, cars, trackMapLookup, trackDi
                       <span className="tabular-nums" style={{ fontFamily: 'var(--ff-display)', fontSize: '0.8rem' }}>{track.avgIncidents.toFixed(1)}x</span>
                     </div>
                   </div>
-                </div>
+                </Link>
               )
             })}
           </div>
@@ -154,10 +155,12 @@ export default function TopTracksAndCars({ tracks, cars, trackMapLookup, trackDi
               const brandInfo = matchingModel ? brandLogoLookup[matchingModel.carModel] : null
               const logoSrc = brandInfo ? brandLogoSrc(brandInfo) : null
 
+              const primaryCar = car.cars[0]?.carModel || car.manufacturer
               return (
-                <div
+                <Link
+                  href={`/drive/car/${encodeURIComponent(primaryCar)}`}
                   key={car.brandKey}
-                  className="rounded-xl p-3 border border-[var(--border)] bg-[var(--bg-elevated)] flex items-center gap-3"
+                  className="rounded-xl p-3 border border-[var(--border)] bg-[var(--bg-elevated)] flex items-center gap-3 hover:border-[var(--border-accent)] transition-colors"
                 >
                   {/* Brand logo — floated left of all content */}
                   <div
@@ -209,7 +212,7 @@ export default function TopTracksAndCars({ tracks, cars, trackMapLookup, trackDi
                       <span>{car.cars.length} car{car.cars.length !== 1 ? 's' : ''}</span>
                     </div>
                   </div>
-                </div>
+                </Link>
               )
             })}
           </div>

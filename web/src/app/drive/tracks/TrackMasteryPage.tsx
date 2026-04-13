@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { computeTrackMastery, computeCarAffinity, type TrackMastery, type CarAffinity } from '@/lib/mastery'
 import styles from './TrackMasteryPage.module.css'
 
@@ -127,7 +128,7 @@ function TrendIndicator({ trend }: { trend: string }) {
 
 function TrackCard({ track, color }: { track: TrackMastery; color: string }) {
   return (
-    <div className={styles.trackCard}>
+    <Link href={`/drive/track/${encodeURIComponent(track.trackName)}`} className={styles.trackCard} style={{ textDecoration: 'none', color: 'inherit' }}>
       <div className={styles.cardHeader}>
         <h3>{track.trackName}</h3>
         <TierBadge tier={track.masteryTier} />
@@ -172,7 +173,7 @@ function TrackCard({ track, color }: { track: TrackMastery; color: string }) {
           {formatRelativeTime(track.lastRaced)}
         </span>
       </div>
-    </div>
+    </Link>
   )
 }
 
@@ -258,12 +259,12 @@ function CarAffinityCard({
           {expanded && (
             <div className={styles.carListItems}>
               {affinity.cars.map(car => (
-                <div key={car.carModel} className={styles.carItem}>
+                <Link key={car.carModel} href={`/drive/car/${encodeURIComponent(car.carModel)}`} className={styles.carItem} style={{ textDecoration: 'none', color: 'inherit' }}>
                   <span className={styles.carName}>{car.carModel}</span>
                   <span className={styles.carMeta}>
                     {car.sessionCount} session{car.sessionCount !== 1 ? 's' : ''} in {car.gameName}
                   </span>
-                </div>
+                </Link>
               ))}
             </div>
           )}
