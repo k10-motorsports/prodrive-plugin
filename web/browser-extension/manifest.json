@@ -5,7 +5,10 @@
   "description": "Scrapes your iRacing stats (rating history, race results) and syncs them to your RaceCor Pro Drive dashboard.",
   "permissions": ["activeTab", "storage"],
   "host_permissions": [
-    "https://members-ng.iracing.com/*"
+    "https://members-ng.iracing.com/*",
+    "https://prodrive.racecor.io/*",
+    "http://localhost:3000/*",
+    "http://dev.prodrive.racecor.io:3000/*"
   ],
   "action": {
     "default_popup": "src/popup.html",

@@ -12,23 +12,53 @@ import { eq, and, desc } from 'drizzle-orm'
  *   - recentRaces: Record<string, string>[] — from race results table
  *
  * Auth: NextAuth session cookie (user must be logged into prodrive.racecor.io).
+ * CORS: Allows requests from the Chrome extension origin with credentials.
  */
+
+const ALLOWED_ORIGINS = [
+  'chrome-extension://', // any extension origin
+  'http://localhost:3000',
+  'http://dev.prodrive.racecor.io:3000',
+  'https://prodrive.racecor.io',
+]
+
+function corsHeaders(request: NextRequest) {
+  const origin = request.headers.get('origin') || ''
+  const allowed = ALLOWED_ORIGINS.some(o =>
+    o === 'chrome-extension://' ? origin.startsWith('chrome-extension://') : origin === o
+  )
+  return {
+    'Access-Control-Allow-Origin': allowed ? origin : '',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Credentials': 'true',
+  }
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, { status: 204, headers: corsHeaders(request) })
+}
+
+function jsonWithCors(request: NextRequest, data: unknown, status = 200) {
+  return NextResponse.json(data, { status, headers: corsHeaders(request) })
+}
+
 export async function POST(request: NextRequest) {
   const session = await auth()
   if (!session?.user) {
-    return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
+    return jsonWithCors(request, { error: 'Not signed in' }, 401)
   }
 
   const user_ext = session.user as Record<string, unknown>
   const discordId = user_ext.discordId as string
   if (!discordId) {
-    return NextResponse.json({ error: 'No Discord ID in session' }, { status: 401 })
+    return jsonWithCors(request, { error: 'No Discord ID in session' }, 401)
   }
 
   const users = await db.select().from(schema.users)
     .where(eq(schema.users.discordId, discordId)).limit(1)
   if (users.length === 0) {
-    return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    return jsonWithCors(request, { error: 'User not found' }, 404)
   }
   const userId = users[0].id
 
@@ -202,7 +232,7 @@ export async function POST(request: NextRequest) {
       }).where(eq(schema.iracingAccounts.userId, userId))
     } catch { /* no iracing account linked yet — fine */ }
 
-    return NextResponse.json({
+    return jsonWithCors(request, {
       success: true,
       message: `Synced ${historyImported} rating history points, ${statsProcessed} career stats, ${racesProcessed} race results for ${category}.`,
       imported: {
@@ -214,7 +244,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (err: any) {
     console.error('[extension-sync] error:', err)
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+    return jsonWithCors(request, { error: 'Internal error' }, 500)
   }
 }
 

@@ -126,6 +126,7 @@ syncBtn.addEventListener('click', async () => {
     const resp = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(scrapedData),
     });
 
