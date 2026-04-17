@@ -764,6 +764,12 @@ export function computeNextRaceIdeas(
     ? new Set(activeCategories)
     : null
 
+  // Build a license-level lookup from the driver's current ratings
+  const driverLicenseByCategory = new Map<string, number>()
+  for (const dr of driverRatings) {
+    driverLicenseByCategory.set(dr.category, licenseTolevel(dr.license))
+  }
+
   for (const season of schedule) {
     for (const scheduleItem of season.schedules) {
       const track = scheduleItem.track
@@ -771,6 +777,10 @@ export function computeNextRaceIdeas(
 
       // Skip categories the user doesn't race
       if (allowedCategories && !allowedCategories.has(category)) continue
+
+      // Skip series the driver's license can't enter
+      const driverLevel = driverLicenseByCategory.get(category) || 0
+      if (driverLevel > 0 && season.min_license_level > driverLevel) continue
 
       // Find next race start time from race time descriptors
       let bestNextStart: { nextStart: Date; repeatMinutes: number | null } | null = null
