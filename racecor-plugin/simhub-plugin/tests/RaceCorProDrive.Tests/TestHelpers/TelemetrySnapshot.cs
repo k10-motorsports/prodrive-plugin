@@ -46,6 +46,7 @@ namespace RaceCorProDrive.Tests.TestHelpers
 
         // ── Environment — cross-game where supported ─────────────────────────
         public double TrackTemp         { get; set; }
+        public double AirTemp           { get; set; }
         public bool   WeatherWet        { get; set; }
 
         // ── Lap timing — iRacing raw, with cross-game normalized fallback ────
@@ -55,8 +56,21 @@ namespace RaceCorProDrive.Tests.TestHelpers
         public double LapBestTime       { get; set; }
         public double SessionTimeRemain { get; set; }
 
+        // ── World-space — heading and velocity ──────────────────────────────
+        public double Yaw               { get; set; }   // heading angle (radians, 0 = north, CW positive)
+        public double VelocityX         { get; set; }
+        public double VelocityZ         { get; set; }
+
+        // ── Session time — for solar calculations ───────────────────────────
+        /// <summary>Session time of day in seconds since midnight (iRacing: SessionTimeOfDay).</summary>
+        public double SessionTimeOfDay  { get; set; }
+
+        // ── Track identity — slug for coordinate lookups ────────────────────
+        public string TrackId           { get; set; } = "";
+
         // ── iRacing-only ─────────────────────────────────────────────────────
         public double SteeringWheelTorque { get; set; }
+        public double SteeringWheelAngle  { get; set; }
         public int    SessionFlags        { get; set; }
         public int    IncidentCount       { get; set; }
         public int    DrsStatus           { get; set; }
