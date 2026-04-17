@@ -42,14 +42,17 @@ export default function RaceCard({
 }) {
   const meta = (session.metadata || {}) as Record<string, any>
   const pos = session.finishPosition
-  const isDNF = !pos || pos === 0
   const incidents = session.incidentCount ?? 0
   const bestLap = meta.bestLapTime
   const gameName = meta.gameName || 'iRacing'
   const fieldSize: number | null = meta.fieldSize ?? null
 
   const sessionTypeLower = (session.sessionType || session.category || '').toLowerCase()
+  const eventType = (meta.eventType || '').toLowerCase()
   const isPractice = sessionTypeLower.includes('practice')
+  const isTimeTrial = eventType.includes('time trial') || eventType.includes('time_trial') || eventType.includes('lone qualifying')
+  const isDNF = !isTimeTrial && !isPractice && (!pos || pos === 0) && (meta.completedLaps ?? 0) > 0
+  const isNoPosition = !isTimeTrial && !isPractice && (!pos || pos === 0) && (meta.completedLaps ?? 0) === 0
 
   // Practice best lap (from practiceSession metadata)
   const practiceMeta = (practiceSession?.metadata || {}) as Record<string, any>
@@ -82,7 +85,8 @@ export default function RaceCard({
   // Position badge colors
   let posColor = 'var(--text-dim)'
   if (!isPractice) {
-    if (isDNF)          posColor = 'hsl(270,60%,72%)'
+    if (isTimeTrial)    posColor = 'hsl(200,60%,65%)'
+    else if (isDNF)     posColor = 'hsl(0,70%,65%)'
     else if (pos === 1) posColor = 'hsl(45,90%,62%)'
     else if (pos === 2) posColor = 'hsl(0,0%,78%)'
     else if (pos === 3) posColor = 'hsl(30,65%,58%)'
@@ -233,8 +237,12 @@ export default function RaceCard({
           {!isPractice && (
             <div className="flex flex-col items-end shrink-0 leading-none" style={{ color: posColor }}>
               <div className="flex items-end">
-                {isDNF ? (
+                {isTimeTrial ? (
+                  <span className="text-lg font-black tracking-tight" style={{ fontFamily: 'var(--ff-display)', color: 'hsl(200,60%,65%)' }}>TT</span>
+                ) : isDNF ? (
                   <span className="text-lg font-black tracking-tight" style={{ fontFamily: 'var(--ff-display)' }}>DNF</span>
+                ) : isNoPosition ? (
+                  <span className="text-lg font-bold tracking-tight opacity-40" style={{ fontFamily: 'var(--ff-display)' }}>—</span>
                 ) : (
                   <>
                     <span className="text-base font-bold mr-0.5 mb-0.5 opacity-70" style={{ fontFamily: 'var(--ff-display)' }}>P</span>
@@ -242,7 +250,7 @@ export default function RaceCard({
                   </>
                 )}
               </div>
-              {fieldSize && !isDNF && (
+              {fieldSize && !isDNF && !isTimeTrial && !isNoPosition && (
                 <span className="text-xs font-semibold mt-0.5 opacity-60">of {fieldSize}</span>
               )}
             </div>

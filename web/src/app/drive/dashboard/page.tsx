@@ -99,7 +99,6 @@ export default async function DashboardPage() {
           ),
         )
         .limit(1);
-      isPluginConnected = activeTokens.length > 0;
 
       allSessions = await db
         .select()
@@ -107,6 +106,23 @@ export default async function DashboardPage() {
         .where(eq(schema.raceSessions.userId, dbUser.id))
         .orderBy(desc(schema.raceSessions.createdAt));
       raceCount = allSessions.length;
+
+      // Consider "connected" if: active plugin token, OR has any imported data
+      // (from extension sync, JSON upload, or web import)
+      const hasPluginToken = activeTokens.length > 0;
+      const hasImportedData = allSessions.length > 0;
+      const hasRatingData = await db
+        .select({ id: schema.ratingHistory.id })
+        .from(schema.ratingHistory)
+        .where(eq(schema.ratingHistory.userId, dbUser.id))
+        .limit(1);
+      const hasDriverRatings = await db
+        .select({ id: schema.driverRatings.id })
+        .from(schema.driverRatings)
+        .where(eq(schema.driverRatings.userId, dbUser.id))
+        .limit(1);
+
+      isPluginConnected = hasPluginToken || hasImportedData || hasRatingData.length > 0 || hasDriverRatings.length > 0;
 
       if (isPluginConnected) {
         recentSessions = allSessions.slice(0, 100) as RaceSession[]; // top 100 for card grouping
@@ -252,13 +268,42 @@ export default async function DashboardPage() {
     // Latest safety rating + license per category
     const seenSR = new Set<string>()
     for (const row of fullRatingHistory) {
-      if (!seenSR.has(row.category)) {
+      if (!seenSR.has(row.category) && row.license !== 'R') {
         seenSR.add(row.category)
         safetyRatingByCategory.push({
           category: row.category,
           safetyRating: row.safetyRating,
           license: row.license,
         })
+      }
+    }
+  }
+
+  // Backfill safety ratings from driverRatings (ground truth from extension sidebar)
+  if (isPluginConnected && dbUser) {
+    const driverRatingsRows = await db
+      .select()
+      .from(schema.driverRatings)
+      .where(eq(schema.driverRatings.userId, dbUser.id))
+
+    const existingSRCategories = new Set(safetyRatingByCategory.map(s => s.category))
+    for (const dr of driverRatingsRows) {
+      if (dr.license !== 'R' && dr.safetyRating !== '0.00') {
+        if (!existingSRCategories.has(dr.category)) {
+          // Add missing categories
+          safetyRatingByCategory.push({
+            category: dr.category,
+            safetyRating: dr.safetyRating,
+            license: dr.license,
+          })
+        } else {
+          // Override placeholder values from ratingHistory
+          const existing = safetyRatingByCategory.find(s => s.category === dr.category)
+          if (existing && (existing.license === 'R' || existing.safetyRating === '0.00')) {
+            existing.safetyRating = dr.safetyRating
+            existing.license = dr.license
+          }
+        }
       }
     }
   }

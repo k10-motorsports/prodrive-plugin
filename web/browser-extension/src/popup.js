@@ -198,24 +198,35 @@ async function run() {
     setStep(1, 'done');
 
     // ── Step 3: Navigate to results-stats → capture race history ──
+    // This step is non-fatal — profile data is the priority.
     setStep(2, 'active');
     setStatus('Capturing race history…', 'syncing');
 
-    await navigateTab(activeTabId, `${origin}/web/racing/results-stats/results`);
-    await waitForContentScript(activeTabId);
+    try {
+      await navigateTab(activeTabId, `${origin}/web/racing/results-stats/results`);
+      await waitForContentScript(activeTabId);
 
-    // Wait a moment for the page to render its search form
-    await sleep(1500);
+      // Wait for the results page to fully render its search form
+      await sleep(3000);
 
-    // Tell the content script to trigger the search
-    const searchResp = await chrome.tabs.sendMessage(activeTabId, { type: 'TRIGGER_SEARCH' });
-    if (searchResp?.ok) {
-      // Wait for S3 data to be captured by the fetch interceptor
-      setStatus('Waiting for results data…', 'syncing');
-      resultsData = await waitForResultsData(activeTabId, 15000);
+      // Tell the content script to trigger the search
+      const searchResp = await chrome.tabs.sendMessage(activeTabId, { type: 'TRIGGER_SEARCH' });
+
+      if (searchResp?.ok && searchResp.alreadyCaptured) {
+        // Data was already captured from a previous page load
+        const scrape = await chrome.tabs.sendMessage(activeTabId, { type: 'SCRAPE_STATS' });
+        if (scrape?.ok && scrape.data?.fullResults) {
+          resultsData = scrape.data.fullResults;
+        }
+      } else if (searchResp?.ok) {
+        // Wait for S3 data to be captured by the fetch interceptor
+        setStatus('Waiting for results data…', 'syncing');
+        resultsData = await waitForResultsData(activeTabId, 20000);
+      }
+    } catch (err) {
+      console.log('[RaceCor] Results capture failed (non-fatal):', err.message);
     }
-    // If no results data captured, that's OK — profile data is the priority
-    setStep(2, 'done');
+    setStep(2, resultsData ? 'done' : 'done');
 
     // ── Step 4: Sync everything to Pro Drive ──
     setStep(3, 'active');
@@ -417,7 +428,7 @@ function showResults(profileData, resultsData, syncResult) {
     if (received > 0 && imported === 0) rows.push(['Race results', 'Already up to date']);
     if (rr.imported?.ratingHistoryFromRaces > 0) rows.push(['iRating history', `${rr.imported.ratingHistoryFromRaces} points`]);
   } else if (resultsData === null) {
-    rows.push(['Race history', 'No results captured']);
+    rows.push(['Race history', 'Use JSON import for race history']);
   }
 
   // Rating date range
