@@ -189,82 +189,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── 3. Import race results from DOM table ─────────────────────────────────
-    // Table columns: date, series, season, car, track, winner, start, finish, inc, points, sof
-    if (recentRaces.length > 0) {
-      // Get existing sessions to dedup
-      const existingSessions = await db.select({
-        metadata: schema.raceSessions.metadata,
-      }).from(schema.raceSessions)
-        .where(eq(schema.raceSessions.userId, userId))
-        .limit(500)
-
-      const existingKeys = new Set(
-        existingSessions
-          .map(s => {
-            const meta = s.metadata as Record<string, unknown> | null
-            return meta?.extensionKey as string | undefined
-          })
-          .filter(Boolean)
-      )
-
-      for (const race of recentRaces) {
-        try {
-          const date = race.date || race.Date || ''
-          const series = race.series || race.Series || ''
-          const track = race.track || race.Track || ''
-          const car = race.car || race.Car || ''
-          const start = parseInt(race.start || race.Start || '0', 10)
-          const finish = parseInt(race.finish || race.Finish || '0', 10)
-          const inc = parseInt(race.inc || race.Inc || '0', 10)
-          const sof = parseInt(race.sof || race.SOF || '0', 10)
-          const points = parseInt(race.points || race.Points || '0', 10)
-
-          if (!date || !track) continue
-
-          // Build a dedup key from date + track + series
-          const dedupKey = `${date}|${track}|${series}`.substring(0, 200)
-          if (existingKeys.has(dedupKey)) continue
-
-          // Parse the date (format: "Apr 13, 268:15 PM" → needs fixing)
-          let raceDate: Date
-          try {
-            // The DOM squishes year+time: "Apr 13, 268:15 PM" → "Apr 13, 26 8:15 PM"
-            const fixedDate = date.replace(/(\d{2})(\d+:\d+)/, '$1 $2')
-            // Add "20" prefix to 2-digit year: "Apr 13, 26" → "Apr 13, 2026"
-            const withFullYear = fixedDate.replace(/,\s*(\d{2})\s/, ', 20$1 ')
-            raceDate = new Date(withFullYear)
-            if (isNaN(raceDate.getTime())) raceDate = new Date()
-          } catch {
-            raceDate = new Date()
-          }
-
-          await db.insert(schema.raceSessions).values({
-            userId,
-            carModel: car || 'Unknown',
-            manufacturer: null,
-            category,
-            trackName: track,
-            sessionType: 'race',
-            finishPosition: finish || null,
-            incidentCount: inc || null,
-            metadata: {
-              source: 'extension_sync',
-              extensionKey: dedupKey,
-              seriesName: series,
-              startPosition: start,
-              strengthOfField: sof,
-              champPoints: points,
-            },
-            createdAt: raceDate,
-          })
-          racesProcessed++
-          existingKeys.add(dedupKey)
-        } catch (err: any) {
-          errors.push(`Race: ${err.message}`)
-        }
-      }
-    }
+    // ── 3. Race results from DOM table — SKIPPED ──────────────────────────────
+    // DOM-scraped race results are low-quality (date parsing issues, limited
+    // metadata) and cause duplicates when the user also imports from the
+    // Results & Stats page via the S3 JSON path (/api/iracing/upload).
+    // Race data should come exclusively from the S3 upload path.
+    // The recentRaces field is still accepted but ignored.
 
     // ── 3b. Backfill driverRatings from the newly imported history ───────────
     // If we imported chart history, the latest point is the current rating.

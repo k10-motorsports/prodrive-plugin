@@ -52,24 +52,6 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return;
   }
 
-  if (msg.type === 'TRIGGER_SEARCH') {
-    triggerResultsSearch()
-      .then(result => sendResponse({ ok: true, ...result }))
-      .catch(err => sendResponse({ ok: false, error: err.message }));
-    return true;
-  }
-
-  if (msg.type === 'NAVIGATE') {
-    // Navigate using window.location to preserve iRacing session cookies
-    const targetPath = msg.path || '';
-    if (targetPath) {
-      window.location.href = `${window.location.origin}${targetPath}`;
-      sendResponse({ ok: true });
-    } else {
-      sendResponse({ ok: false, error: 'No path provided' });
-    }
-    return;
-  }
 });
 
 // ─── Main scraper ───────────────────────────────────────────────────────────
@@ -338,28 +320,13 @@ function scrapeCareerStats() {
 function scrapeLicenseSidebar() {
   const CATEGORY_ORDER = ['oval', 'road', 'formula', 'dirt_oval', 'dirt_road'];
 
-  // Find the "Licenses" heading — walk up to find the full sidebar container.
-  // The heading might be nested inside wrappers, so search broadly.
-  let licensesSection = null;
-
-  // Strategy 1: look for a leaf element with exact text "Licenses"
+  // Find the leaf element whose text is exactly "Licenses", then take its parent
   const allEls = document.querySelectorAll('*');
+  let licensesSection = null;
   for (const el of allEls) {
     if (el.children.length === 0 && el.textContent.trim() === 'Licenses') {
-      // Walk up to find a container with enough content (the sidebar widget)
-      let container = el.parentElement;
-      for (let depth = 0; depth < 5 && container; depth++) {
-        const leafTexts = Array.from(container.querySelectorAll('*'))
-          .filter(e => e.children.length === 0 && e.textContent.trim())
-          .map(e => e.textContent.trim());
-        // The licenses section should have license letters like "B 1.76"
-        if (leafTexts.some(t => /^[ABCDPR]\s+\d+\.\d+$/.test(t))) {
-          licensesSection = container;
-          break;
-        }
-        container = container.parentElement;
-      }
-      if (licensesSection) break;
+      licensesSection = el.parentElement;
+      break;
     }
   }
 
@@ -443,61 +410,3 @@ function scrapeRaceResults() {
   return results;
 }
 
-// ─── Results page search trigger ───────────────────────────────────────────
-
-/**
- * On the results-stats/results page, find and click the "Find Results"
- * button to trigger the S3 fetch. The page uses a Chakra UI modal or
- * inline form with a search/submit button.
- *
- * Strategy:
- *   1. Look for visible "Find Results" button and click it
- *   2. If the search form is collapsed, look for "Edit Search" and click that first
- *   3. Then click "Find Results"
- */
-async function triggerResultsSearch() {
-  // Helper: find a button by its visible text
-  function findButton(text) {
-    const buttons = document.querySelectorAll('button, [role="button"], a.btn');
-    for (const btn of buttons) {
-      const btnText = btn.textContent.trim().toLowerCase();
-      if (btnText.includes(text.toLowerCase())) return btn;
-    }
-    return null;
-  }
-
-  // If results are already captured (page auto-loaded), skip
-  if (capturedResultsData) {
-    return { alreadyCaptured: true, count: Array.isArray(capturedResultsData) ? capturedResultsData.length : 0 };
-  }
-
-  // Try clicking "Find Results" directly
-  let findBtn = findButton('Find Results');
-  if (findBtn) {
-    findBtn.click();
-    return { clicked: 'findResults' };
-  }
-
-  // Maybe the form is collapsed — click "Edit Search" first
-  const editBtn = findButton('Edit Search');
-  if (editBtn) {
-    editBtn.click();
-    // Wait for the modal/form to open
-    await new Promise(r => setTimeout(r, 800));
-
-    findBtn = findButton('Find Results');
-    if (findBtn) {
-      findBtn.click();
-      return { clicked: 'editThenFind' };
-    }
-  }
-
-  // Last resort: look for any submit button in a form
-  const submitBtn = document.querySelector('button[type="submit"]');
-  if (submitBtn) {
-    submitBtn.click();
-    return { clicked: 'submit' };
-  }
-
-  return { clicked: null, note: 'No search button found — results may not load' };
-}

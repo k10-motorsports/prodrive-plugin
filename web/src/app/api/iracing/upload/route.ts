@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     if (Array.isArray(recentRaces)) {
       const existingSessions = await db.select().from(schema.raceSessions)
         .where(eq(schema.raceSessions.userId, userId))
-        .limit(500)
+        .limit(2000)
 
       const existingGameIds = new Set(
         existingSessions
@@ -134,6 +134,17 @@ export async function POST(request: NextRequest) {
           .filter(Boolean)
           .map(String)
       )
+
+      // Cross-source dedup: collect IDs of old DOM-scraped sessions
+      // (source: 'extension_sync') so we can delete them when a proper
+      // S3-sourced session for the same race arrives.
+      const extensionSessionsByKey = new Map<string, string>() // extensionKey → session id
+      for (const s of existingSessions) {
+        const meta = s.metadata as Record<string, unknown> | null
+        if (meta?.source === 'extension_sync' && meta?.extensionKey) {
+          extensionSessionsByKey.set(String(meta.extensionKey), s.id)
+        }
+      }
 
       for (const race of recentRaces) {
         try {
@@ -202,6 +213,26 @@ export async function POST(request: NextRequest) {
         } catch (err: any) {
           errors.push(`Race ${race.subsession_id || '?'}: ${err.message}`)
         }
+      }
+    }
+
+    // ── 2b. Clean up old DOM-scraped duplicates ──
+    // If there are any extension_sync sessions, remove them — S3 data is authoritative.
+    if (extensionSessionsByKey.size > 0 && sessionsImported > 0) {
+      const idsToDelete = [...extensionSessionsByKey.values()]
+      let cleaned = 0
+      for (const id of idsToDelete) {
+        try {
+          await db.delete(schema.raceSessions)
+            .where(and(
+              eq(schema.raceSessions.id, id),
+              eq(schema.raceSessions.userId, userId),
+            ))
+          cleaned++
+        } catch { /* ignore individual delete errors */ }
+      }
+      if (cleaned > 0) {
+        console.log(`[iracing/upload] cleaned ${cleaned} old DOM-scraped duplicate sessions`)
       }
     }
 

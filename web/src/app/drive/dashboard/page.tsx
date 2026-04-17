@@ -405,11 +405,17 @@ export default async function DashboardPage() {
         }))
 
         // Determine which categories the user actually races.
-        // Derived from session data + driver ratings (covers cases where
-        // import may have mis-tagged categories, e.g. formula → road).
+        // From sessions: any category with at least one race.
+        // From driver ratings: only categories where the driver has
+        // actually raced (iRating > 0 and license above Rookie).
+        // The extension scrapes ALL 5 license categories from the
+        // sidebar, but categories with iRating 0 / Rookie license
+        // mean the driver has never competed there.
         const activeCategories = [...new Set([
           ...sessionInputs.map(s => s.category),
-          ...driverRatingInputs.map(dr => dr.category),
+          ...driverRatingInputs
+            .filter(dr => dr.iRating > 0 || dr.license !== 'R')
+            .map(dr => dr.category),
         ])]
         // Always include 'formula' alongside 'road' — iRacing merged
         // sports_car into road, and the JSON import predates formula detection,
