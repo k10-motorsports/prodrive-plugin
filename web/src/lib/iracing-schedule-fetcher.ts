@@ -172,11 +172,8 @@ interface WeekPlannerTrack {
 }
 
 function mapToIRacingSchedule(series: WeekPlannerSeries): IRacingSchedule {
-  // iRacing licence groups: 1=oval, 2=road, 3=dirt_oval, 4=dirt_road, 5=sports_car(→road), 6=formula
-  // Formula shares catid 2 with road, so we use licenceGroup to distinguish it
-  const category = series.licenceGroup === 6
-    ? 'formula'
-    : CATID_MAP[series.catid] || 'road'
+  // catid: 1=oval, 2=road(unused), 3=dirt_oval, 4=dirt_road, 5=road/sports_car, 6=formula
+  const category = CATID_MAP[series.catid] || 'road'
 
   return {
     season_id: series.seasonid,

@@ -754,42 +754,23 @@ export function computeNextRaceIdeas(
   ratingHistory: RatingInput[],
   driverRatings: DriverRatingInput[],
   schedule: IRacingSchedule[],
+  activeCategories?: string[],
 ): RaceSuggestion[] {
   const now = new Date()
   const suggestions: RaceSuggestion[] = []
 
-  // Build a map of category -> driver current license level
-  // If the driver has no rating data for a category, default to Rookie (level 1)
-  // so they still get suggestions for categories they race in but haven't tracked ratings for.
-  const driverLicenseMap = new Map<string, number>()
-  for (const rating of driverRatings) {
-    driverLicenseMap.set(rating.category, licenseTolevel(rating.license))
-  }
+  // If activeCategories is provided, only generate suggestions for those.
+  const allowedCategories = activeCategories
+    ? new Set(activeCategories)
+    : null
 
-  // Also include categories the driver has session data for (e.g. from JSON import)
-  const categoriesFromSessions = new Set(sessions.map(s => s.category).filter(Boolean))
-  for (const cat of categoriesFromSessions) {
-    if (!driverLicenseMap.has(cat)) {
-      driverLicenseMap.set(cat, 1) // Rookie default
-    }
-  }
-
-  // Process each season in the schedule
   for (const season of schedule) {
-    // Process each schedule in this season
     for (const scheduleItem of season.schedules) {
       const track = scheduleItem.track
       const category = track.category || 'road'
 
-      // Check if driver has session data or rating data for this category
-      if (!driverLicenseMap.has(category)) {
-        continue
-      }
-
-      const driverLevel = driverLicenseMap.get(category) || 1
-      if (driverLevel < season.min_license_level) {
-        continue
-      }
+      // Skip categories the user doesn't race
+      if (allowedCategories && !allowedCategories.has(category)) continue
 
       // Find next race start time from race time descriptors
       let bestNextStart: { nextStart: Date; repeatMinutes: number | null } | null = null
@@ -920,19 +901,19 @@ export function computeNextRaceIdeas(
 
 /**
  * Diversify per category — returns up to `perCategory` suggestions for each
- * racing discipline (road, formula, oval, dirt_road, dirt_oval).
- * Within each category, applies greedy diversity (no duplicate series, prefer
- * different tracks, spread across license classes).
+ * category. Within each category, `diversifySelections` spreads picks across
+ * license classes, series, and tracks.
  */
 function diversifyByCategory(
   timeSorted: RaceSuggestion[],
   perCategory: number,
 ): RaceSuggestion[] {
-  // Group candidates by category
+  // Group candidates by category only
   const byCategory = new Map<string, RaceSuggestion[]>()
   for (const s of timeSorted) {
-    if (!byCategory.has(s.category)) byCategory.set(s.category, [])
-    byCategory.get(s.category)!.push(s)
+    const cat = s.category || 'road'
+    if (!byCategory.has(cat)) byCategory.set(cat, [])
+    byCategory.get(cat)!.push(s)
   }
 
   const all: RaceSuggestion[] = []

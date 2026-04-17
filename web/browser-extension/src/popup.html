@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=360" />
+  <title>RaceCor iRacing Sync</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 360px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f0f;
+      color: #e5e5e5;
+      padding: 20px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .header img { width: 28px; height: 28px; border-radius: 6px; }
+    .header h1 { font-size: 16px; font-weight: 600; color: #fff; }
+
+    .status-bar {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
+      font-size: 13px;
+    }
+    .status-bar .label { color: #888; margin-bottom: 4px; }
+    .status-bar .value { color: #e5e5e5; font-weight: 500; }
+    .status-bar .value.error { color: #f87171; }
+    .status-bar .value.success { color: #4ade80; }
+
+    .endpoint-input {
+      width: 100%;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: #e5e5e5;
+      font-size: 12px;
+      font-family: monospace;
+      margin-bottom: 16px;
+    }
+    .endpoint-input:focus { outline: none; border-color: #c2410c; }
+    .endpoint-label {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: #c2410c;
+      color: #fff;
+    }
+    .btn-primary:hover { background: #9a3412; }
+    .btn-primary:disabled {
+      background: #444;
+      color: #888;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      color: #e5e5e5;
+      margin-top: 8px;
+    }
+    .btn-secondary:hover { background: #222; }
+
+    .results {
+      margin-top: 16px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      display: none;
+    }
+    .results h3 { font-size: 13px; margin-bottom: 8px; color: #fff; }
+    .results .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid #222;
+    }
+    .results .stat-row:last-child { border-bottom: none; }
+    .results .stat-label { color: #888; }
+    .results .stat-value { color: #e5e5e5; font-weight: 500; }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #666;
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .footer {
+      margin-top: 16px;
+      text-align: center;
+      font-size: 11px;
+      color: #555;
+    }
+    .footer a { color: #c2410c; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>RaceCor iRacing Sync</h1>
+  </div>
+
+  <div class="status-bar">
+    <div class="label">Page status</div>
+    <div class="value" id="pageStatus">Checking…</div>
+  </div>
+
+  <label class="endpoint-label">Pro Drive sync endpoint</label>
+  <input
+    type="text"
+    class="endpoint-input"
+    id="endpoint"
+    value="https://prodrive.racecor.io/api/iracing/extension-sync"
+    placeholder="https://prodrive.racecor.io/api/iracing/extension-sync"
+  />
+
+  <button class="btn btn-primary" id="scrapeBtn" disabled>
+    Scrape Stats from This Page
+  </button>
+  <button class="btn btn-secondary" id="syncBtn" disabled>
+    Sync to Pro Drive
+  </button>
+
+  <div class="results" id="results">
+    <h3>Scraped Data</h3>
+    <div id="resultRows"></div>
+  </div>
+
+  <div class="footer">
+    <a href="https://prodrive.racecor.io" target="_blank">prodrive.racecor.io</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

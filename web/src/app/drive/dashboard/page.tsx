@@ -359,11 +359,27 @@ export default async function DashboardPage() {
           license: dr.license,
         }))
 
+        // Determine which categories the user actually races.
+        // Derived from session data + driver ratings (covers cases where
+        // import may have mis-tagged categories, e.g. formula → road).
+        const activeCategories = [...new Set([
+          ...sessionInputs.map(s => s.category),
+          ...driverRatingInputs.map(dr => dr.category),
+        ])]
+        // Always include 'formula' alongside 'road' — iRacing merged
+        // sports_car into road, and the JSON import predates formula detection,
+        // so formula sessions may be tagged as road. Once re-imported this
+        // is a no-op (formula will already be in the set).
+        if (activeCategories.includes('road') && !activeCategories.includes('formula')) {
+          activeCategories.push('formula')
+        }
+
         const rawSuggestions = computeNextRaceIdeas(
           sessionInputs,
           ratingInputs,
           driverRatingInputs,
           scheduleData,
+          activeCategories,
         )
 
         // Map to component display type with serialized dates
@@ -719,29 +735,25 @@ export default async function DashboardPage() {
       <div className="max-w-[120rem] mx-auto px-6 py-6">
         {isPluginConnected ? (
           <>
-            {/* Next Race Ideas — full-width multi-column layout */}
-            {nextRaceSuggestions.length > 0 && (
-              <section className="mb-6">
-                <NextRaceIdeas
-                  suggestions={nextRaceSuggestions}
-                  lookups={{
-                    trackMapLookup,
-                    trackLogoLookup,
-                    trackImageLookup,
-                    trackDisplayNameLookup,
-                    carImageLookup,
-                    brandLogoLookup,
-                  }}
-                />
-              </section>
-            )}
-
-            {/* Dashboard top grid — viz left, moments + session length right */}
-            {(recentMoments.length > 0 || vizData.length > 0) && (
+            {/* Dashboard top grid — suggested races + viz left, moments + session length right */}
+            {(nextRaceSuggestions.length > 0 || recentMoments.length > 0 || vizData.length > 0) && (
               <section className="mb-6">
                 <div className="grid grid-cols-1 md:grid-cols-[3fr_1fr] lg:grid-cols-[3fr_1fr] gap-4">
                   {/* ── Left column ── */}
                   <div className="flex flex-col gap-4">
+                    {nextRaceSuggestions.length > 0 && (
+                      <NextRaceIdeas
+                        suggestions={nextRaceSuggestions}
+                        lookups={{
+                          trackMapLookup,
+                          trackLogoLookup,
+                          trackImageLookup,
+                          trackDisplayNameLookup,
+                          carImageLookup,
+                          brandLogoLookup,
+                        }}
+                      />
+                    )}
                     {vizData.length > 0 && (
                       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                         <RaceCalendarHeatmap sessions={vizData} />

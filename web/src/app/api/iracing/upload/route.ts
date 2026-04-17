@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { db, schema } from '@/db'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, desc } from 'drizzle-orm'
 import { buildTrackLookup, resolveTrackName, consolidateUserTracks } from '@/lib/resolve-track'
 import { resolveIRacingTrackId } from '@/data/iracing-track-map'
 
@@ -250,24 +250,62 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 5. Import career summary → driverRatings ──
-    // If careerSummary was provided, use it. Otherwise derive categories from race data.
-    const categoriesToUpsert = new Set<string>()
+    // Build a map of category → { iRating, safetyRating, license } from the
+    // best available source: career summary first, then most recent race data.
+    const categoryMap: Record<number, string> = {
+      1: 'oval', 2: 'road', 3: 'dirt_oval', 4: 'dirt_road', 5: 'road', 6: 'formula',
+    }
+    const categoryRatings = new Map<string, { iRating: number; safetyRating: string; license: string }>()
 
     if (Array.isArray(careerSummary) && careerSummary.length > 0) {
-      const categoryMap: Record<number, string> = {
-        1: 'oval', 2: 'road', 3: 'dirt_oval', 4: 'dirt_road', 5: 'road',
-      }
       for (const cat of careerSummary) {
-        categoriesToUpsert.add(categoryMap[cat.category_id] || 'road')
-      }
-    } else if (recentRaces.length > 0) {
-      // Derive categories from the races we just imported
-      for (const race of recentRaces) {
-        categoriesToUpsert.add(detectCategoryFromRace(race))
+        const category = categoryMap[cat.category_id] || 'road'
+        const iRating = cat.irating ?? cat.iRating ?? cat.current_irating ?? 0
+        const srRaw = cat.safety_rating ?? cat.safetyRating ?? cat.sr ?? 0
+        const safetyRating = typeof srRaw === 'number' ? srRaw.toFixed(2) : String(srRaw)
+        // License: try license_level (1-20), then license letter
+        let license = 'R'
+        const licLevel = cat.license_level ?? cat.licenseLevel ?? 0
+        if (licLevel >= 17) license = 'A'
+        else if (licLevel >= 13) license = 'B'
+        else if (licLevel >= 9) license = 'C'
+        else if (licLevel >= 5) license = 'D'
+        else if (cat.group_name || cat.license) {
+          const letter = (cat.group_name || cat.license || '').charAt(0).toUpperCase()
+          if ('ABCDPR'.includes(letter)) license = letter === 'P' ? 'A' : letter
+        }
+        categoryRatings.set(category, { iRating, safetyRating, license })
       }
     }
 
-    for (const category of categoriesToUpsert) {
+    // Fill in any categories we saw in race data but not in career summary
+    if (recentRaces.length > 0) {
+      // Sort newest first so we get the latest rating per category
+      const sorted = [...recentRaces].sort((a, b) => {
+        const ta = new Date(a.session_start_time || a.start_time || 0).getTime()
+        const tb = new Date(b.session_start_time || b.start_time || 0).getTime()
+        return tb - ta
+      })
+      for (const race of sorted) {
+        const category = detectCategoryFromRace(race)
+        if (categoryRatings.has(category)) continue // career summary takes precedence
+        const postIR = race.newi_rating ?? race.new_irating ?? 0
+        if (postIR <= 0) continue
+        const postSR = ((race.new_sub_level ?? 0) / 100).toFixed(2)
+        let license = 'R'
+        const newLL = race.new_license_level
+        if (newLL) {
+          if (newLL >= 17) license = 'A'
+          else if (newLL >= 13) license = 'B'
+          else if (newLL >= 9) license = 'C'
+          else if (newLL >= 5) license = 'D'
+        }
+        categoryRatings.set(category, { iRating: Math.round(postIR), safetyRating: postSR, license })
+      }
+    }
+
+    // First, try using categoryRatings from career summary / race data
+    for (const [category, ratings] of categoryRatings) {
       try {
         const existing = await db.select().from(schema.driverRatings)
           .where(and(
@@ -280,14 +318,83 @@ export async function POST(request: NextRequest) {
           await db.insert(schema.driverRatings).values({
             userId,
             category,
-            iRating: 0,
-            safetyRating: '0.00',
-            license: 'R',
+            iRating: ratings.iRating,
+            safetyRating: ratings.safetyRating,
+            license: ratings.license,
           })
+        } else if (ratings.iRating > 0) {
+          await db.update(schema.driverRatings).set({
+            iRating: ratings.iRating,
+            safetyRating: ratings.safetyRating,
+            license: ratings.license,
+          }).where(and(
+            eq(schema.driverRatings.userId, userId),
+            eq(schema.driverRatings.category, category)
+          ))
         }
         ratingsUpdated++
       } catch (err: any) {
         errors.push(`Rating ${category}: ${err.message}`)
+      }
+    }
+
+    // Then, backfill from rating_history — this is the most reliable source
+    // since it's already been populated from race iRating data (section 3).
+    // For each category, grab the most recent rating_history entry and use it.
+    const ratingHistoryCategories = await db.select({
+      category: schema.ratingHistory.category,
+      iRating: schema.ratingHistory.iRating,
+      safetyRating: schema.ratingHistory.safetyRating,
+      license: schema.ratingHistory.license,
+    })
+      .from(schema.ratingHistory)
+      .where(eq(schema.ratingHistory.userId, userId))
+      .orderBy(desc(schema.ratingHistory.createdAt))
+
+    const latestByCategory = new Map<string, { iRating: number; safetyRating: string; license: string }>()
+    for (const row of ratingHistoryCategories) {
+      if (!latestByCategory.has(row.category)) {
+        latestByCategory.set(row.category, {
+          iRating: row.iRating,
+          safetyRating: row.safetyRating,
+          license: row.license,
+        })
+      }
+    }
+
+    for (const [category, latest] of latestByCategory) {
+      if (latest.iRating <= 0) continue
+      try {
+        const existing = await db.select().from(schema.driverRatings)
+          .where(and(
+            eq(schema.driverRatings.userId, userId),
+            eq(schema.driverRatings.category, category)
+          ))
+          .limit(1)
+
+        if (existing.length === 0) {
+          await db.insert(schema.driverRatings).values({
+            userId,
+            category,
+            iRating: latest.iRating,
+            safetyRating: latest.safetyRating,
+            license: latest.license,
+          })
+          ratingsUpdated++
+        } else if (existing[0].iRating === 0 || existing[0].license === 'R') {
+          // Overwrite stubs with real data from rating history
+          await db.update(schema.driverRatings).set({
+            iRating: latest.iRating,
+            safetyRating: latest.safetyRating,
+            license: latest.license,
+          }).where(and(
+            eq(schema.driverRatings.userId, userId),
+            eq(schema.driverRatings.category, category)
+          ))
+          ratingsUpdated++
+        }
+      } catch (err: any) {
+        errors.push(`Rating backfill ${category}: ${err.message}`)
       }
     }
 
@@ -331,10 +438,9 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// iRacing license_category_id: 1=oval, 2=road, 3=dirt_oval, 4=dirt_road
-// 5 was sports_car but iRacing merged it into road in 2024 S2
+// iRacing license_category_id: 1=oval, 2=road, 3=dirt_oval, 4=dirt_road, 5=sports_car(→road), 6=formula
 const IRACING_CATEGORY_MAP: Record<number, string> = {
-  1: 'oval', 2: 'road', 3: 'dirt_oval', 4: 'dirt_road', 5: 'road',
+  1: 'oval', 2: 'road', 3: 'dirt_oval', 4: 'dirt_road', 5: 'road', 6: 'formula',
 }
 
 function detectCategoryFromRace(race: Record<string, unknown>): string {
@@ -344,6 +450,7 @@ function detectCategoryFromRace(race: Record<string, unknown>): string {
 
   // Fallback: parse license_category string
   const catStr = ((race.license_category || '') as string).toLowerCase()
+  if (catStr === 'formula car') return 'formula'
   if (catStr === 'sports car') return 'road' // merged into road in 2024 S2
   if (catStr === 'dirt oval') return 'dirt_oval'
   if (catStr === 'dirt road') return 'dirt_road'
@@ -352,6 +459,10 @@ function detectCategoryFromRace(race: Record<string, unknown>): string {
 
   // Last resort: parse series name
   const s = ((race.series_name || '') as string).toLowerCase()
+  if (s.includes('formula') || s.includes('f1') || s.includes('ir-04') || s.includes('ir04')
+    || s.includes('super formula') || s.includes('w series') || s.includes('formula vee')
+    || s.includes('skip barber') || s.includes('usf 2000') || s.includes('indy pro')
+    || s.includes('formula 1600')) return 'formula'
   if (s.includes('dirt') && s.includes('oval')) return 'dirt_oval'
   if (s.includes('dirt')) return 'dirt_road'
   if (s.includes('oval') || s.includes('nascar') || s.includes('indycar')) return 'oval'
