@@ -12,15 +12,18 @@ Cross-game support via SimHub's telemetry abstraction.
 
 ## Overview
 
-RaceCorProDrive is four things in one repository:
+RaceCorProDrive spans two repositories:
+
+- **This repo** (`alternatekev/k10-motorsports`, open source): SimHub plugin, Electron overlay, Homebridge plugin, installer, MCP agents, docs.
+- **`alternatekev/racecor-prodrive-server`** (closed source): the marketing site at [racecorprodrive.racing](https://racecorprodrive.racing), the Discord-authenticated Pro Drive members area at [prodrive.racecor.io](https://prodrive.racecor.io), mock telemetry server, and the shared component library.
+
+This README covers the open-source rig-side tooling:
 
 **A SimHub plugin** that processes raw telemetry at ~100ms intervals — evaluating 33+ trigger conditions, tracking tire wear and fuel consumption, computing sector splits, estimating iRating, normalizing cross-game data, and serving everything over HTTP as a flat JSON API.
 
 **An Electron overlay** that renders that telemetry as a transparent, always-on-top HUD with WebGL post-processing effects, ambient light sampling, drive mode, leaderboard, and a modular panel system — 28+ JavaScript modules, no build step, running at ~30fps.
 
 **A Homebridge plugin** that maps the same telemetry to Apple HomeKit smart lights, so your room reacts to race flags, proximity warnings, and event severity in real-time.
-
-**A marketing site** at [racecorprodrive.racing](https://racecorprodrive.racing) with a Discord-authenticated Pro Drive members area at [prodrive.racecor.io](https://prodrive.racecor.io).
 
 ## Feature Highlights
 
@@ -156,8 +159,6 @@ Full setup walkthrough with multi-light configuration and automation scripts: **
 │   └── homebridge-plugin/                Homebridge platform plugin (TypeScript)
 │       ├── src/__tests__/                Jest test suite (133 tests)
 │       └── docs/                         Homebridge-specific documentation
-├── web/                                  Next.js 16 marketing site + Pro Drive members area
-│   └── src/                              React 19, Tailwind CSS 4, NextAuth 5, Strapi CMS
 ├── src/agents/                           MCP servers (Model Context Protocol)
 │   ├── simhub-telemetry/                 Live telemetry data reader
 │   ├── k10-plugin/                       Plugin source + dataset inspector

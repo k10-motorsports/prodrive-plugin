@@ -6,10 +6,10 @@ Cross-project scripts for building, installing, launching, and maintaining the p
 
 | Script | Language | Purpose |
 |--------|----------|---------|
-| `build-web-demo.mjs` | Node.js | Generates demo telemetry data for the web overlay widget. Runs automatically as a prebuild step for `web/` (`npm run dev` and `npm run build`). |
 | `parse-shtl.js` | Node.js | Parses SimHub template language (SHTL) files. |
-| `generate-screenshots.py` | Python | Generates screenshots for documentation and testing. |
 | `stamp-version.sh` | Bash | Stamps version numbers across the monorepo (installer `.iss`, package.json files, etc.). |
+
+> **Moved to closed repo:** `build-web-demo.mjs` and `generate-screenshots.py` served the web app and marketing site, which now live in [`alternatekev/racecor-prodrive-server`](https://github.com/alternatekev/racecor-prodrive-server).
 
 ## Platform Launchers (macOS)
 
@@ -29,6 +29,5 @@ Cross-project scripts for building, installing, launching, and maintaining the p
 
 ## Relationship to Other Projects
 
-- `build-web-demo.mjs` is called by `web/package.json` prebuild hooks
 - `stamp-version.sh` updates version strings in `installer/racecor-prodrive.iss` and other files
 - macOS launchers start the `racecor-overlay/` Electron app

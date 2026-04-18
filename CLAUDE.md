@@ -12,13 +12,13 @@ All agent-spawned work MUST use `isolation: "worktree"`. Exceptions: read-only e
 |-----------|-----------|-------|---------|
 | `racecor-plugin/` | [CLAUDE.md](racecor-plugin/CLAUDE.md) | C# .NET 4.8, TypeScript, NUnit, Jest | SimHub plugin + Homebridge plugin |
 | `racecor-overlay/` | [CLAUDE.md](racecor-overlay/CLAUDE.md) | Electron, vanilla JS, WebGL2, Canvas 2D | Overlay HUD (30fps polling) |
-| `web/` | [CLAUDE.md](web/CLAUDE.md) | Next.js 16, React 19, Tailwind 4, Drizzle, Strapi | Marketing site + Pro Drive admin |
-| `web-api/` | — | Node.js ESM | Mock telemetry server (dev only) |
+| `racecor-edit/` | — | — | Replay/editing tool |
 | `src/agents/` | [CLAUDE.md](src/agents/CLAUDE.md) | Node.js, MCP SDK | 3 MCP servers |
-| `racecor-io-components/` | [CLAUDE.md](racecor-io-components/CLAUDE.md) | Storybook, React 19 | Shared component library |
 | `installer/` | [CLAUDE.md](installer/CLAUDE.md) | Inno Setup | Windows installer (.iss) |
 | `scripts/` | [CLAUDE.md](scripts/CLAUDE.md) | Bash, Node, Python | Build, install, launch scripts |
 | `docs/` | [CLAUDE.md](docs/CLAUDE.md) | Markdown, HTML | Architecture and design docs |
+
+> **Note — web side split out:** The marketing site, Pro Drive admin (Next.js), mock telemetry server, and shared React component library now live in the closed [`alternatekev/racecor-prodrive-server`](https://github.com/alternatekev/racecor-prodrive-server) repo. See the "Closed-repo seams" section below for the cross-repo contracts.
 
 ## End-to-End Data Flow (Integration Contract)
 
@@ -39,18 +39,21 @@ iRacing SDK
 
 The plugin is the **producer**, the overlay is the **consumer**, and the HTTP JSON API on port 8889 is the **contract** between them.
 
-## Design System (Cross-Project)
+## Closed-repo seams
 
-The design system spans the overlay and web projects:
+The web-facing side of the product lives in [`alternatekev/racecor-prodrive-server`](https://github.com/alternatekev/racecor-prodrive-server). Two cross-repo contracts matter:
 
-- **Token definitions**: 60+ CSS custom properties, Style Dictionary pipeline (`web/src/lib/tokens/build.ts`)
-- **Visual modes**: Standard, Minimal, Minimal+ (overlay consumes these as CSS classes)
-- **Theme sets**: 12 F1 teams (dark+light per team), stored in DB `theme_sets`/`theme_overrides` tables (web)
-- **Token editor**: Admin UI in web project, generates CSS consumed by the overlay
-- **Overlay consumption**: Plain `.css` files with custom properties in `racecor-overlay/modules/styles/`
-- **Reference docs**: `docs/STYLE_DICTIONARY_PLAN.md`, `docs/STYLEGUIDE.md`
+### 1. Design tokens
 
-When modifying tokens or themes, changes may need to touch both `web/` and `racecor-overlay/`.
+Token definitions and the Style Dictionary pipeline live in the closed repo (`apps/web/src/lib/tokens/build.ts`). The overlay consumes these tokens as CSS custom properties in `racecor-overlay/modules/styles/`.
+
+**Open question:** the publishing mechanism from closed → open isn't decided yet. Current options: private npm package, GitHub release artifact, or manual sync. Until resolved, token changes require manual copy.
+
+Reference docs: `docs/STYLE_DICTIONARY_PLAN.md`, `docs/STYLEGUIDE.md`.
+
+### 2. Demo page generation
+
+The closed repo's marketing site embeds a live dashboard demo built by inlining overlay CSS/JS. The build script (`scripts/build-web-demo.mjs` in the closed repo) expects access to overlay source via `RACECOR_OVERLAY_PATH` env var or a sibling checkout of this repo.
 
 ## CI Workflows
 
