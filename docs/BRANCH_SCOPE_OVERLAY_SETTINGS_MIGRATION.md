@@ -34,28 +34,32 @@ Both repos get a matching `feat/overlay-settings-migration` branch.
 
 ## Implementation plan — checklist
 
-### Phase A — Architecture + scaffolding (this branch, first pass)
+### Phase A — Architecture + scaffolding ✅
 
 - [x] Document scope (this file)
-- [ ] **isInRace signal** — compute in `poll-engine.js`, emit via preload, consume in main
-- [ ] **preload.js** — add `notifyInRaceState` and `onInRaceState`
-- [ ] **main.js** — web-app window is the default; overlay created hidden; `notify-in-race-state` toggles overlay visibility
-- [ ] **Web types** — `src/types/overlay-settings.ts` derived from `_defaultSettings`
-- [ ] **Web hooks** — `useElectronBridge.ts` (enhanced, checks `window.k10`) and `useOverlaySettings.ts` (CRUD via IPC)
-- [ ] **Web route skeleton** — `/drive/admin/overlay-settings/page.tsx` + form container + section scaffolds
-- [ ] **AdminNav** — conditional "Overlay" tab when bridge available
+- [x] **isInRace signal** — compute in `poll-engine.js`, emit via preload, consume in main
+- [x] **preload.js** — `notifyInRaceState` / `onInRaceState` / `getInRaceState`
+- [x] **main.js** — web-app window is the default; overlay created hidden; `notify-in-race-state` toggles visibility; green-screen mode bypasses inversion
+- [x] **Web types** — `src/types/overlay-settings.ts` (all ~45 keys + literal-union types)
+- [x] **Web hooks** — `useElectronBridge.ts` checks `window.k10`; `useOverlaySettings.ts` loads + saves with optimistic apply and rollback
+- [x] **Web route skeleton** — `/drive/admin/overlay-settings/page.tsx` + `OverlaySettingsForm` container
+- [x] **AdminNav** — conditional "Overlay" tab when `hasBridge`
 
-### Phase B — Section components (follow-up)
+### Phase B — Section components ✅
 
-- [ ] DashboardModules (13 toggles)
-- [ ] VisualEffects (theme, preset, 10 effect toggles)
-- [ ] LayoutPosition (zoom, corner, offset)
-- [ ] Branding (logo toggles, subtitle)
-- [ ] Leaderboard (focus, max rows, expand)
-- [ ] Datastream (6 field toggles)
-- [ ] AICoach (key, tone, depth)
-- [ ] RaceRules (incident thresholds, flag override)
-- [ ] Modes (rally, drive)
+All nine sections wired against the shared form primitives
+(`fields/Toggle`, `NumberField`, `TextField`, `SelectField`, `RadioGroup`,
+`SliderField`, `FieldRow`):
+
+- [x] DashboardModules (13 toggles)
+- [x] VisualEffects (preset + theme + ambient + 8 effect toggles)
+- [x] LayoutPosition (zoom, corner, Y-offset)
+- [x] Branding (3 logo toggles, subtitle)
+- [x] Leaderboard (focus, max rows, expand)
+- [x] Datastream (6 field toggles)
+- [x] AICoach (key, tone, depth)
+- [x] RaceRules (incident thresholds, flag override)
+- [x] Modes (rally, drive)
 
 ### Phase C — Overlay cleanup (follow-up)
 
