@@ -53,6 +53,8 @@
   <!-- WinForms — needed for FolderBrowserDialog in settings panel -->
   <ItemGroup>
     <Reference Include="System.Windows.Forms" />
+    <!-- Microsoft.CSharp — required for dynamic/DLR call sites on net48 -->
+    <Reference Include="Microsoft.CSharp" />
     <!-- WMI — needed for Moza USB device discovery via Win32_PnPEntity -->
     <Reference Include="System.Management" />
   </ItemGroup>
