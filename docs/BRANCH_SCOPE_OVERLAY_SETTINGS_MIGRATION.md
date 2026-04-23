@@ -11,7 +11,7 @@ Invert the parent/child relationship between the Electron overlay and the web ap
 **After:**
 - The web app (Pro Drive) is the **default** Electron window — opens at app start.
 - The overlay window is **session-only** — hidden at startup, revealed only when `isInRace` becomes true.
-- All configuration UI lives in the web app at `/drive/admin/overlay-settings`, hidden from nav when running outside the Electron shell.
+- All configuration UI lives in the web app at `/drive/settings/overlay`, hidden from nav when running outside the Electron shell.
 - The overlay becomes **read-only, race-only**. Only Connections, Moza, and Recording controls remain in the overlay (they either require Electron APIs or are live-device-coupled).
 
 ## Decisions (captured from conversation)
@@ -42,7 +42,7 @@ Both repos get a matching `feat/overlay-settings-migration` branch.
 - [x] **main.js** — web-app window is the default; overlay created hidden; `notify-in-race-state` toggles visibility; green-screen mode bypasses inversion
 - [x] **Web types** — `src/types/overlay-settings.ts` (closed repo, merged via PR #1)
 - [x] **Web hooks** — `useElectronBridge.ts` + `useOverlaySettings.ts` (closed repo)
-- [x] **Web route skeleton** — `/drive/admin/overlay-settings/page.tsx` + `OverlaySettingsForm` container (closed repo)
+- [x] **Web route skeleton** — `/drive/settings/overlay/page.tsx` + `OverlaySettingsForm` container (closed repo)
 - [x] **AdminNav** — conditional "Overlay" tab when `hasBridge` (closed repo)
 - [x] **Dashboard-window preload + UA tag** — `main.js` dashboard BrowserWindow now loads `preload.js` and tags its UA with `RaceCor/<version>` so `useElectronBridge` flips `hasBridge` true. Without this the tab was hidden even when Phase B was fully shipped.
 
@@ -91,7 +91,7 @@ users can fall back if the web admin surface has rough edges. Migration of the
 actual cleanup is deferred to Phase C′.
 
 - [x] Add "Settings have moved" banner at the top of the overlay settings panel
-- [x] Banner "Open web admin" button calls `k10.openDashboard('/drive/admin/overlay-settings')`
+- [x] Banner "Open web admin" button calls `k10.openDashboard('/drive/settings/overlay')`
 - [x] `openDashboard(path)` accepts an optional route so we can deep-link into the new settings page
 - [ ] Collect beta feedback on web admin UX (naming, grouping, missing fields)
 
