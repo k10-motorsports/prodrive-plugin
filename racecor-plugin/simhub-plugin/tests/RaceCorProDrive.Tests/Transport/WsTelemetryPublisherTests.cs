@@ -6,7 +6,11 @@ using RaceCorProDrive.Plugin.Transport;
 
 namespace RaceCorProDrive.Tests.Transport
 {
+    // Skipped on non-Windows: WsTelemetryPublisher.OnClientConnected logs via
+    // SimHub.Logging.dll, a Windows-only assembly that can't be loaded on the
+    // ubuntu-latest CI runner. Tests run on Windows installs.
     [TestFixture]
+    [Platform("Win")]
     public class WsTelemetryPublisherTests
     {
         private FakeWsConnectionSink _sink;
@@ -33,7 +37,7 @@ namespace RaceCorProDrive.Tests.Transport
             // Snapshot is queued but not sent until Tick is called after connect
             // Let's verify the snapshot was marked for sending by checking client state
             Assert.AreEqual(1, conn.SentMessages.Count, "Should have sent 1 message on Tick after connect");
-            Assert.AreEqual(MessageType.Snapshot, conn.SentMessages[0].Type);
+            Assert.AreEqual(FakeWsConnection.MessageType.Snapshot, conn.SentMessages[0].Type);
         }
 
         /// <summary>
@@ -68,13 +72,13 @@ namespace RaceCorProDrive.Tests.Transport
             // First tick: send snapshot
             _publisher.Tick(dict1);
             Assert.AreEqual(1, conn.SentMessages.Count);
-            Assert.AreEqual(MessageType.Snapshot, conn.SentMessages[0].Type);
+            Assert.AreEqual(FakeWsConnection.MessageType.Snapshot, conn.SentMessages[0].Type);
 
             // Second tick with changed data: send delta
             conn.SentMessages.Clear();
             _publisher.Tick(dict2);
             Assert.AreEqual(1, conn.SentMessages.Count, "Should send delta when key1 changes");
-            Assert.AreEqual(MessageType.Delta, conn.SentMessages[0].Type);
+            Assert.AreEqual(FakeWsConnection.MessageType.Delta, conn.SentMessages[0].Type);
         }
 
         /// <summary>

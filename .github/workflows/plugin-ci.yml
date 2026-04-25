@@ -1,4 +1,0 @@
-# REMOVED — this workflow duplicated the build-plugin job in simhub-ci.yml.
-# Kept as empty file to avoid git conflicts; delete this file entirely when convenient.
-name: "[DISABLED] SimHub Plugin CI"
-on: workflow_dispatch

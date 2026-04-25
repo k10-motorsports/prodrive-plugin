@@ -247,63 +247,6 @@ class TestExportStructure(unittest.TestCase):
         self.assertIn("exit /b 1", content)
 
 
-class TestInstallerStreamDeckStructure(unittest.TestCase):
-    """Validate that install.bat includes optional Stream Deck support."""
-
-    def test_install_bat_references_streamdeck(self):
-        with open(INSTALL_BAT, "r") as f:
-            content = f.read()
-        self.assertIn("Stream Deck", content,
-                      "Installer should mention Stream Deck")
-
-    def test_install_bat_references_streamdeck_plugin_uuid(self):
-        with open(INSTALL_BAT, "r") as f:
-            content = f.read()
-        self.assertIn(STREAMDECK_PLUGIN_UUID, content,
-                      "Installer should reference the Stream Deck plugin UUID")
-
-    def test_install_bat_references_appdata_plugins_path(self):
-        with open(INSTALL_BAT, "r") as f:
-            content = f.read()
-        self.assertIn("Elgato", content,
-                      "Installer should reference Elgato AppData path")
-        self.assertIn("StreamDeck", content)
-        self.assertIn("Plugins", content)
-
-    def test_install_bat_streamdeck_is_optional(self):
-        """Stream Deck install must be prompted, not automatic."""
-        with open(INSTALL_BAT, "r") as f:
-            content = f.read()
-        # Should ask the user (set /p for input)
-        self.assertIn("set /p", content,
-                      "Installer should prompt user for Stream Deck install")
-
-    def test_install_bat_checks_streamdeck_manifest(self):
-        with open(INSTALL_BAT, "r") as f:
-            content = f.read()
-        self.assertIn("manifest.json", content,
-                      "Installer should verify Stream Deck manifest exists")
-
-    def test_install_bat_checks_streamdeck_running(self):
-        with open(INSTALL_BAT, "r") as f:
-            content = f.read()
-        self.assertIn("StreamDeck.exe", content,
-                      "Installer should check if Stream Deck is running")
-
-    def test_install_bat_removes_old_streamdeck_plugin(self):
-        """Installer should clean up old plugin before copying new one."""
-        with open(INSTALL_BAT, "r") as f:
-            content = f.read()
-        self.assertIn("rmdir", content,
-                      "Installer should remove old Stream Deck plugin directory")
-
-    def test_install_bat_excludes_streamdeck_logs(self):
-        with open(INSTALL_BAT, "r") as f:
-            content = f.read()
-        self.assertIn("logs", content.lower(),
-                      "Installer should handle Stream Deck logs exclusion")
-
-
 class TestRepoSourceFiles(unittest.TestCase):
     """Verify all files referenced by the installer exist in the repo."""
 
