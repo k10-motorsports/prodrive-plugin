@@ -1,0 +1,55 @@
+name: Build & Release
+
+# Builds the SimHub plugin (C# net48) on a v* tag and attaches the
+# packed build/ tree as a release asset. Consumed by prodrive-windows'
+# release.yml, which downloads the latest plugin release zip and
+# bundles it into the combined installer.
+#
+# Homebridge plugin is published separately via npm and is not part
+# of this workflow — it has no role in the Windows installer.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-simhub:
+    name: Build SimHub Plugin
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build plugin (Release)
+        shell: pwsh
+        run: |
+          dotnet build `
+            racecor-plugin/simhub-plugin/plugin/RaceCorProDrive.Plugin/RaceCorProDrive.Plugin.csproj `
+            -c Release
+          $dll = "racecor-plugin/simhub-plugin/build/RaceCorProDrive.dll"
+          if (-not (Test-Path $dll)) { throw "Plugin DLL not produced at $dll" }
+          Write-Host "Built: $((Get-Item $dll).Length) bytes"
+
+      - name: Pack build/ tree
+        shell: pwsh
+        run: |
+          Compress-Archive `
+            -Path racecor-plugin/simhub-plugin/build/* `
+            -DestinationPath simhub-plugin.zip
+          Write-Host "Packed: $((Get-Item simhub-plugin.zip).Length) bytes"
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: simhub-plugin.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
