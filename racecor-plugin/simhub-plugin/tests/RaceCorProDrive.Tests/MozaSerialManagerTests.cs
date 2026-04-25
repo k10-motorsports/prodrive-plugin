@@ -466,7 +466,10 @@ namespace RaceCorProDrive.Tests
         //  Verify that diagnostic returns valid JSON without throwing.
         // ═══════════════════════════════════════════════════════════════
 
+        // Skipped on non-Windows: GetSerialPortDiagnosticJson() reads WMI via
+        // System.Management, which has no implementation on Linux/macOS.
         [Test]
+        [Platform("Win")]
         public void GetSerialPortDiagnosticJson_NoMozaHardware_ReturnsValidJson()
         {
             // Call diagnostic on a system that likely has no Moza hardware
@@ -503,7 +506,10 @@ namespace RaceCorProDrive.Tests
         //  Verify that each port diagnostic includes all expected fields.
         // ═══════════════════════════════════════════════════════════════
 
+        // Skipped on non-Windows: GetSerialPortDiagnosticJson() reads WMI via
+        // System.Management, which has no implementation on Linux/macOS.
         [Test]
+        [Platform("Win")]
         public void GetSerialPortDiagnosticJson_FieldsPresent()
         {
             string diagnosticJson = _manager.GetSerialPortDiagnosticJson();

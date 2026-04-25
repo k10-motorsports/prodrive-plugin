@@ -5,7 +5,11 @@ using RaceCorProDrive.Plugin.Transport;
 
 namespace RaceCorProDrive.Tests.Transport
 {
+    // Skipped on non-Windows: WsTelemetryPublisher.OnClientConnected logs via
+    // SimHub.Logging.dll, a Windows-only assembly that can't be loaded on the
+    // ubuntu-latest CI runner. Tests run on Windows installs.
     [TestFixture]
+    [Platform("Win")]
     public class WsTelemetryPublisherResyncTests
     {
         private FakeWsConnectionSink _sink;
