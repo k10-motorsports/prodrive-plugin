@@ -403,6 +403,25 @@ namespace RaceCorProDrive.Plugin.Engine.Moza
                     }
                 }
 
+                // Protocol probe: if description classification missed or hit
+                // only the generic fallback, AND the port opened cleanly here,
+                // ask the device what it is by talking the Moza protocol. This
+                // is what unblocks generic-named Moza hardware where the
+                // description regex can't help. Skip if the port is already
+                // owned by us (we'd collide with live polling) or wasn't
+                // openable (Pit House/another app holds it).
+                string probedDeviceType = null;
+                bool needsProbe = (classificationResult == "NoMatch" || matchedViaFallback)
+                    && portOpenStatus == "Open";
+                if (needsProbe)
+                {
+                    var probed = OpenAndProbe(portName, useCache: false);
+                    if (probed != null)
+                    {
+                        probedDeviceType = probed.Value.ToString();
+                    }
+                }
+
                 var diagnostic = new
                 {
                     portName = portName,
@@ -413,6 +432,7 @@ namespace RaceCorProDrive.Plugin.Engine.Moza
                     regexMatch = regexMatch,
                     classification = classificationResult,
                     matchedViaFallback = matchedViaFallback,
+                    probedDeviceType = probedDeviceType,
                     portOpenStatus = portOpenStatus,
                     portOpenError = string.IsNullOrEmpty(portOpenError) ? null : portOpenError,
                     pollStatus = pollStatus
@@ -421,7 +441,10 @@ namespace RaceCorProDrive.Plugin.Engine.Moza
                 portDiagnostics.Add(diagnostic);
             }
 
-            // Count matched devices by type
+            // Count matched devices by type. A device is "matched" if either
+            // the description regex placed it (classif != NoMatch) or the
+            // protocol probe identified it. We prefer the probe result for
+            // counting if it's set — that's the strongest signal.
             var matchedCount = new Dictionary<string, int>();
             var unmatchedMozaDescriptors = new List<string>();
 
@@ -429,14 +452,19 @@ namespace RaceCorProDrive.Plugin.Engine.Moza
             {
                 var diagObj = (dynamic)diag;
                 string classif = diagObj.classification;
+                string probed = diagObj.probedDeviceType;
 
-                if (classif != "NoMatch")
+                string effectiveType = !string.IsNullOrEmpty(probed)
+                    ? probed
+                    : (classif != "NoMatch" ? classif : null);
+
+                if (effectiveType != null)
                 {
-                    if (!matchedCount.ContainsKey(classif))
-                        matchedCount[classif] = 0;
-                    matchedCount[classif]++;
+                    if (!matchedCount.ContainsKey(effectiveType))
+                        matchedCount[effectiveType] = 0;
+                    matchedCount[effectiveType]++;
 
-                    if (diagObj.matchedViaFallback)
+                    if (diagObj.matchedViaFallback && string.IsNullOrEmpty(probed))
                     {
                         unmatchedMozaDescriptors.Add($"{diagObj.portName} ({diagObj.usbDescription})");
                     }
@@ -536,7 +564,12 @@ namespace RaceCorProDrive.Plugin.Engine.Moza
                 // Query WMI for USB serial device descriptions
                 var portDescriptions = GetUsbSerialDescriptions();
 
+                // Drop the not-Moza probe cache if the port set has changed
+                // (hot-plug, USB cable replug, etc.) so new devices get a probe.
+                RefreshProbeCacheIfPortsChanged(portNames);
+
                 int discoveryMatchedCount = 0;
+                int discoveryProbeIdentifiedCount = 0;
                 var discoveryMatchesByType = new Dictionary<string, int>();
                 var discoveryUnmatchedMozaDescriptors = new List<string>();
 
@@ -551,7 +584,20 @@ namespace RaceCorProDrive.Plugin.Engine.Moza
                         description = desc;
 
                     var match = ClassifyDevice(description);
-                    if (match == null) continue;
+                    bool identifiedByProbe = false;
+                    if (match == null)
+                    {
+                        // Description regex didn't match — fall back to the
+                        // protocol probe. This is the path that catches Moza
+                        // hardware presenting with generic COM names where the
+                        // description contains no "Gudsen"/"MOZA" substring.
+                        var probedType = OpenAndProbe(portName, useCache: true);
+                        if (probedType == null) continue;
+                        match = (probedType.Value, "");
+                        identifiedByProbe = true;
+                        discoveryProbeIdentifiedCount++;
+                        _logInfo($"[MozaSerial] Probe identified {portName} as {probedType.Value} (USB description: \"{description}\")");
+                    }
 
                     discoveryMatchedCount++;
                     string typeStr = match.Value.type.ToString();
@@ -571,7 +617,9 @@ namespace RaceCorProDrive.Plugin.Engine.Moza
                         MozaDeviceRegistry.GetDeviceId(match.Value.type),
                         match.Value.subType)
                     {
-                        UsbDescription = description
+                        UsbDescription = identifiedByProbe && string.IsNullOrEmpty(description)
+                            ? "(identified via protocol probe — generic USB description)"
+                            : description
                     };
 
                     if (TryOpenPort(device))
@@ -589,7 +637,7 @@ namespace RaceCorProDrive.Plugin.Engine.Moza
                 {
                     var sb = new StringBuilder();
                     sb.AppendLine("[MozaSerial] DIAGNOSTIC:");
-                    sb.AppendLine($"  Total ports: {portNames.Length}, Matched Moza devices: {discoveryMatchedCount}");
+                    sb.AppendLine($"  Total ports: {portNames.Length}, Matched Moza devices: {discoveryMatchedCount} ({discoveryProbeIdentifiedCount} via protocol probe)");
                     foreach (var kvp in discoveryMatchesByType)
                     {
                         sb.AppendLine($"    {kvp.Key}: {kvp.Value}");
@@ -784,6 +832,168 @@ namespace RaceCorProDrive.Plugin.Engine.Moza
         // ═══════════════════════════════════════════════════════════════
         //  SERIAL PORT MANAGEMENT
         // ═══════════════════════════════════════════════════════════════
+
+        // ═══════════════════════════════════════════════════════════════
+        //  PROTOCOL PROBE
+        //  Identify a Moza device by talking to it. The description-regex
+        //  classifier in MozaDeviceRegistry can't help when the USB descriptor
+        //  is generic (no "Gudsen"/"MOZA" substring) — many driver stacks
+        //  expose Moza devices as plain "USB Serial Port (COMn)". The probe
+        //  bypasses descriptors entirely: send each candidate device type a
+        //  known-safe read command, watch for a valid framed response with
+        //  the matching nibble-swapped device ID. The device that answers IS
+        //  the device. Scales to every current and future Moza product
+        //  without a per-product VID/PID catalog.
+        // ═══════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Per-device-type single-byte read command used as the probe. Each is
+        /// a non-destructive read of a current setting (FFB strength, deadzone,
+        /// brightness, etc.). The response is short (~5 bytes) and the parser
+        /// only accepts it if the framing, checksum, and nibble-swapped device
+        /// ID all match the request — false positives from non-Moza devices
+        /// are extremely unlikely.
+        /// </summary>
+        private static readonly (MozaDeviceRegistry.MozaDeviceType Type, byte ProbeCmd)[] ProbeCandidates = new[]
+        {
+            (MozaDeviceRegistry.MozaDeviceType.Wheelbase,     MozaDeviceRegistry.WheelbaseCmd.FfbStrength),
+            (MozaDeviceRegistry.MozaDeviceType.Pedals,        MozaDeviceRegistry.PedalCmd.GetCommand(MozaDeviceRegistry.PedalAxis.Throttle, MozaDeviceRegistry.PedalCmd.Deadzone)),
+            (MozaDeviceRegistry.MozaDeviceType.Shifter,       MozaDeviceRegistry.ShifterCmd.Direction),
+            (MozaDeviceRegistry.MozaDeviceType.Handbrake,     MozaDeviceRegistry.HandbrakeCmd.Deadzone),
+            (MozaDeviceRegistry.MozaDeviceType.Dashboard,     MozaDeviceRegistry.DashboardCmd.Brightness),
+            (MozaDeviceRegistry.MozaDeviceType.SteeringWheel, MozaDeviceRegistry.WheelCmd.PaddleMode),
+            (MozaDeviceRegistry.MozaDeviceType.UniversalHub,  MozaDeviceRegistry.HubCmd.CompatibilityMode),
+        };
+
+        /// <summary>
+        /// Cache of ports we've probed and confirmed don't speak the Moza
+        /// protocol. Avoids re-spamming Arduinos/3D printers/CNC controllers
+        /// on every 10s discovery cycle. Cleared when the port set changes
+        /// so hot-plugged devices get a fresh probe.
+        /// </summary>
+        private readonly HashSet<string> _probedNotMoza = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        private string[] _lastKnownPortNames = new string[0];
+
+        /// <summary>
+        /// If the port list has changed since the last discovery cycle, drop
+        /// the not-Moza cache so newly-attached devices get probed.
+        /// </summary>
+        private void RefreshProbeCacheIfPortsChanged(string[] currentPortNames)
+        {
+            bool changed = currentPortNames.Length != _lastKnownPortNames.Length
+                || !currentPortNames.OrderBy(p => p).SequenceEqual(_lastKnownPortNames.OrderBy(p => p));
+            if (changed)
+            {
+                _probedNotMoza.Clear();
+                _lastKnownPortNames = (string[])currentPortNames.Clone();
+            }
+        }
+
+        /// <summary>
+        /// Opens a port, runs ProbeOpenPort, and closes it. Used by discovery
+        /// for unclassified ports and (with cache disabled) by the diagnostic.
+        /// </summary>
+        private MozaDeviceRegistry.MozaDeviceType? OpenAndProbe(string portName, bool useCache = true)
+        {
+            if (useCache && _probedNotMoza.Contains(portName)) return null;
+            // Don't probe ports we've already opened for polling — the open
+            // would fail and a probe response could collide with live traffic.
+            if (_ports.ContainsKey(portName)) return null;
+
+            SerialPort port = null;
+            try
+            {
+                port = new SerialPort(portName, BaudRate, SerialParity, DataBits, SerialStopBits)
+                {
+                    ReadTimeout = ReadTimeoutMs,
+                    WriteTimeout = WriteTimeoutMs,
+                    Handshake = Handshake.None
+                };
+                port.Open();
+                port.DiscardInBuffer();
+                port.DiscardOutBuffer();
+
+                var result = ProbeOpenPort(port);
+                if (result == null && useCache) _probedNotMoza.Add(portName);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                // AccessDenied / NotFound / etc. — port unprobeable right now.
+                // Don't cache as not-Moza: it might be Pit House holding the
+                // port, and once Pit House quits we want to retry.
+                _logWarn($"[MozaSerial] Probe open failed on {portName}: {ex.Message}");
+                return null;
+            }
+            finally
+            {
+                if (port != null)
+                {
+                    try { port.Close(); } catch { }
+                    try { port.Dispose(); } catch { }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sends a probe read packet for each candidate device type and
+        /// returns the type that responded with a valid framed packet whose
+        /// nibble-swapped device ID matches the request. Caller is
+        /// responsible for opening and closing the port.
+        /// </summary>
+        private static MozaDeviceRegistry.MozaDeviceType? ProbeOpenPort(SerialPort port)
+        {
+            foreach (var candidate in ProbeCandidates)
+            {
+                byte deviceId = MozaDeviceRegistry.GetDeviceId(candidate.Type);
+                if (deviceId == 0) continue;
+
+                try
+                {
+                    byte[] packet = MozaPacketBuilder.BuildReadPacket(deviceId, candidate.ProbeCmd);
+                    port.DiscardInBuffer();
+                    port.Write(packet, 0, packet.Length);
+
+                    // ~200ms total wait per candidate. Real Moza devices reply
+                    // in tens of ms; the retry budget covers slow USB hubs and
+                    // scheduling jitter.
+                    int available = 0;
+                    for (int retry = 0; retry < 5; retry++)
+                    {
+                        Thread.Sleep(40);
+                        available = port.BytesToRead;
+                        if (available > 0) break;
+                    }
+                    if (available <= 0) continue;
+
+                    byte[] buffer = new byte[Math.Min(available, ReadBufferSize)];
+                    int read = port.Read(buffer, 0, buffer.Length);
+                    if (read <= 0) continue;
+                    if (read < buffer.Length)
+                        Array.Resize(ref buffer, read);
+
+                    var responses = MozaResponseParser.ParseResponses(buffer);
+                    foreach (var resp in responses)
+                    {
+                        // The parser already validated start byte + checksum.
+                        // We additionally require: this is a read-response
+                        // (group 0xA1) and the un-swapped device ID matches
+                        // the one we asked. That's strong enough that random
+                        // serial noise from a non-Moza device is essentially
+                        // never going to false-positive.
+                        if (resp.IsReadResponse && resp.DeviceId == deviceId)
+                        {
+                            return candidate.Type;
+                        }
+                    }
+                }
+                catch (TimeoutException) { /* next candidate */ }
+                catch (System.IO.IOException) { return null; }
+                catch (InvalidOperationException) { return null; }
+            }
+            return null;
+        }
 
         private bool TryOpenPort(MozaDevice device)
         {
