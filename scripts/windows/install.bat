@@ -107,6 +107,15 @@ timeout /t 2 /nobreak >NUL
 :stopped
 :: Tiny grace so the OS releases file handles.
 timeout /t 1 /nobreak >NUL
+
+:: Belt-and-braces: kill any other PowerShell / pwsh process that
+:: pinned the plugin DLL via [Reflection.Assembly]::LoadFrom (e.g. an
+:: ad-hoc diagnostic shell from earlier in the session). Excludes
+:: this script's own parent shell so we don't terminate ourselves.
+:: The DLL stays loaded for the AppDomain lifetime, blocking the
+:: build's overwrite step with MSB3021 / MSB3027.
+powershell -NoProfile -Command "$self = $PID; Get-Process powershell, pwsh -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $self -and $_.Id -ne $env:PROCESSOR_ID } | ForEach-Object { try { if ($_.Modules | Where-Object { $_.FileName -eq '!SH!\RaceCorProDrive.dll' }) { Write-Host (\"       Releasing DLL lock held by PowerShell PID \" + $_.Id); Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue } } catch {} }" 2>NUL
+
 echo        OK.
 
 :: ── 4. Build plugin ────────────────────────────────────────────
@@ -122,6 +131,9 @@ echo        OK.
 :: silently fails to resolve - producing a wall of CS0246 errors.
 set "SIMHUB_PATH=!SH!\"
 echo  [2/4] Building plugin (%CONFIG%)...
+:: Build always lands in build/ (never directly in SimHub) so we can
+:: pick exactly what to copy.
+set "STAGE=%PLUGIN_REPO%\simhub-plugin\build"
 dotnet build "%PLUGIN_PROJ%" -c %CONFIG% --nologo
 if %ERRORLEVEL% NEQ 0 (
     echo.
@@ -131,20 +143,43 @@ if %ERRORLEVEL% NEQ 0 (
     pause
     exit /b 1
 )
+if not exist "%STAGE%\RaceCorProDrive.dll" (
+    echo  ERROR: Build did not produce RaceCorProDrive.dll at %STAGE%
+    pause
+    exit /b 1
+)
 echo        OK.
 
-:: Sanity check the DLL actually landed.
+:: ── 4b. Surgical copy into SimHub ──────────────────────────────
+:: Copy ONLY the files we own + clearly-third-party deps SimHub
+:: doesn't ship. NEVER copy BCL polyfills (System.Buffers, System.
+:: Memory, System.Threading.Tasks.Extensions, Microsoft.NET.StringTools,
+:: etc.) or shared libs SimHub already has (Newtonsoft.Json, log4net) -
+:: SimHub does strict patch-version checks at startup and a single
+:: mismatch silently disables its entire plugin manager.
+echo  [3/4] Installing plugin files...
+:: Allow-list. Add to this set when you genuinely need a new third-
+:: party dep that SimHub doesn't ship.
+set "COPY_LIST=RaceCorProDrive.dll RaceCorProDrive.pdb IRSDKSharper.dll Fleck.dll MessagePack.dll MessagePack.Annotations.dll"
+for %%F in (%COPY_LIST%) do (
+    if exist "%STAGE%\%%F" (
+        copy /Y "%STAGE%\%%F" "!SH!\%%F" >NUL
+        if !ERRORLEVEL! NEQ 0 (
+            echo  ERROR: Failed to copy %%F to !SH!
+            pause
+            exit /b 1
+        )
+        echo        Copied %%F
+    )
+)
+:: Sanity-check the must-have files landed.
 if not exist "!SH!\RaceCorProDrive.dll" (
-    echo.
-    echo  ERROR: Build succeeded but RaceCorProDrive.dll is missing
-    echo         from !SH!. The csproj's OutputPath logic may have
-    echo         failed - check the build output above.
+    echo  ERROR: RaceCorProDrive.dll didn't land in !SH! after copy.
     pause
     exit /b 1
 )
 
-:: ── 5. Copy dataset ────────────────────────────────────────────
-echo  [3/4] Copying dataset...
+:: Dataset.
 if not exist "!SH!\racecorprodrive-data\" mkdir "!SH!\racecorprodrive-data"
 xcopy /E /Y /Q "%DATA_DIR%\*" "!SH!\racecorprodrive-data\" >NUL
 if %ERRORLEVEL% NEQ 0 (
@@ -152,17 +187,14 @@ if %ERRORLEVEL% NEQ 0 (
     pause
     exit /b 1
 )
-echo        OK.
+echo        Dataset OK.
 
-:: ── 5b. Unblock files (Mark-of-the-Web) ───────────────────────
-:: Files copied from a network share (Parallels Z:\, SMB, etc.) or
-:: downloaded over the internet get tagged with a Zone.Identifier
-:: NTFS alternate data stream. SimHub silently refuses to load
-:: tagged plugin DLLs - the plugin then doesn't even appear in
-:: SimHub's plugin list, with no error UI. Strip those tags so
-:: SimHub treats our files as locally-trusted.
+:: ── 4c. Unblock files (Mark-of-the-Web) ───────────────────────
+:: Files copied from a network share or downloaded over the internet
+:: get tagged with a Zone.Identifier NTFS stream. SimHub silently
+:: refuses to load tagged plugin DLLs.
 echo  [3b]  Unblocking plugin files (Mark-of-the-Web)...
-powershell -NoProfile -Command "Get-ChildItem '!SH!' -Filter 'RaceCorProDrive.*' -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue; Get-ChildItem '!SH!' -Filter '*.dll' -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue; Get-ChildItem '!SH!\racecorprodrive-data' -Recurse -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue" 2>NUL
+powershell -NoProfile -Command "Get-ChildItem '!SH!' -Filter 'RaceCorProDrive.*' -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue; Get-ChildItem '!SH!' -Filter 'IRSDKSharper.dll','Fleck.dll','MessagePack*.dll' -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue; Get-ChildItem '!SH!\racecorprodrive-data' -Recurse -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue" 2>NUL
 echo        OK.
 
 :: ── 6. Restart SimHub ──────────────────────────────────────────
