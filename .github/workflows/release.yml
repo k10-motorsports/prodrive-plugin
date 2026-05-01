@@ -28,6 +28,30 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
+      - name: Stamp version from tag
+        # Rewrites AssemblyVersion / AssemblyFileVersion in
+        # AssemblyInfo.cs from the pushed git tag so the built DLL
+        # actually reflects the release. Without this the CI just
+        # builds whatever was last manually written into the file -
+        # which is how 0.9.42 kept shipping under newer tags.
+        # Tag format: v<MAJOR>.<MINOR>.<PATCH>  (e.g. v0.12.0)
+        # Stamped form: <MAJOR>.<MINOR>.<PATCH>.0
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          if ($tag -notmatch '^v(\d+)\.(\d+)\.(\d+)$') {
+            throw "Tag '$tag' is not in the expected vMAJOR.MINOR.PATCH format"
+          }
+          $version = "$($matches[1]).$($matches[2]).$($matches[3]).0"
+          Write-Host "Stamping version: $version"
+          $info = "racecor-plugin/simhub-plugin/plugin/RaceCorProDrive.Plugin/Properties/AssemblyInfo.cs"
+          $content = Get-Content $info -Raw
+          $content = $content -replace 'AssemblyVersion\("[^"]+"\)',     ('AssemblyVersion("'    + $version + '")')
+          $content = $content -replace 'AssemblyFileVersion\("[^"]+"\)', ('AssemblyFileVersion("' + $version + '")')
+          Set-Content -Path $info -Value $content -NoNewline
+          # Echo the result so the version is visible in the run log.
+          Get-Content $info | Select-String 'AssemblyVersion|AssemblyFileVersion'
+
       - name: Build plugin (Release)
         shell: pwsh
         run: |

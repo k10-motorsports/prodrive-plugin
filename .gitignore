@@ -23,8 +23,13 @@ dist/
 # ── Test results ────────────────────────────────────────────────────
 **/test-results/
 
-# ── Plugin CI build output ────────────────────────────────────────
+# ── Plugin build output ──────────────────────────────────────────
+# Old path (legacy CI builds dropped here)
 racecor-plugin/build/
+# New path (csproj's OutputPath now always points here, so install.bat
+# can surgically copy an allow-list into SimHub instead of writing the
+# whole drop-set of NuGet deps over SimHub's stock files)
+racecor-plugin/simhub-plugin/build/
 
 # ── Claude / MCP config (may contain API tokens) ─────────────────
 .claude/*

@@ -18,11 +18,26 @@ namespace RaceCorProDrive.Plugin.Transport
         private readonly Dictionary<Guid, ClientState> _clientState = new Dictionary<Guid, ClientState>();
         private readonly object _clientStateLock = new object();
 
-        // MessagePack serialization settings
+        // MessagePack serialization settings.
         // TypelessContractlessStandardResolver is required for serializing object-typed members
-        // containing Dictionary<string, object> with mixed primitive values
-        private static readonly MessagePackSerializerOptions _serializerOptions = MessagePackSerializerOptions.Standard
-            .WithResolver(MessagePack.Resolvers.TypelessContractlessStandardResolver.Instance);
+        // containing Dictionary<string, object> with mixed primitive values.
+        //
+        // CRITICAL: Wrapped in Lazy<T> so the MessagePack runtime is NOT
+        // touched at type-load time. The previous direct field initializer
+        // ran during JIT'd type-init when SimHub called Assembly.GetTypes()
+        // on our DLL, dragged MessagePack's static init in, and tripped
+        // the System.Buffers 4.0.3 vs 4.0.4 binding mismatch (see csproj
+        // build warning). The resulting TypeInitializationException
+        // bubbled up as ReflectionTypeLoadException on GetTypes(), which
+        // SimHub's plugin enumerator caught around the whole foreach loop
+        // - so EVERY plugin (bundled + ours) silently vanished from the
+        // settings list. Lazy<T> defers the throw to first SerializeFull/
+        // SerializeDelta call so the assembly loads cleanly and SimHub's
+        // enumerator finishes.
+        private static readonly Lazy<MessagePackSerializerOptions> _serializerOptions =
+            new Lazy<MessagePackSerializerOptions>(() =>
+                MessagePackSerializerOptions.Standard
+                    .WithResolver(MessagePack.Resolvers.TypelessContractlessStandardResolver.Instance));
 
         public WsTelemetryPublisher(IWsConnectionSink sink, Func<DateTime> clock = null)
         {
@@ -175,7 +190,7 @@ namespace RaceCorProDrive.Plugin.Transport
                 d = dict
             };
 
-            return MessagePackSerializer.Serialize(envelope, _serializerOptions);
+            return MessagePackSerializer.Serialize(envelope, _serializerOptions.Value);
         }
 
         /// <summary>
@@ -190,7 +205,7 @@ namespace RaceCorProDrive.Plugin.Transport
                 d = dict
             };
 
-            return MessagePackSerializer.Serialize(envelope, _serializerOptions);
+            return MessagePackSerializer.Serialize(envelope, _serializerOptions.Value);
         }
 
         /// <summary>
