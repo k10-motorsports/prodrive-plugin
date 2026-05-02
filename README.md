@@ -2,128 +2,101 @@
   <img src="src/images/logomark.png" alt="RaceCorProDrive" width="200">
 </p>
 
-# RaceCorProDrive
+# prodrive-plugin — RaceCor.io SimHub plugin
+
+The **SimHub plugin** for RaceCor.io Pro Drive — written in C# (.NET Framework 4.8). Reads iRacing SDK telemetry, normalizes ~100 properties, runs them through commentary triggers and strategy modules, and exposes the result as a flat JSON API on **`http://localhost:8889/racecor-io-pro-drive/`**.
+
+It also pushes session data to the Pro Drive cloud after each race (Bearer-authed `POST /api/iracing/import`) and fetches custom track / sector configuration from the cloud at track change.
 
 ![Dashboard](racecor-plugin/simhub-plugin/docs/dashboard-screenshot.png)
 
-RaceCor.io ProDrive, built under the K10 Motorsports brand, is a broadcast-grade sim racing platform for iRacing that turns raw telemetry into real-time strategic coaching and cinematic visuals — a SimHub plugin written in C# captures 100+ telemetry properties, runs them through tire lifecycle, fuel, pit strategy, and opponent-tracking modules, evaluates 33+ commentary triggers, and serves everything as a flat JSON API on localhost:8889; an Electron overlay polls that API at 30fps and renders the data as a frameless, click-through, always-on-top HUD with WebGL2 post-processing effects (glare, bloom, ambient light sampling, g-force vignette), a full-field leaderboard, an SVG track map, a pitbox strategy panel, and a composable AI commentary system built from 240+ pre-generated Claude Haiku prompt fragments that fire based on race severity; a companion [prodrive-homebridge](https://github.com/k10-motorsports/prodrive-homebridge) plugin maps flag and event telemetry to HomeKit smart lights in real time; a Next.js 16 web app handles two domains — a marketing site at k10motorsports.racing and a Discord-authenticated Pro Drive members area at prodrive.racecor.io with driver performance dashboards, iRating/Safety Rating tracking across all iRacing categories, session debrief, composure and behavior coaching (grounded in academic aggression research), and an admin design-token editor that generates CSS consumed by the overlay's 12 F1-themed visual modes; and the whole thing ships as a single Windows installer with auto-update, backed by 400+ tests across C#, Jest, Python, and Playwright, with the v1.0 roadmap targeting live Claude Haiku commentary at 200–400ms latency and a second phase of opponent-intelligence pit optimization.
+## Where this fits in the wider ecosystem
 
-Cross-game support via SimHub's telemetry abstraction.
+This repo is the **producer** of live telemetry. The consumers and adjacent surfaces live in their own repos:
 
-## Overview
+| Repo | Role |
+|------|------|
+| **`prodrive-plugin`** (this repo) | SimHub plugin (telemetry producer) — opens `localhost:8889`, pushes sessions to cloud |
+| [`prodrive-overlay`](https://github.com/k10-motorsports/prodrive-overlay) | Electron HUD that polls `localhost:8889` at ~30fps. Records `.rcpdv` race bundles. Race Coach (Claude) for live AI commentary. |
+| [`prodrive-windows`](https://github.com/k10-motorsports/prodrive-windows) | Pro Drive Windows desktop app — Library, Editor, Hardware (Moza). Auto-launches the overlay when iRacing starts. |
+| [`prodrive-server`](https://github.com/k10-motorsports/prodrive-server) | racecor.io marketing + Pro Drive members dashboard + Chrome extension + calc engines. The cloud target for plugin's session push. |
+| [`prodrive-homebridge`](https://github.com/k10-motorsports/prodrive-homebridge) | HomeKit smart-light mapping (polls SimHub on port 8888 — not this plugin's port 8889) |
+| [`prodrive-edit`](https://github.com/k10-motorsports/prodrive-edit) | AI-powered race editing pipeline — ingests `.mp4` + `.telemetry.jsonl` pairs |
+| [`prodrive-macos`](https://github.com/k10-motorsports/prodrive-macos) / [`-ios`](https://github.com/k10-motorsports/prodrive-ios) / [`-tvos`](https://github.com/k10-motorsports/prodrive-tvos) | Native Apple clients — read-only viewers over the Pro Drive API |
 
-RaceCorProDrive spans two repositories:
+This README covers only the plugin in this repo.
 
-- **This repo** (`k10-motorsports/prodrive-plugin`, open source): SimHub plugin, Electron overlay, installer, MCP agents, docs.
-- **[`k10-motorsports/prodrive-homebridge`](https://github.com/k10-motorsports/prodrive-homebridge)**: Homebridge plugin that maps telemetry to HomeKit smart lights.
-- **[`k10-motorsports/prodrive-edit`](https://github.com/k10-motorsports/prodrive-edit)**: AI-powered race editing pipeline — telemetry-driven camera switching and race condensing.
-- **`k10-motorsports/prodrive-server`** (closed source): the marketing site at [racecorprodrive.racing](https://racecorprodrive.racing), the Discord-authenticated Pro Drive members area at [prodrive.racecor.io](https://prodrive.racecor.io), mock telemetry server, and the shared component library.
+## What the plugin does
 
-This README covers the rig-side tooling in this repo:
+The plugin captures telemetry snapshots every ~100ms and runs them through a multi-stage processing pipeline: commentary evaluation, sector timing, strategy computation, state diffing. All processed data is served as 100+ JSON properties over an HTTP API on port 8889 (with a WebSocket variant for push consumption).
 
-**A SimHub plugin** that processes raw telemetry at ~100ms intervals — evaluating 33+ trigger conditions, tracking tire wear and fuel consumption, computing sector splits, estimating iRating, normalizing cross-game data, and serving everything over HTTP as a flat JSON API.
+Key systems:
 
-**An Electron overlay** that renders that telemetry as a transparent, always-on-top HUD with WebGL post-processing effects, ambient light sampling, drive mode, leaderboard, and a modular panel system — 28+ JavaScript modules, no build step, running at ~30fps.
+- **Commentary engine** — composable sentence fragments (opener + body + closer), severity-based interruption, cooldown management across 33 topics and 240+ prompt combinations. Fragments are pre-generated offline; **the live AI commentary lives in the overlay's `race-coach.js`**, not in this plugin.
+- **Strategy engine** — real-time tire lifecycle tracking (grip degradation scoring, wear estimation, temp state), fuel computation (burn variance, pit window, fuel-saving detection), stint-aware evaluation with severity-graded coaching calls.
+- **Sector tracker** — auto-detects native iRacing track boundaries, falls back to equidistant sectors. **Cloud-augmented**: at track change, the plugin GETs `https://prodrive.racecor.io/api/tracks?trackName=...` to load custom sector boundaries, cached in-memory until track changes.
+- **iRating estimator** — pre-qualifying iRating display.
+- **Direct iRacing API client** (`IRacingDataClient.cs`) — authenticates against `members-ng.iracing.com/auth` with stored local credentials to fetch the user's live iRating + Safety Rating for the overlay's display.
+- **Country flag normalization** — iRacing's full country names → ISO 2-letter codes for the flag sprite system.
+- **Moza serial control** (`MozaSerialManager.cs`) — direct serial control of Moza wheels for force-feedback events triggered by telemetry.
+- **Plugin actions** — 10 configurable actions (prefixed `RaceCorProDrive.*`) for wheel button and Stream Deck mapping (dismiss prompts, cycle pitbox tabs, navigate pit strategy options, commentary feedback).
 
-## Feature Highlights
+## Cloud surface
 
-### Telemetry Engine (C# / .NET 4.8)
+The plugin is a cloud client, not just a local server. After authenticating via PKCE through `/api/plugin-auth/{authorize, token}`, it stores a Bearer token in `%APPDATA%\RaceCor\plugin\auth.json` and uses it for:
 
-The SimHub plugin captures telemetry snapshots every ~100ms and runs them through a multi-stage processing pipeline: commentary evaluation, sector timing, strategy computation, and state diffing. All processed data is served as 100+ JSON properties over an HTTP API on port 8889.
+- `GET https://prodrive.racecor.io/api/tracks?trackName=...` — track config fetch on track change
+- `POST https://prodrive.racecor.io/api/iracing/import` — session telemetry push at session end
 
-Key systems include a **commentary engine** with composable sentence fragments (opener + body + closer), severity-based interruption, and cooldown management across 33 topics and 240+ prompt combinations; a **strategy engine** with real-time tire lifecycle tracking (grip degradation scoring, wear estimation, temperature state), fuel computation (burn variance, pit window calculation, fuel saving detection), and stint-aware evaluation with severity-graded coaching calls; a **sector tracker** that auto-detects native track boundaries from iRacing telemetry and falls back to equidistant sectors; an **iRating estimator** for pre-qualifying rating display; and **country flag normalization** mapping iRacing's full country names to ISO 2-letter codes for the flag sprite system.
+This is the only path that captures **per-frame telemetry traces** for the cloud (the Chrome extension scrape only sees what iRacing exposes on the website). Telemetry traces land in Vercel Blob; metadata in Postgres.
 
-The plugin exposes 10 configurable actions (prefixed `RaceCorProDrive.*`) for wheel button and Stream Deck mapping — dismiss prompts, cycle pitbox tabs, navigate pit strategy options, and provide commentary feedback.
-
-### Dashboard Overlay (Electron / Vanilla JS)
-
-The overlay renders as a frameless, click-through, always-on-top window with native transparency on x64 Windows and chroma key fallback on ARM. The modular panel system includes:
-
-**Main HUD** — Tachometer with color-coded RPM segments and redline flash, large gear indicator, speed readout, pedal input traces (throttle/brake/clutch histograms), fuel gauge with per-lap consumption and pit window estimates, four-corner tyre temperatures with heat-map coloring, brake bias / TC / ABS controls, race position with live gap times, iRating and Safety Rating displays, and a live lap timer with color-coded delta-to-best.
-
-**Track Map** — SVG minimap centered on the player with heading-up rotation, opponent dots, and per-sector timing with brightness-coded performance indicators.
-
-**Secondary Panels** — Full-field leaderboard with interval and gap-to-leader columns, real-time telemetry datastream, incident tracker, spotter proximity overlay, and a pitbox panel for pit strategy management.
-
-**Race Overlays** — Full-width race control banner, pit limiter speed overlay, and end-of-race results screen.
-
-**Commentary Panel** — Slides in from the edge when the commentary engine fires, tinted to match event sentiment (amber for strategy calls, orange for warnings, red for critical). Auto-dismisses on expiry.
-
-**Visual Effects** — A WebGL2 fragment shader system provides glare, bloom pulse, light sweep, panel glow, dome specular highlights, g-force vignette, and RPM redline effects. An ambient light engine samples a configurable screen region at ~4fps and uses LERP interpolation to drive CSS variable updates across all panels for reactive glass refraction effects.
-
-**Drive HUD Mode** — A fullscreen driving-focused mode (Ctrl+Shift+F) showing only track map, sectors, lap delta, position, spotter, and incident count — designed for direct racing without stream production elements.
-
-### Web (Next.js 16)
-
-Marketing site at [racecorprodrive.racing](https://racecorprodrive.racing) built with Next.js 16, React 19, and Tailwind CSS 4. Includes a Discord-authenticated Pro Drive members area at [prodrive.racecor.io](https://prodrive.racecor.io) with Strapi CMS backing the content layer.
+To pair: open the plugin's settings page in SimHub → "Connect to Pro Drive" → browser handoff → Discord OAuth → token comes back to the plugin.
 
 ## Install
 
 ### Windows Installer (Recommended)
 
-Download **RaceCor-Setup.exe** from the [latest release](https://github.com/alternatekev/media-coach-simhub-plugin/releases/latest). The installer bundles both the SimHub plugin and the Electron overlay. Choose to install either or both during setup — the installer auto-detects your SimHub installation and handles all file placement.
+The Pro Drive Windows desktop app's installer bundles the **overlay only** — not this plugin. To install the plugin:
 
-The plugin includes a built-in **Check for updates** button in its SimHub settings panel that downloads and launches the latest installer automatically.
+1. Install [SimHub](https://www.simhubdash.com/) (free).
+2. Download the latest plugin zip from this repo's [releases](https://github.com/k10-motorsports/prodrive-plugin/releases).
+3. Extract into `%PROGRAMFILES%\SimHub\PluginsData\Common\RaceCor\`.
+4. Restart SimHub. Accept the unsigned-plugin warning the first time.
+5. Open SimHub → **Additional plugins** → enable **RaceCorProDrive**.
+6. (Optional, for cloud sync) Open the plugin's settings panel → **Connect to Pro Drive** → sign in with Discord.
 
-### macOS (Overlay Only)
+Verify the local server with:
 
-The SimHub plugin is Windows-only, but the Electron overlay can run standalone on macOS for reviewing replays, remote dashboard access, or development. Double-click `scripts/mac/RaceCor.command` — it auto-installs Node dependencies, fixes Electron code signing on Apple Silicon, and launches the overlay detached from the terminal. A separate `scripts/mac/install.command` handles a clean dependency install if needed.
+```
+http://localhost:8889/racecor-io-pro-drive/
+```
 
-The overlay connects to a SimHub instance on the network (configure the API URL in settings, e.g. `http://your-pc:8889/racecor-io-pro-drive`).
-
-### Manual Install (SimHub Plugin Only)
-
-Prerequisites: [SimHub](https://www.simhubdash.com/) installed on Windows.
+You should see a JSON blob with 100+ properties.
 
 **iRacing users:** Install the [iRacing Extra Properties](https://drive.google.com/drive/folders/1AiIWHviD4j-_D-zgRrjJU1AFhJ_xmass) plugin by RomainRob for iRating and Safety Rating display. Copy `RSC.iRacingExtraProperties.dll` into your SimHub folder while SimHub is closed.
 
-**Double-click `install.bat`** (in `scripts/windows/`). After installation, launch SimHub, enable "RaceCorProDrive" in the plugin list, and configure display timing and category filters in the plugin settings panel.
-
 The plugin exposes all data as SimHub properties (prefixed `RaceCorProDrive.Plugin.*`), so you can build your own dashboard layout or integrate the properties into an existing one.
 
-Build from source: **[racecor-plugin/simhub-plugin/docs/DEVELOPMENT.md](racecor-plugin/simhub-plugin/docs/DEVELOPMENT.md)**
-
-### Homebridge HomeKit Lights
-
-The Homebridge plugin has moved to **[k10-motorsports/prodrive-homebridge](https://github.com/k10-motorsports/prodrive-homebridge)** — see that repo for installation and configuration.
+Build from source: [racecor-plugin/simhub-plugin/docs/DEVELOPMENT.md](racecor-plugin/simhub-plugin/docs/DEVELOPMENT.md)
 
 ## Repository Structure
 
 ```
-├── racecor-overlay/                      Electron overlay app + dashboard HUD
-│   ├── main.js                           Electron main process (transparency, hotkeys, IPC, screen capture)
-│   ├── preload.js                        IPC bridge
-│   ├── remote-server.js                  LAN HTTP server for remote access
-│   ├── dashboard.html                    Main overlay UI (vanilla JS, no build step)
-│   ├── modules/js/                       28+ JavaScript modules
-│   │   ├── poll-engine.js                Telemetry polling + data routing (~30fps)
-│   │   ├── config.js                     Property subscriptions + state management
-│   │   ├── webgl.js                      WebGL2 glare/bloom/vignette fragment shader
-│   │   ├── ambient-light.js              Screen color sampling + LERP engine
-│   │   ├── drive-hud.js                  Fullscreen driving-focused HUD mode
-│   │   ├── leaderboard.js                Full-field position/gap table
-│   │   ├── datastream.js                 Live telemetry data stream
-│   │   ├── spotter.js                    Proximity overlay
-│   │   ├── pitbox.js                     Pit strategy management
-│   │   ├── sector-hud.js                 Sector timing display
-│   │   ├── track-map.js                  SVG minimap with heading-up rotation
-│   │   └── ...                           Commentary, settings, connections, game detection, etc.
-│   ├── modules/styles/                   10 CSS modules (base, dashboard, effects, ambient, pitbox, etc.)
-│   ├── data/                             Track + car research data
-│   ├── streamdeck/                       Elgato Stream Deck profile + icons
-│   └── images/                           Branding, car logos, country flags
+prodrive-plugin/
 ├── racecor-plugin/                       SimHub C# plugin
 │   ├── simhub-plugin/                    SimHub plugin + data
 │   │   ├── plugin/RaceCorProDrive.Plugin/ C# source (.NET Framework 4.8, WPF)
 │   │   │   ├── Plugin.cs                 Entry point, HTTP server, action registration
 │   │   │   └── Engine/                   Core systems
 │   │   │       ├── CommentaryEngine.cs   Trigger evaluation + prompt assembly
-│   │   │       ├── TelemetrySnapshot.cs  Cross-game telemetry normalization
+│   │   │       ├── TelemetrySnapshot.cs  Cross-game telemetry normalization (cloud track fetch lives here)
 │   │   │       ├── SectorTracker.cs      Native + fallback sector boundary detection
 │   │   │       ├── IRacingSdkBridge.cs   Direct iRacing SDK integration
+│   │   │       ├── IRacingDataClient.cs  Live iRating/SR fetch from members-ng.iracing.com
 │   │   │       ├── IRatingEstimator.cs   Pre-qualifying iRating estimation
 │   │   │       ├── TrackMapProvider.cs   SVG track map generation
 │   │   │       ├── PluginUpdater.cs      GitHub Release auto-updater
+│   │   │       ├── MozaSerialManager.cs  Direct Moza wheel control
 │   │   │       └── Strategy/             Real-time race strategy engine
 │   │   │           ├── StrategyCoordinator.cs  Stint lifecycle + call orchestration
 │   │   │           ├── TireTracker.cs          Grip scoring, wear estimation, temp monitoring
@@ -137,9 +110,9 @@ The Homebridge plugin has moved to **[k10-motorsports/prodrive-homebridge](https
 │   ├── simhub-telemetry/                 Live telemetry data reader
 │   ├── k10-plugin/                       Plugin source + dataset inspector
 │   └── k10-broadcaster/                  Dashboard component inspector
-├── installer/                            Inno Setup combined Windows installer
-├── scripts/                              Platform install + launch scripts
-│   ├── mac/                              macOS install, launch, rebuild
+├── installer/                            (vestigial — combined Windows installer moved to prodrive-windows repo)
+├── scripts/                              Platform launch scripts
+│   ├── mac/                              macOS launch (overlay's mac launcher lives in prodrive-overlay)
 │   └── windows/                          Windows install, start, export, build-installer
 └── .github/workflows/                    CI pipelines + release workflow
 ```
@@ -148,18 +121,14 @@ The Homebridge plugin has moved to **[k10-motorsports/prodrive-homebridge](https
 
 | Document | Covers |
 | --- | --- |
-| **SimHub Plugin** | |
 | [SIMHUB_PLUGIN.md](racecor-plugin/simhub-plugin/docs/SIMHUB_PLUGIN.md) | Plugin architecture, cross-game support, settings, dashboard properties |
 | [COMMENTARY_ENGINE.md](racecor-plugin/simhub-plugin/docs/COMMENTARY_ENGINE.md) | Trigger evaluation pipeline, severity interruption, fragment assembly, cooldowns |
 | [AI_STRATEGIST_DESIGN.md](AI_STRATEGIST_DESIGN.md) | Strategy engine design — tire lifecycle, fuel strategy, pit optimizer, opponent intelligence |
-| **Dashboard Overlay** | |
-| [racecor-overlay/README.md](racecor-overlay/README.md) | Electron overlay setup, panel reference, architecture, drive mode, OBS, Stream Deck |
-| **Homebridge Plugin** (separate repo) | |
-| [prodrive-homebridge](https://github.com/k10-motorsports/prodrive-homebridge) | Homebridge plugin source, color mapping, polling loop, per-light overrides, HomeKit setup |
-| **Shared** | |
 | [DATASETS.md](racecor-plugin/simhub-plugin/docs/DATASETS.md) | Topic schema, trigger conditions, fragment format, how to add new topics |
 | [TESTING.md](racecor-plugin/simhub-plugin/docs/TESTING.md) | Test suites, CI integration |
 | [DEVELOPMENT.md](racecor-plugin/simhub-plugin/docs/DEVELOPMENT.md) | Building from source, project setup, contributor workflow |
+
+For overlay docs see [prodrive-overlay's README](https://github.com/k10-motorsports/prodrive-overlay). For the Pro Drive Windows app see [prodrive-windows](https://github.com/k10-motorsports/prodrive-windows).
 
 ## Testing
 
@@ -177,7 +146,19 @@ The Homebridge plugin's Jest test suite lives in [k10-motorsports/prodrive-homeb
 
 The C# test project uses standalone reimplementations of the plugin's engine logic (no SimHub dependencies), so it runs on any platform with the .NET 6.0 SDK.
 
-Full testing documentation: **[racecor-plugin/simhub-plugin/docs/TESTING.md](racecor-plugin/simhub-plugin/docs/TESTING.md)**
+Full testing documentation: [racecor-plugin/simhub-plugin/docs/TESTING.md](racecor-plugin/simhub-plugin/docs/TESTING.md)
+
+## AI use in this repo (and elsewhere)
+
+**This plugin uses Claude offline only.** The 240+ commentary fragments in `racecor-plugin/simhub-plugin/racecorprodrive-data/commentary_fragments.json` were generated using [Claude](https://claude.ai) (Anthropic's `claude-haiku-4-5` model) with the commentary topics, sentiment vocabulary, and channel style profiles as input. The generation is a one-time offline process — **the plugin makes no Anthropic API calls at runtime**.
+
+**Live AI commentary lives in the overlay**, not here. `prodrive-overlay/modules/js/race-coach.js` calls the Anthropic Messages API directly with rolling race context. It uses the user's own Anthropic API key. See the overlay README for details.
+
+The codebase, test suites, dataset structures, and documentation in this repo were built with [Claude Code](https://claude.ai/claude-code) (Anthropic's `claude-opus-4-7`).
+
+## Release
+
+Wave 1 of the lockstep release (parallel with overlay), per the orchestrator at `agents/.claude/commands/release.md` in the [prodrive-agents](https://github.com/k10-motorsports/prodrive-agents) submodule.
 
 ## Data Sources and Attribution
 
@@ -218,22 +199,6 @@ The commentary voice, phrase patterns, and fragment vocabulary are informed by t
 | [Crew Chief V4](https://gitlab.com/mr_belern/CrewChiefV4) | Spotter phrase patterns and audio composition architecture | [GPL-3.0](https://gitlab.com/mr_belern/CrewChiefV4/-/blob/master/LICENSE) |
 
 The composable fragment system (opener + body + closer) is directly inspired by Crew Chief V4's audio clip composition architecture.
-
-### AI-Assisted Content
-
-Commentary fragments in `racecor-plugin/simhub-plugin/racecorprodrive-data/commentary_fragments.json` were generated using [Claude](https://claude.ai) (Anthropic's `claude-haiku-4-5` model) with the commentary topics, sentiment vocabulary, and channel style profiles as input. The generation is a one-time offline process — no AI API calls occur at runtime in the current version.
-
-Plugin codebase, test suites, dataset structures, documentation, dashboard overlay, strategy engine, and Homebridge companion plugin built with [Claude Code](https://claude.ai/claude-code) (Anthropic's `claude-opus-4-6`).
-
-## Roadmap
-
-### Current (v0.1.x)
-
-Composable sentence fragments assembled at runtime from pre-generated pools. 33 topics with refined thresholds, 240+ unique prompt combinations per topic, severity-based interruption, category+alpha color system, Homebridge integration with per-light mode overrides. Phase 1 strategy engine with tire lifecycle tracking and fuel computation. WebGL post-processing with ambient light sampling. Drive HUD mode. Full leaderboard and datastream panels. Pitbox pit strategy management. Built-in auto-updater.
-
-### Next (v1.0)
-
-Live AI commentary via the Anthropic Messages API (`claude-haiku-4-5`). Instead of selecting from pre-generated fragments, the engine calls Haiku at event fire time (~200-400ms latency) with a context-aware prompt built from the current telemetry snapshot, fired topic, and channel style profile. Falls back to the fragment system if the API key is empty, the network is down, or the response exceeds 1.5 seconds. Strategy Phase 2: opponent intelligence and pit strategy optimization. Corner-by-corner telemetry analysis.
 
 ## License
 
