@@ -51,61 +51,23 @@
             </Border>
 
 
-            <TextBlock Text="Press Ctrl+Shift+S in the overlay to open settings."
+            <!-- Plugin updates moved to the Windows host
+                 (RaceCor Pro Drive → Settings → System → Updates),
+                 the user's primary surface. We keep a static version
+                 readout here so SimHub admins can verify what's
+                 loaded without launching the host. -->
+            <TextBlock x:Name="VersionLabel"
+                       Text="Plugin version: v0.0.0"
                        FontSize="11"
-                    Foreground="#888"
-                    HorizontalAlignment="Center"
-                       Margin="0,0,0,24"/>
-
-            <!-- Updates -->
-            <Grid HorizontalAlignment="Center"
-                    Margin="0,0,0,4">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <Button x:Name="CheckUpdateBtn"
-                        Grid.Column="0"
-                        Content="Check for updates"
-                        Background="#333"
-                        Foreground="White"
-                        BorderBrush="#555"
-                        Padding="10,4"
-                        FontSize="12"
-                        Click="CheckUpdate_Click"/>
-                <Button x:Name="InstallUpdateBtn"
-                        Grid.Column="1"
-                        Content="Download &amp; Install"
-                        Background="#1a5a1a"
-                        Foreground="White"
-                        BorderBrush="#2a8a2a"
-                        Padding="10,4"
-                        Margin="8,0,0,0"
-                        FontSize="12"
-                        Visibility="Collapsed"
-                        Click="InstallUpdate_Click"/>
-                <TextBlock x:Name="UpdateStatusLabel"
-                        Grid.Column="2"
-                           VerticalAlignment="Center"
-                        Margin="12,0,0,0"
-                           Foreground="#999"
-                        FontSize="11"
-                        TextWrapping="Wrap"/>
-            </Grid>
-            <ProgressBar x:Name="UpdateProgress"
-                         Height="4"
-                    Margin="0,6,0,0"
-                         Background="#333"
-                    Foreground="#5a9bcf"
-                         Visibility="Collapsed"/>
-            <TextBlock x:Name="UpdateVersionLabel"
-                       Text=""
-                    FontSize="10"
-                    Foreground="#5a9bcf"
+                       Foreground="#888"
                        HorizontalAlignment="Center"
-                    Margin="0,4,0,0"
-                    TextWrapping="Wrap"/>
+                       Margin="0,0,0,8"/>
+
+            <TextBlock Text="Updates are managed in RaceCor Pro Drive → Settings → System."
+                       FontSize="11"
+                       Foreground="#666"
+                       HorizontalAlignment="Center"
+                       FontStyle="Italic"/>
 
         </StackPanel>
     </Grid>
