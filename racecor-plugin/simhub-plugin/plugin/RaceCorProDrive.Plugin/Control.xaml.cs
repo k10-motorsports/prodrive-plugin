@@ -1,29 +1,24 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Windows;
+using System.Reflection;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
-using SimHub.Plugins;
-using RaceCorProDrive.Plugin.Engine;
 
 namespace RaceCorProDrive.Plugin
 {
     public partial class SettingsControl : UserControl
     {
         private readonly Plugin _plugin;
-        private readonly PluginUpdater _updater = new PluginUpdater();
 
         public SettingsControl(Plugin plugin)
         {
             _plugin = plugin;
             InitializeComponent();
 
-            // Load logo
+            // Load logo (sits next to the plugin DLL on disk).
             try
             {
-                var asmDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? "";
+                var asmDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
                 var iconPath = Path.Combine(asmDir, "icon.png");
                 if (File.Exists(iconPath))
                 {
@@ -32,81 +27,25 @@ namespace RaceCorProDrive.Plugin
             }
             catch { /* non-critical */ }
 
-            UpdateStatusLabel.Text = $"Current version: v{_updater.CurrentVersion}";
-
-            // Wire up state change notifications (may fire from background thread)
-            _updater.StateChanged += () =>
-            {
-                Dispatcher.BeginInvoke(new Action(RefreshUpdateUI));
-            };
+            // Show the plugin's current version. The updater used to
+            // live here; it now lives in the WinUI host (RaceCor Pro
+            // Drive → Settings → System → Updates), which is the
+            // user's primary surface. Keeping a static version label
+            // here so SimHub admins can still verify what's loaded.
+            VersionLabel.Text = "Plugin version: v" + ReadAssemblyVersion();
         }
 
-
-        // ── Update UI ────────────────────────────────────────────
-
-        private async void CheckUpdate_Click(object sender, RoutedEventArgs e)
+        private static string ReadAssemblyVersion()
         {
-            CheckUpdateBtn.IsEnabled = false;
-            CheckUpdateBtn.Content = "Checking…";
-            await _updater.CheckForUpdateAsync();
-            CheckUpdateBtn.IsEnabled = true;
-            CheckUpdateBtn.Content = "Check for updates";
-        }
-
-        private async void InstallUpdate_Click(object sender, RoutedEventArgs e)
-        {
-            InstallUpdateBtn.IsEnabled = false;
-            InstallUpdateBtn.Content = "Downloading…";
-            UpdateProgress.Visibility = Visibility.Visible;
-            await _updater.DownloadAndInstallAsync();
-        }
-
-        private void RefreshUpdateUI()
-        {
-            if (_updater.IsChecking)
+            var asm = Assembly.GetExecutingAssembly();
+            var info = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+            if (!string.IsNullOrWhiteSpace(info))
             {
-                UpdateStatusLabel.Text = "Checking for updates…";
-                UpdateStatusLabel.Foreground = new System.Windows.Media.SolidColorBrush(
-                    System.Windows.Media.Color.FromRgb(0x99, 0x99, 0x99));
-                return;
+                var plus = info.IndexOf('+');
+                return plus > 0 ? info.Substring(0, plus) : info;
             }
-
-            if (_updater.IsDownloading)
-            {
-                UpdateStatusLabel.Text = $"Downloading… {_updater.DownloadPercent}%";
-                UpdateProgress.Value = _updater.DownloadPercent;
-                return;
-            }
-
-            if (!string.IsNullOrEmpty(_updater.ErrorMessage))
-            {
-                UpdateStatusLabel.Text = _updater.ErrorMessage;
-                UpdateStatusLabel.Foreground = new System.Windows.Media.SolidColorBrush(
-                    System.Windows.Media.Color.FromRgb(0xcf, 0x6f, 0x6f));
-                UpdateProgress.Visibility = Visibility.Collapsed;
-                InstallUpdateBtn.Visibility = Visibility.Collapsed;
-                return;
-            }
-
-            if (_updater.UpdateAvailable)
-            {
-                UpdateStatusLabel.Text = $"v{_updater.LatestVersion} available!";
-                UpdateStatusLabel.Foreground = new System.Windows.Media.SolidColorBrush(
-                    System.Windows.Media.Color.FromRgb(0x6f, 0xcf, 0x6f));
-                InstallUpdateBtn.Visibility = Visibility.Visible;
-                UpdateVersionLabel.Text = !string.IsNullOrEmpty(_updater.ReleaseNotes)
-                    ? _updater.ReleaseNotes
-                    : "";
-            }
-            else
-            {
-                UpdateStatusLabel.Text = $"v{_updater.CurrentVersion} — up to date";
-                UpdateStatusLabel.Foreground = new System.Windows.Media.SolidColorBrush(
-                    System.Windows.Media.Color.FromRgb(0x99, 0x99, 0x99));
-                InstallUpdateBtn.Visibility = Visibility.Collapsed;
-                UpdateProgress.Visibility = Visibility.Collapsed;
-                UpdateVersionLabel.Text = "";
-            }
+            var ver = asm.GetName().Version;
+            return ver != null ? ver.Major + "." + ver.Minor + "." + ver.Build : "0.0.0";
         }
     }
 }
