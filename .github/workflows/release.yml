@@ -65,6 +65,22 @@ jobs:
       - name: Pack build/ tree
         shell: pwsh
         run: |
+          # The build/ output contains DLLs only. Plugin.cs's
+          # ResolveDatasetFile() looks for racecorprodrive-data/ next
+          # to RaceCorProDrive.dll on disk to load the commentary
+          # corpus (topics, fragments, cars, tracks, sentiments). If
+          # the data folder isn't shipped alongside the DLL, the
+          # CommentaryEngine quietly falls back to the 2-topic
+          # hardcoded stub and the overlay's commentary panel goes
+          # essentially silent. Stage the data folder into build/
+          # before zipping so the host installer's CopyTreeRecursive
+          # step has something to copy into SimHub.
+          $dataSrc  = "racecor-plugin/simhub-plugin/racecorprodrive-data"
+          $dataDest = "racecor-plugin/simhub-plugin/build/racecorprodrive-data"
+          if (-not (Test-Path "$dataSrc/commentary_topics.json")) {
+            throw "Plugin data folder missing or incomplete at $dataSrc — commentary corpus would not ship."
+          }
+          Copy-Item -Recurse -Force $dataSrc $dataDest
           Compress-Archive `
             -Path racecor-plugin/simhub-plugin/build/* `
             -DestinationPath simhub-plugin.zip
