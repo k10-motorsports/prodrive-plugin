@@ -37,3 +37,7 @@ racecor-plugin/simhub-plugin/build/
 !.claude/settings.json
 .vercel
 .env*.local
+
+# test coverage output
+.coverage
+coverage/
