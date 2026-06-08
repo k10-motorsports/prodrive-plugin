@@ -23,8 +23,7 @@
       ],
       "nickname": "The Bavarian Workhorse",
       "images": [
-        "https://upload.wikimedia.org/wikipedia/commons/e/e1/Nick_Yelloly_BMW_M4_GT3_GT_World_Challenge_Hockenheim_2022.jpg",
-        "https://upload.wikimedia.org/wikipedia/commons/0/0c/2022_BMW_M4_GT3_%2819047%29.jpg"
+        "https://images.racecor.io/api/v1/cars/bmw-m4-gt3/random?w=1280"
       ]
     },
     "ferrari 296 gt3": {
@@ -47,8 +46,7 @@
       ],
       "nickname": "The Turbo Revolution",
       "images": [
-        "https://upload.wikimedia.org/wikipedia/commons/c/cb/2024_4_Hours_of_Le_Castellet_7.jpg",
-        "https://upload.wikimedia.org/wikipedia/commons/5/5e/Ferrari_296_GT3%2C_DTM_%2855052860867%29.jpg"
+        "https://images.racecor.io/api/v1/cars/ferrari-296-gt3/random?w=1280"
       ]
     },
     "porsche 911 gt3 r": {
@@ -72,8 +70,7 @@
       ],
       "nickname": "The Purist's Choice",
       "images": [
-        "https://upload.wikimedia.org/wikipedia/commons/3/3c/22_le_fant%C3%B4me.jpg",
-        "https://upload.wikimedia.org/wikipedia/commons/e/e1/24h_Le_Mans_2025_-_WGI_%2834%29.jpg"
+        "https://images.racecor.io/api/v1/cars/porsche-911-gt3-r/random?w=1280"
       ]
     },
     "mercedes-amg gt3": {
@@ -97,7 +94,7 @@
       ],
       "nickname": "The German Precision Machine",
       "images": [
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/2017_IMSA_WeatherTech_SportsCar_Championship_Petit_Le_Mans_%2834392983821%29.jpg/1280px-2017_IMSA_WeatherTech_SportsCar_Championship_Petit_Le_Mans_%2834392983821%29.jpg"
+        "https://images.racecor.io/api/v1/cars/mercedes-amg-gt3-2020/random?w=1280"
       ]
     },
     "mclaren 720s gt3": {
@@ -138,7 +135,7 @@
         "Alvaro Parente (McLaren endurance ace, Bathurst 12H champion in the 650S GT3)"
       ],
       "images": [
-        "https://upload.wikimedia.org/wikipedia/commons/7/76/2019_McLaren_720S_GT3_FOS19.jpg"
+        "https://images.racecor.io/api/v1/cars/mclaren-720s-gt3-evo/random?w=1280"
       ]
     },
     "lamborghini huracán gt3": {
@@ -161,7 +158,7 @@
       ],
       "nickname": "The Raging Bull",
       "images": [
-        "https://upload.wikimedia.org/wikipedia/commons/5/59/2018_Rolex_24_%2827393482358%29.jpg"
+        "https://images.racecor.io/api/v1/cars/lamborghini-huracan-gt3-evo/random?w=1280"
       ]
     },
     "audi r8 lms": {
@@ -185,7 +182,7 @@
       ],
       "nickname": "The German Engineer's Answer",
       "images": [
-        "https://upload.wikimedia.org/wikipedia/commons/7/7f/Audi_R8_LMS_Evo_of_Garry_Higgon_%26_Paul_Stokell_%28Adelaide_2022%29.jpg"
+        "https://images.racecor.io/api/v1/cars/audi-r8-lms-evo-ii-gt3/random?w=1280"
       ]
     },
     "aston martin vantage gt3": {
@@ -209,7 +206,7 @@
       ],
       "nickname": "The British Newcomer",
       "images": [
-        "https://upload.wikimedia.org/wikipedia/commons/1/15/2018_Aston_Martin_Vantage_GT3_FOS19.jpg"
+        "https://images.racecor.io/api/v1/cars/aston-martin-vantage-gt3-evo/random?w=1280"
       ]
     },
     "chevrolet corvette z06 gt3": {
@@ -231,7 +228,10 @@
         "high-revving flat-plane crank character",
         "mid-engine balance with muscle-car attitude"
       ],
-      "nickname": "The American Thunder"
+      "nickname": "The American Thunder",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/chevrolet-corvette-z06-gt3r/random?w=1280"
+      ]
     },
     "ford mustang gt3": {
       "displayName": "Ford Mustang GT3",
@@ -250,7 +250,10 @@
         "V8 character with modern efficiency",
         "still establishing its competitive identity"
       ],
-      "nickname": "The Iconic Pony Car"
+      "nickname": "The Iconic Pony Car",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/ford-mustang-gt3/random?w=1280"
+      ]
     },
     "acura nsx gt3": {
       "displayName": "Acura NSX GT3 EVO 22",
@@ -270,7 +273,10 @@
         "mid-engine agility with Honda refinement",
         "predictable and approachable for talented drivers"
       ],
-      "nickname": "The Japanese Craftsman"
+      "nickname": "The Japanese Craftsman",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/acura-nsx-gt3-evo-22/random?w=1280"
+      ]
     },
     "ferrari 488 gt3": {
       "displayName": "Ferrari 488 GT3",
@@ -290,7 +296,10 @@
         "proven race-winning formula",
         "respect for a car that defined an era"
       ],
-      "nickname": "The Legend"
+      "nickname": "The Legend",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/ferrari-488-gt3/random?w=1280"
+      ]
     },
     "bmw m4 gt4": {
       "displayName": "BMW M4 GT4",
@@ -310,7 +319,10 @@
         "approachable turbo power",
         "ideal for drivers stepping into serious motorsport"
       ],
-      "nickname": "The Gateway Drug"
+      "nickname": "The Gateway Drug",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/bmw-m4-gt4/random?w=1280"
+      ]
     },
     "mclaren 570s gt4": {
       "displayName": "McLaren 570S GT4",
@@ -345,6 +357,9 @@
         "Joe Osborne (British GT race winner, elevated to McLaren Factory Driver)",
         "Ben Barnicoat (McLaren Factory, Track-Club British GT campaign)",
         "Michael O'Brien (McLaren Development Programme, Tolman Motorsport Silver Cup contender)"
+      ],
+      "images": [
+        "https://images.racecor.io/api/v1/cars/mclaren-570s-gt4/random?w=1280"
       ]
     },
     "mercedes-amg gt4": {
@@ -363,7 +378,10 @@
         "smooth turbo power delivery",
         "confidence-inspiring for amateur drivers"
       ],
-      "nickname": "The Accessible Premium"
+      "nickname": "The Accessible Premium",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/mercedes-amg-gt4/random?w=1280"
+      ]
     },
     "porsche 718 cayman gt4": {
       "displayName": "Porsche 718 Cayman GT4 Clubsport",
@@ -383,7 +401,10 @@
         "mid-engine sports car feedback",
         "rewards driver skill above all else"
       ],
-      "nickname": "The Purist's GT4"
+      "nickname": "The Purist's GT4",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/porsche-718-cayman-gt4-clubsport/random?w=1280"
+      ]
     },
     "aston martin vantage gt4": {
       "displayName": "Aston Martin Vantage GT4",
@@ -401,7 +422,10 @@
         "front-engine stability",
         "accessible luxury motorsport"
       ],
-      "nickname": "The British Entry Point"
+      "nickname": "The British Entry Point",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/aston-martin-vantage-gt4/random?w=1280"
+      ]
     },
     "ford mustang gt4": {
       "displayName": "Ford Mustang GT4",
@@ -419,7 +443,10 @@
         "front-engine traditional balance",
         "still being discovered by amateur racers"
       ],
-      "nickname": "The American Club Racer"
+      "nickname": "The American Club Racer",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/ford-mustang-gt4/random?w=1280"
+      ]
     },
     "ferrari 499p": {
       "displayName": "Ferrari 499P",
@@ -439,7 +466,10 @@
         "explosive turbo-hybrid acceleration",
         "championship-winning composure"
       ],
-      "nickname": "The Redemption"
+      "nickname": "The Redemption",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/ferrari-499p/random?w=1280"
+      ]
     },
     "porsche 963 gtp": {
       "displayName": "Porsche 963 GTP",
@@ -458,7 +488,10 @@
         "8,000+ rpm flat-six heritage in V8 form",
         "endurance-racing precision"
       ],
-      "nickname": "The Hypercar Vision"
+      "nickname": "The Hypercar Vision",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/porsche-963-gtp/random?w=1280"
+      ]
     },
     "cadillac v-series.r gtp": {
       "displayName": "Cadillac V-Series.R GTP",
@@ -479,8 +512,7 @@
       ],
       "nickname": "The American Muscle Hypercar",
       "images": [
-        "https://upload.wikimedia.org/wikipedia/commons/e/e5/2023_24_Hours_of_Le_Mans_%2852974790571%29.jpg",
-        "https://upload.wikimedia.org/wikipedia/commons/4/4f/2024_24_Hours_of_Le_Mans_%2854094637094%29.jpg"
+        "https://images.racecor.io/api/v1/cars/cadillac-v-series-r-gtp/random?w=1280"
       ]
     },
     "acura arx-06 gtp": {
@@ -501,7 +533,10 @@
         "modern efficiency-focused hybrid power",
         "immediate competitive results"
       ],
-      "nickname": "The Japanese Innovation"
+      "nickname": "The Japanese Innovation",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/acura-arx-06-gtp/random?w=1280"
+      ]
     },
     "bmw m hybrid v8": {
       "displayName": "BMW M Hybrid V8",
@@ -521,7 +556,10 @@
         "return to racing pedigree",
         "modern hybrid integration with heritage power"
       ],
-      "nickname": "The Bavarian Return"
+      "nickname": "The Bavarian Return",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/bmw-m-hybrid-v8/random?w=1280"
+      ]
     },
     "bmw m8 gte": {
       "displayName": "BMW M8 GTE",
@@ -539,7 +577,10 @@
         "aero-dependent handling",
         "competitive race-winning character"
       ],
-      "nickname": "The Aero Warrior"
+      "nickname": "The Aero Warrior",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/bmw-m8-gte/random?w=1280"
+      ]
     },
     "ferrari 488 gte": {
       "displayName": "Ferrari 488 GTE",
@@ -558,7 +599,10 @@
         "race-proven reliability",
         "legendary Ferrari balance"
       ],
-      "nickname": "The GTE Evolution"
+      "nickname": "The GTE Evolution",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/ferrari-488-gte/random?w=1280"
+      ]
     },
     "porsche 911 rsr": {
       "displayName": "Porsche 911 RSR",
@@ -579,7 +623,10 @@
         "screaming naturally aspirated flat-six",
         "boundary-pushing engineering"
       ],
-      "nickname": "The Boundary Pusher"
+      "nickname": "The Boundary Pusher",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/porsche-911-rsr/random?w=1280"
+      ]
     },
     "ford gt gte": {
       "displayName": "Ford GT GTE",
@@ -598,7 +645,10 @@
         "mid-engine American engineering",
         "legacy-honoring performance"
       ],
-      "nickname": "The Poetic Justice"
+      "nickname": "The Poetic Justice",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/ford-gt-gte/random?w=1280"
+      ]
     },
     "chevrolet corvette c8.r": {
       "displayName": "Chevrolet Corvette C8.R",
@@ -618,7 +668,10 @@
         "raw American V8 scream",
         "breaking with tradition"
       ],
-      "nickname": "The American Revolution"
+      "nickname": "The American Revolution",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/chevrolet-corvette-c8r/random?w=1280"
+      ]
     },
     "porsche 919 lmp1": {
       "displayName": "Porsche 919 LMP1",
@@ -638,7 +691,10 @@
         "explosive turbo acceleration",
         "championship-proven consistency"
       ],
-      "nickname": "The Dynasty Builder"
+      "nickname": "The Dynasty Builder",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/porsche-919-lmp1/random?w=1280"
+      ]
     },
     "audi r18 lmp1": {
       "displayName": "Audi R18 LMP1",
@@ -735,7 +791,10 @@
         "high-power accessibility",
         "proven open-wheel formula"
       ],
-      "nickname": "The American Spec"
+      "nickname": "The American Spec",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/dallara-ir-18/random?w=1280"
+      ]
     },
     "dallara f3": {
       "displayName": "Dallara F3",
@@ -754,7 +813,10 @@
         "mechanical grip rewards",
         "equal competitive opportunity"
       ],
-      "nickname": "The Development Spec"
+      "nickname": "The Development Spec",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/dallara-f3/random?w=1280"
+      ]
     },
     "nextgen chevrolet camaro": {
       "displayName": "Next Gen Chevrolet Camaro ZL1",
@@ -773,7 +835,10 @@
         "independent rear suspension agility",
         "new-generation technology"
       ],
-      "nickname": "The Modern Chevy"
+      "nickname": "The Modern Chevy",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/nascar-cup-chevrolet-camaro-zl1/random?w=1280"
+      ]
     },
     "nextgen ford mustang": {
       "displayName": "Next Gen Ford Mustang",
@@ -792,7 +857,10 @@
         "sequential manual control",
         "independent suspension capability"
       ],
-      "nickname": "The Modern Pony Car"
+      "nickname": "The Modern Pony Car",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/nascar-cup-ford-mustang/random?w=1280"
+      ]
     },
     "nextgen toyota camry": {
       "displayName": "Next Gen Toyota Camry",
@@ -811,7 +879,10 @@
         "modern sequential control",
         "equal-technology competition"
       ],
-      "nickname": "The Japanese Competitor"
+      "nickname": "The Japanese Competitor",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/nascar-cup-toyota-camry/random?w=1280"
+      ]
     },
     "porsche 911 cup": {
       "displayName": "Porsche 911 Cup (992)",
@@ -830,7 +901,10 @@
         "naturally aspirated flat-six character",
         "driver-skill determiner"
       ],
-      "nickname": "The Spec Purist"
+      "nickname": "The Spec Purist",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/porsche-911-cup-992-2/random?w=1280"
+      ]
     },
     "mazda mx-5 cup": {
       "displayName": "Global Mazda MX-5 Cup (ND)",
@@ -866,6 +940,9 @@
         "Countless iRacing alumni — nearly every professional sim racer started here",
         "MX-5 Cup champions regularly graduate to IMSA and SCCA professional series",
         "The Mazda Road to 24 scholarship programme has launched dozens of professional careers"
+      ],
+      "images": [
+        "https://images.racecor.io/api/v1/cars/global-mazda-mx-5-cup/random?w=1280"
       ]
     },
     "honda civic type r": {
@@ -941,6 +1018,9 @@
         "George Russell (BRDC F4 Champion 2014 — now Mercedes F1)",
         "Oscar Piastri (FIA F4 UAE podiums 2019 — now McLaren F1)",
         "Andrea Kimi Antonelli (Italian & German F4 Champion 2024 — Mercedes F1 junior)"
+      ],
+      "images": [
+        "https://images.racecor.io/api/v1/cars/fia-f4/random?w=1280"
       ]
     }
   },
