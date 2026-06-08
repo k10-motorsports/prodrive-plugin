@@ -713,7 +713,10 @@
         "torque-rich power delivery",
         "technical courage proven by results"
       ],
-      "nickname": "The Diesel Pioneer"
+      "nickname": "The Diesel Pioneer",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/audi-r8-lms-gt3/random?w=1280"
+      ]
     },
     "dallara p217 lmp2": {
       "displayName": "Dallara P217 LMP2",
@@ -772,7 +775,10 @@
         "efficient turbo-hybrid power",
         "technological supremacy"
       ],
-      "nickname": "The Era Definer"
+      "nickname": "The Era Definer",
+      "images": [
+        "https://images.racecor.io/api/v1/cars/mercedes-amg-w13/random?w=1280"
+      ]
     },
     "dallara ir18 indycar": {
       "displayName": "Dallara IR18 IndyCar",
